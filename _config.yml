@@ -1,0 +1,23 @@
+# GitHub Pages: o que NÃO vai para o site publicado.
+#
+# O app usa só o index.html da raiz e a pasta inclusiapp/ (sem os originais).
+# Testes, ferramentas, documentação e as imagens originais em alta resolução
+# ficam só no repositório: assim o pacote do site fica ~40 MB menor e o
+# deploy termina dentro do tempo limite do GitHub (10 minutos).
+#
+# Antes de pôr aqui uma pasta de inclusiapp/, confira que o app não a carrega
+# (procure o caminho em inclusiapp/src e inclusiapp/index.html).
+exclude:
+  - tests
+  - tools
+  - docs
+  - node_modules
+  - test-results
+  - README.md
+  - package.json
+  - package-lock.json
+  - inclusiapp/exemplo   # originais (a vila em 4961 px); o app usa assets/img
+  - inclusiapp/pag       # páginas originais; o app usa os alvos (assets/targets) e as miniaturas
+  - inclusiapp/cartas    # cartas originais; o app usa os alvos e assets/img/cartas-mini
+  - inclusiapp/codes     # código original do jogo em Unity (referência)
+  - inclusiapp/vendor/README.md
