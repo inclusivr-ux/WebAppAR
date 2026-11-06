@@ -22,6 +22,13 @@ const sets = (process.argv[2] ? [process.argv[2]] : ['paginas', 'cartas']).map((
   const manifest = JSON.parse(readFileSync(join(ROOT, 'inclusiapp/assets/targets', `${id}.json`), 'utf8'));
   return { id, mind, count: manifest.count };
 });
+// páginas da Aia e do Seu Zé (feitas das ilustrações sem texto): também com uma cartela de texto por cima
+const paginas = sets.find((s) => s.id === 'paginas');
+if (paginas) {
+  const manifest = JSON.parse(readFileSync(join(ROOT, 'inclusiapp/assets/targets/paginas.json'), 'utf8'));
+  const from = manifest.targets.findIndex((t) => /\.jpe?g$/i.test(t.file));
+  if (from >= 0) sets.push({ ...paginas, id: 'paginas', label: 'paginas (com cartela de texto)', variants: 'cartela,cartela-inclinada', from });
+}
 if (!existsSync(join(ROOT, 'tests/fixtures/frames'))) {
   console.error('Gere os quadros antes: python3 tests/make_frames.py');
   process.exit(2);
@@ -29,13 +36,13 @@ if (!existsSync(join(ROOT, 'tests/fixtures/frames'))) {
 
 const server = await startServer({ port: 0, root: ROOT });
 const { port } = server.address();
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 let failed = false;
 try {
   for (const set of sets) {
     const page = await browser.newPage();
     page.on('pageerror', (e) => console.error('[página]', e.message));
-    const url = `http://127.0.0.1:${port}/tests/e2e/recognition.html?mind=${set.mind}&frames=${set.id}&count=${set.count}`;
+    const url = `http://127.0.0.1:${port}/tests/e2e/recognition.html?mind=${set.mind}&frames=${set.id}&count=${set.count}${set.variants ? `&variants=${set.variants}&from=${set.from}` : ''}`;
     await page.goto(url);
     await page.waitForFunction(() => window.__RESULT__, null, { timeout: 20 * 60 * 1000 });
     const results = await page.evaluate(() => window.__RESULT__);
@@ -50,7 +57,7 @@ try {
     const confused = results.filter((r) => r.wrong.length);
     const detected = results.filter((r) => r.first === r.target).length / results.length;
     const notTracked = results.filter((r) => r.first === r.target && !r.tracked);
-    console.log(`\n== ${set.id} (${set.mind}) ==`);
+    console.log(`\n== ${set.label || set.id} (${set.mind}) ==`);
     for (const [v, s] of Object.entries(byVariant)) console.log(`  ${v.padEnd(10)} ${s.ok}/${s.total}`);
     console.log(`  detecção: ${(detected * 100).toFixed(1)}%  | confusões: ${confused.length}  | sem tracking: ${notTracked.length}`);
     for (const r of confused) console.log(`  ✗ alvo ${r.target} (${r.variant}) confundido com ${r.wrong.join(', ')}`);

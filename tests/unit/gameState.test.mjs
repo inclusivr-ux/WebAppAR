@@ -1,150 +1,124 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CardGameEngine, PHASE } from '../../inclusiapp/src/game/gameState.js';
-import { GAME } from '../../inclusiapp/src/config.js';
+import { CARD_PAIRS, GAME } from '../../inclusiapp/src/config.js';
 
-const range = (n) => Array.from({ length: n }, (_, i) => i + 1);
-
-function setup(n = 20, overrides = {}) {
+function setup({ seed = 7, state = null } = {}) {
   let now = 0;
   const clock = { advance: (s) => { now += s * 1000; } };
-  const engine = new CardGameEngine({
-    cards: range(n),
-    scoring: { ...GAME.scoring, ...overrides.scoring },
-    wrongScan: { ...GAME.wrongScan, ...overrides.wrongScan },
-    random: () => 0.42,
-    now: () => now,
-    state: overrides.state,
-  });
+  const engine = new CardGameEngine({ pairs: CARD_PAIRS, scoring: GAME.scoring, hintCooldown: 3, seed, now: () => now, state });
   return { engine, clock };
 }
 
-const other = (engine, n = 20) => range(n).find((c) => c !== engine.current);
+test('os pares ligam o desenho (ou a letra) à face do sinal em LIBRAS da mesma carta', () => {
+  assert.equal(CARD_PAIRS.length, 10);
+  const shows = new Set(CARD_PAIRS.map((p) => p.show));
+  const answers = new Set(CARD_PAIRS.map((p) => p.answer));
+  assert.equal(shows.size, 10);
+  assert.equal(answers.size, 10);
+  for (const p of CARD_PAIRS) {
+    assert.ok(p.answer >= 6 && p.answer <= 15, `${p.id}: a resposta é uma face de LIBRAS (6 a 15)`);
+    assert.ok(!answers.has(p.show), `${p.id}: a face mostrada nunca é uma face de sinal`);
+  }
+  assert.deepEqual(CARD_PAIRS.find((p) => p.id === 'elefante'), { ...CARD_PAIRS.find((p) => p.id === 'elefante'), show: 2, answer: 7 });
+  assert.equal(CARD_PAIRS.find((p) => p.id === 'urso').answer, 10);
+  assert.equal(CARD_PAIRS.find((p) => p.id === 'A').answer, 11);
+});
 
-test('acerto soma pontos fixos + bônus e registra tempo', () => {
+test('a carta do sinal certo é acerto: pontos + bônus de rapidez', () => {
   const { engine, clock } = setup();
-  const card = engine.startMission();
+  const pair = engine.startMission();
   assert.equal(engine.phase, PHASE.SEARCHING);
-  clock.advance(4.2);
-  const r = engine.detect(card);
+  clock.advance(4);
+  const r = engine.detect(pair.answer);
   assert.equal(r.type, 'hit');
-  assert.equal(r.seconds, 4.2);
   assert.equal(r.base, GAME.scoring.hitPoints);
   assert.equal(r.bonus, GAME.scoring.timeBonus.max);
-  assert.equal(engine.stats.hits, 1);
   assert.equal(engine.stats.score, r.total);
   assert.equal(engine.phase, PHASE.RESOLVED);
-  // depois do acerto, novas leituras são ignoradas até a próxima missão
-  assert.equal(engine.detect(card).type, 'ignored');
 });
 
-test('erro desconta pontos e a carta-alvo continua a mesma', () => {
-  const { engine, clock } = setup();
-  const target = engine.startMission();
-  engine.stats.score = 100;
-  clock.advance(2);
-  const r = engine.detect(other(engine));
-  assert.equal(r.type, 'wrong');
-  assert.equal(r.counted, true);
-  assert.equal(r.penalty, GAME.scoring.wrongPenalty);
-  assert.equal(engine.stats.score, 100 - GAME.scoring.wrongPenalty);
-  assert.equal(engine.stats.errors, 1);
-  assert.equal(engine.current, target);
+test('a face do desenho do mesmo par pede para virar a carta, sem perder nada', () => {
+  const { engine } = setup();
+  const pair = engine.startMission();
+  const r = engine.detect(pair.show);
+  assert.equal(r.type, 'flip');
+  assert.equal(engine.stats.score, 0);
   assert.equal(engine.phase, PHASE.SEARCHING);
 });
 
-test('pontuação não fica negativa', () => {
-  const { engine, clock } = setup();
-  engine.startMission();
-  for (let i = 0; i < 3; i++) {
-    clock.advance(10);
-    engine.detect(range(20).filter((c) => c !== engine.current)[i]);
-  }
-  assert.equal(engine.stats.score, 0);
-});
-
-test('proteções contra penalidade repetida', () => {
-  const { engine, clock } = setup();
-  engine.startMission();
-  engine.stats.score = 1000;
-  const [w1, w2, w3] = range(20).filter((c) => c !== engine.current);
-  assert.equal(engine.detect(w1).counted, true); // t = 0 s
-  clock.advance(2); // t = 2 s
-  assert.equal(engine.detect(w1).reason, 'same-card'); // mesma carta antes de 6 s
-  assert.equal(engine.detect(w2).counted, true); // outra carta, já passou 1,5 s
-  clock.advance(7); // t = 9 s
-  assert.equal(engine.detect(w1).counted, true); // mesma carta depois do intervalo
-  clock.advance(10);
-  assert.equal(engine.detect(w3).reason, 'max-per-mission'); // limite de 3 por carta sorteada
-  assert.equal(engine.stats.errors, GAME.wrongScan.maxPerMission);
-  assert.equal(engine.stats.score, 1000 - 3 * GAME.scoring.wrongPenalty);
-});
-
-test('intervalo global entre penalidades', () => {
-  const { engine, clock } = setup();
-  engine.startMission();
-  engine.stats.score = 1000;
-  const [a, b] = range(20).filter((c) => c !== engine.current);
-  assert.equal(engine.detect(a).counted, true);
-  clock.advance(0.5);
-  assert.equal(engine.detect(b).reason, 'cooldown');
-});
-
-test('carta que já estava na câmera não penaliza até sair de cena', () => {
+test('outra carta: "quase!", sem perder pontos, e o aviso não se repete logo em seguida', () => {
   const { engine, clock } = setup();
   const first = engine.startMission();
-  engine.detect(first); // acerto
-  const next = engine.startMission({ visibleCards: [first] });
-  assert.notEqual(next, first);
-  clock.advance(3);
-  assert.equal(engine.detect(first).reason, 'already-visible');
-  engine.cardLost(first);
-  clock.advance(1);
-  assert.equal(engine.detect(first).counted, true);
+  engine.detect(first.answer);
+  const pair = engine.startMission();
+  const before = engine.stats.score;
+  const wrong = CARD_PAIRS.find((p) => p.id !== pair.id).answer;
+  assert.equal(engine.detect(wrong).type, 'wrong');
+  assert.equal(engine.stats.score, before);
+  assert.equal(engine.detect(wrong).type, 'ignored');
+  clock.advance(3.5);
+  assert.equal(engine.detect(wrong).type, 'wrong');
+  assert.equal(engine.stats.errors, 2);
 });
 
-test('pular conta como pulo e consome a carta', () => {
-  const { engine } = setup(3);
-  const a = engine.startMission();
-  assert.equal(engine.skip().type, 'skipped');
-  assert.equal(engine.stats.skips, 1);
-  const b = engine.startMission();
-  const c = engine.startMission() && engine.current;
-  assert.equal(new Set([a, b, c]).size, 3);
+test('embaralha UMA vez: a mesma semente dá a mesma sequência; uma partida nova muda a ordem', () => {
+  const order = (seed) => {
+    const { engine } = setup({ seed });
+    const ids = [];
+    for (let p = engine.startMission(); p; p = engine.startMission()) {
+      ids.push(p.id);
+      engine.skip();
+    }
+    return ids;
+  };
+  const a = order(123);
+  assert.equal(a.length, 10);
+  assert.equal(new Set(a).size, 10, 'cada par uma vez por partida');
+  assert.deepEqual(order(123), a);
+  assert.notDeepEqual(order(124), a);
 });
 
-test('fim de ciclo: resumo e novo baralho', () => {
-  const { engine, clock } = setup(20);
-  for (let i = 0; i < 20; i++) {
-    const card = engine.startMission();
-    clock.advance(6);
-    if (i % 5 === 4) engine.skip();
-    else engine.detect(card);
-  }
-  assert.equal(engine.cycleComplete, true);
-  assert.equal(engine.startMission(), null);
-  assert.equal(engine.phase, PHASE.CYCLE_COMPLETE);
+test('fim da partida e resumo com estrelas; nova partida zera o placar', () => {
+  const { engine } = setup();
+  for (let p = engine.startMission(); p; p = engine.startMission()) engine.detect(p.answer);
+  assert.equal(engine.phase, PHASE.MATCH_COMPLETE);
+  assert.ok(engine.matchComplete);
   const s = engine.summary();
-  assert.equal(s.used, 20);
-  assert.equal(s.total, 20);
-  assert.equal(s.hits, 16);
-  assert.equal(s.skips, 4);
-  engine.newCycle();
+  assert.equal(s.hits, 10);
+  assert.equal(s.stars, 3);
+  const seed = engine.seed;
+  engine.newMatch(seed + 1);
   assert.equal(engine.stats.score, 0);
-  assert.equal(engine.deck.cycle, 2);
-  assert.ok(engine.startMission() !== null);
+  assert.equal(engine.round, 0);
 });
 
-test('continuar jogo: restaura baralho, placar e carta atual', () => {
-  const { engine, clock } = setup(10);
-  const first = engine.startMission();
-  clock.advance(3);
-  engine.detect(first);
-  const target = engine.startMission();
-  const saved = JSON.parse(JSON.stringify(engine));
-  const { engine: restored } = setup(10, { state: saved });
-  assert.equal(restored.current, target);
-  assert.equal(restored.phase, PHASE.SEARCHING);
-  assert.deepEqual(restored.stats, engine.stats);
-  assert.equal(restored.deck.drawnInCycle, 2);
+test('pular conta como pulo e as estrelas caem', () => {
+  const { engine } = setup();
+  for (let p = engine.startMission(), i = 0; p; p = engine.startMission(), i++) {
+    if (i < 5) engine.detect(p.answer);
+    else engine.skip();
+  }
+  const s = engine.summary();
+  assert.equal(s.skips, 5);
+  assert.equal(s.stars, 1);
+});
+
+test('continuar depois: o estado salvo retoma a mesma sequência e a mesma carta', () => {
+  const { engine } = setup({ seed: 99 });
+  engine.detect(engine.startMission().answer);
+  const current = engine.startMission();
+  const saved = JSON.parse(JSON.stringify(engine.toJSON()));
+  const { engine: again } = setup({ state: saved });
+  assert.equal(again.seed, 99);
+  assert.equal(again.phase, PHASE.SEARCHING);
+  assert.equal(again.pair.id, current.id);
+  assert.equal(again.stats.hits, 1);
+  assert.equal(again.detect(current.answer).type, 'hit');
+});
+
+test('estado salvo inválido: começa uma partida nova', () => {
+  const { engine } = setup({ state: { seed: 'x', deck: null } });
+  assert.equal(engine.phase, PHASE.IDLE);
+  assert.equal(engine.total, 10);
 });

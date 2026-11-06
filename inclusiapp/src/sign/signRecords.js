@@ -1,5 +1,5 @@
 /**
- * 🏆 Recordes do ✋ Sinalize e Conte, salvos só neste aparelho (localStorage,
+ * Recordes do Sinalize!, salvos só neste aparelho (localStorage,
  * pelo mesmo `storage` tolerante a falhas do resto do app — nada vai para
  * servidor). Funções puras + load/save: testadas em Node.
  */
@@ -13,7 +13,7 @@ export function emptyRecords() {
     bestStreak: 0, // maior sequência de acertos seguidos
     matches: 0, // partidas completas
     signsCorrect: 0, // sinais reconhecidos (todas as partidas)
-    countsCorrect: 0, // contagens certas de primeira (todas as partidas)
+    countsCorrect: 0, // (do antigo Sinalize e Conte, que tinha contagem; mantido para não perder recordes)
     lastScore: null,
     updatedAt: null,
   };

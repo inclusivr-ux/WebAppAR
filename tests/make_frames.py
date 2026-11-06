@@ -97,8 +97,24 @@ CARD_VARIANTS = {
     "escura": (0.5, 0.12, -30, 0.9, 0.62, 6),
 }
 
+def with_cartela(img):
+    """A página impressa tem uma cartela de texto (pergaminho) sobre a
+    ilustração: simula uma no alto, para conferir o reconhecimento das páginas
+    feitas a partir das ilustrações sem texto (Aia e Seu Zé)."""
+    from PIL import ImageDraw
+    out = img.convert("RGB").copy()
+    w, h = out.size
+    d = ImageDraw.Draw(out)
+    box = (int(w * 0.12), int(h * 0.05), int(w * 0.88), int(h * 0.2))
+    d.rounded_rectangle(box, radius=int(h * 0.02), fill=(235, 245, 184), outline=(68, 65, 65), width=max(3, w // 200))
+    for i in range(3):
+        y = box[1] + (box[3] - box[1]) * (0.3 + 0.2 * i)
+        d.line((box[0] + w * 0.05, y, box[2] - w * 0.05, y), fill=(68, 65, 65), width=max(4, h // 120))
+    return out
+
+
 if __name__ == "__main__":
-    for name, pattern, variants in [("paginas", "pag/Pagina*.png", VARIANTS),
+    for name, pattern, variants in [("paginas", "pag/Pagina*.*", VARIANTS),
                                     ("cartas", "cartas/carta*.png", CARD_VARIANTS)]:
         folder = os.path.join(OUT, name)
         os.makedirs(folder, exist_ok=True)
@@ -107,4 +123,8 @@ if __name__ == "__main__":
             target = Image.open(path)
             for vname, args in variants.items():
                 frame(target, *args).save(os.path.join(folder, f"{index}_{vname}.jpg"), quality=88)
+            if name == "paginas" and path.lower().endswith(".jpg"):
+                # páginas da Aia e do Seu Zé: também com a cartela de texto por cima
+                frame(with_cartela(target), *variants["frente"]).save(os.path.join(folder, f"{index}_cartela.jpg"), quality=88)
+                frame(with_cartela(target), *variants["inclinada"]).save(os.path.join(folder, f"{index}_cartela-inclinada.jpg"), quality=88)
         print(f"{name}: {len(files)} alvos x {len(variants)} variantes -> {os.path.relpath(folder)}")

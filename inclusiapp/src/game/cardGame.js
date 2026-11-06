@@ -1,34 +1,29 @@
 /**
- * JOGO DE CARTAS
+ * JOGO DE CARTAS — ache o sinal!
  *
- *   carta sorteada → procurar → escanear → ✓ acerto (+pontos +bônus de tempo)
- *                                        → ✗ erro (−pontos, a carta continua)
- *   ⏭️ Pular → próxima carta (a pulada só volta no próximo ciclo)
- *   baralho esgotado → 🎉 CICLO COMPLETO → 🔄 novo baralho
+ *   o jogo mostra o animal (ilustração do Igor) ou a letra
+ *   → a criança procura, entre as cartas com a face de LIBRAS para cima,
+ *     o sinal que combina e mostra para a câmera
+ *   → acertou: "ISSO!" + pontos → próximo desafio (sem embaralhar de novo)
+ *   … os 10 pares da partida → resumo → JOGAR DE NOVO (nova semente)
  *
- * Reproduz o ARCombinationGameManager.cs: embaralhamento com "roleta"
- * (ShuffleAndGenerate), espera entre missões (delayNextMission), retorno
- * visual na própria carta (objetos "correto"/"incorreto" da Aia) e sons de
- * acerto/erro. A lógica de regras fica em gameState.js (testada em Node).
+ * As regras ficam em gameState.js (testadas em Node). Esta tela cuida da
+ * câmera (MindAR, mesmas cartas de sempre), da interface e dos efeitos.
  */
 import * as THREE from '../lib/three.js';
-import { AR, GAME } from '../config.js';
+import { AR, CARD_PAIRS, GAME } from '../config.js';
 import { ARSession } from '../ar/arSession.js';
 import { loadTargets } from '../ar/targets.js';
 import { CardGameEngine, PHASE } from './gameState.js';
-import { formatClock, formatSeconds } from './timer.js';
-import { timeBonus } from './scoring.js';
 import { showARError, toast, announce, clearToasts } from '../ui/notifications.js';
 import { storage } from '../ui/storage.js';
 import { isSoundOn, setSound, sfx, unlockAudio } from '../ui/sound.js';
-import { confetti } from '../ui/effects.js';
+import { celebrate } from '../ui/effects.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]));
-const SAVE_KEY = 'game';
+const SAVE_KEY = 'cartas';
 const RECORD_KEY = 'gameRecord';
+const icon = (name, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
 /** Lista de cartas a partir do manifesto (cartas.json) ou da contagem do .mind. */
 export function buildCardList(manifest, count) {
@@ -41,10 +36,10 @@ export function buildCardList(manifest, count) {
   });
 }
 
-/** Há um jogo salvo para continuar? */
+/** Há uma partida salva para continuar? */
 export function savedGameInfo() {
   const state = storage.get(SAVE_KEY, null);
-  if (!state?.deck || state.phase === PHASE.CYCLE_COMPLETE) return null;
+  if (!state?.deck || state.phase === PHASE.MATCH_COMPLETE) return null;
   const used = state.deck.position || 0;
   if (!used) return null;
   return { used, total: state.deck.order?.length || 0, score: state.stats?.score || 0 };
@@ -54,7 +49,7 @@ export function clearSavedGame() {
   storage.remove(SAVE_KEY);
 }
 
-/* ------------------------------------------------ retorno visual em AR */
+/* ------------------------------------------------ moldura na carta reconhecida (AR) */
 const FRAME_FRAGMENT = /* glsl */`
 uniform vec3 color;
 uniform float aspect;
@@ -68,93 +63,39 @@ float roundRect(vec2 p, vec2 b, float r) {
 void main() {
   vec2 p = (vUv - 0.5) * vec2(1.0, aspect);
   float d = roundRect(p, vec2(0.5, aspect * 0.5) - 0.035, 0.07);
-  float line = 1.0 - smoothstep(0.012, 0.028, abs(d));
-  float glow = (1.0 - smoothstep(0.0, 0.09, abs(d))) * (0.45 + 0.25 * sin(time * 7.0));
-  float tint = step(d, 0.0) * 0.16;
-  float a = max(max(line, glow), tint) * opacity;
+  float line = 1.0 - smoothstep(0.015, 0.032, abs(d));
+  float glow = (1.0 - smoothstep(0.0, 0.1, abs(d))) * (0.45 + 0.25 * sin(time * 6.0));
+  float a = max(line, glow) * opacity;
   if (a < 0.01) discard;
   gl_FragColor = vec4(color, a);
 }`;
 
-function badgeTexture(symbol, color) {
-  const size = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size * 0.44, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.lineWidth = size * 0.06;
-  ctx.strokeStyle = '#fff';
-  ctx.stroke();
-  ctx.fillStyle = '#fff';
-  ctx.font = `900 ${size * 0.56}px system-ui, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(symbol, size / 2, size / 2 + size * 0.03);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-class CardFeedback {
-  constructor(anchor, aspect, shared) {
-    this.group = new THREE.Group();
-    this.group.visible = false;
-    anchor.add(this.group);
-    this.aspect = aspect;
-    this.frame = new THREE.Mesh(new THREE.PlaneGeometry(1.14, aspect + 0.14), new THREE.ShaderMaterial({
+class CardFrame {
+  constructor(anchor, aspect) {
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.14, aspect + 0.14), new THREE.ShaderMaterial({
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: FRAME_FRAGMENT,
       transparent: true,
       depthWrite: false,
-      uniforms: {
-        color: { value: new THREE.Color() },
-        aspect: { value: (aspect + 0.14) / 1.14 },
-        opacity: { value: 1 },
-        time: { value: 0 },
-      },
+      uniforms: { color: { value: new THREE.Color() }, aspect: { value: (aspect + 0.14) / 1.14 }, opacity: { value: 1 }, time: { value: 0 } },
     }));
-    this.frame.position.z = 0.01;
-    this.badge = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true }));
-    this.badge.position.set(0.48, aspect / 2 + 0.02, 0.12);
-    this.aia = new THREE.Sprite(new THREE.SpriteMaterial({ map: shared.aia, depthTest: false, transparent: true }));
-    this.aia.center.set(0.5, 0);
-    this.aia.position.set(0.95, -aspect / 2, 0.05);
-    this.group.add(this.frame, this.badge, this.aia);
-    this.shared = shared;
-    this.t = 0;
+    this.mesh.position.z = 0.01;
+    this.mesh.visible = false;
+    anchor.add(this.mesh);
   }
 
   show(kind) {
-    const s = this.shared;
-    this.kind = kind;
+    this.mesh.material.uniforms.color.value.set(kind === 'hit' ? 0x63cbc9 : kind === 'flip' ? 0xf4b224 : 0xf799d1);
+    this.mesh.visible = true;
     this.t = 0;
-    this.group.visible = true;
-    const hit = kind === 'hit';
-    this.frame.material.uniforms.color.value.set(hit ? 0x3ddc84 : kind === 'wrong' ? 0xff4d4d : 0xffffff);
-    this.badge.visible = kind !== 'neutral';
-    this.badge.material.map = hit ? s.check : s.cross;
-    this.badge.material.needsUpdate = true;
-    this.aia.visible = hit && !!s.aia.image;
   }
 
-  hide() {
-    this.group.visible = false;
-    this.kind = null;
-  }
+  hide() { this.mesh.visible = false; }
 
   update(dt) {
-    if (!this.group.visible) return;
+    if (!this.mesh.visible) return;
     this.t += dt;
-    const pop = Math.min(1, this.t / 0.35);
-    const back = 1 + 2.7 * (pop - 1) ** 3 + 1.7 * (pop - 1) ** 2; // easeOutBack
-    this.frame.material.uniforms.time.value = this.t;
-    this.badge.scale.setScalar(0.38 * back);
-    const ar = this.shared.aia.image ? this.shared.aia.image.height / this.shared.aia.image.width : 1.6;
-    const h = this.aspect * 1.15 * back;
-    this.aia.scale.set(h / ar, h, 1);
+    this.mesh.material.uniforms.time.value = this.t;
   }
 }
 
@@ -163,29 +104,18 @@ export class GameExperience {
   constructor(screen) {
     this.screen = screen;
     this.stageEl = screen.querySelector('[data-ar-stage]');
-    this.ui = screen.querySelector('.ar-ui');
     const q = (s) => screen.querySelector(s);
     this.el = {
       targetSlot: q('[data-target-slot]'),
       targetImg: q('[data-target-img]'),
       targetName: q('[data-target-name]'),
-      prompt: q('[data-prompt]'),
-      clock: q('[data-clock]'),
-      bonus: q('[data-bonus]'),
-      stats: {
-        score: q('[data-stat="score"]'),
-        hits: q('[data-stat="hits"]'),
-        errors: q('[data-stat="errors"]'),
-        used: q('[data-stat="used"]'),
-      },
+      progress: q('[data-progress]'),
+      round: q('[data-round-label]'),
+      score: q('[data-stat="score"]'),
       skip: q('[data-action="skip"]'),
       sound: q('[data-action="sound"]'),
       scan: q('[data-scan]'),
       reveal: q('[data-reveal]'),
-      revealCard: q('[data-reveal-card]'),
-      revealImg: q('[data-reveal-img]'),
-      revealName: q('[data-reveal-name]'),
-      revealText: q('[data-reveal-text]'),
       feedback: q('[data-feedback]'),
       summary: q('[data-summary]'),
       status: q('[data-status]'),
@@ -198,8 +128,7 @@ export class GameExperience {
       this._renderSound();
       if (isSoundOn()) sfx.tick();
     });
-    q('[data-action="new-deck"]').addEventListener('click', () => this.newDeck());
-    this.el.reveal.addEventListener('click', () => this._revealSkipWait?.());
+    q('[data-action="new-deck"]').addEventListener('click', () => this.newMatch());
   }
 
   /* ------------------------------------------------ ciclo de vida */
@@ -212,15 +141,14 @@ export class GameExperience {
     this.el.feedback.hidden = true;
     this.el.reveal.hidden = true;
     this.el.skip.disabled = true;
-    this._setPrompt('Preparando o baralho...');
     this._clearTarget();
 
     const session = new ARSession({ container: this.stageEl, targets: GAME.targets, id: 'game', tuning: AR.game });
     this.session = session;
     session.onStatus = (step, p) => this._status(step, p);
     session.onTargetFound = (i) => this._found(i);
-    session.onTargetLost = (i) => this._lost(i);
-    session.onFrame = (dt) => this._frame(dt);
+    session.onTargetLost = (i) => this.frames?.[i]?.hide();
+    session.onFrame = (dt) => this.frames?.forEach((f) => f.update(dt));
     session.onSuspend = () => this.engine?.pause();
     session.onResume = () => this.engine?.resume();
     session.onCameraEnded = () => showARError({ code: 'ended' }, { onRetry: () => this.restart(), screen: this.screen });
@@ -241,35 +169,24 @@ export class GameExperience {
 
     const { manifest } = await loadTargets(GAME.targets);
     if (!this._alive(token)) return;
-    if (manifest && manifest.count !== session.targetCount) {
-      console.warn(`[jogo] cartas.json lista ${manifest.count} cartas, mas cartas.mind tem ${session.targetCount}. Recompile os alvos.`);
-    }
     this.cards = buildCardList(manifest, session.targetCount);
     this.byIndex = new Map(this.cards.map((c) => [c.index, c]));
-    this.byId = new Map(this.cards.map((c) => [c.id, c]));
+    this.frames = this.cards.map((c) => new CardFrame(session.anchor(c.index), session.aspect(c.index)));
 
     const saved = resume ? storage.get(SAVE_KEY, null) : null;
-    this.engine = new CardGameEngine({
-      cards: this.cards.map((c) => c.id), scoring: GAME.scoring, wrongScan: GAME.wrongScan, state: saved,
-    });
-    if (!saved) clearSavedGame();
+    this.engine = new CardGameEngine({ pairs: CARD_PAIRS, scoring: GAME.scoring, hintCooldown: GAME.wrongHintCooldown, state: saved });
     this.recordAtStart = storage.get(RECORD_KEY, 0);
-
-    this._setupFeedback();
     this._renderStats();
-    this._activity();
 
     if (this.engine.phase === PHASE.SEARCHING) {
-      // continuar procurando a mesma carta
-      await this._preload(this.byId.get(this.engine.current));
-      if (!this._alive(token)) return;
-      this._showTarget(this.engine.current);
+      this._showTarget(this.engine.pair);
       this._startSearching();
-      toast('▶️ Jogo retomado de onde parou!', { type: 'success' });
-    } else if (this.engine.phase === PHASE.CYCLE_COMPLETE) {
+      toast('Partida retomada de onde parou!', { type: 'success' });
+    } else if (this.engine.phase === PHASE.MATCH_COMPLETE) {
       this._showSummary();
     } else {
-      await this.nextMission();
+      if (!saved) await this._shuffle();
+      if (this._alive(token)) this.nextMission();
     }
   }
 
@@ -281,14 +198,14 @@ export class GameExperience {
   async leave() {
     this.active = false;
     this.token = {};
-    clearTimeout(this._idleTimer);
+    clearTimeout(this._feedbackTimer);
     this._save();
     if (this.session) {
       this.session.onTargetFound = this.session.onTargetLost = null;
       await this.session.stop();
     }
     this.session = null;
-    this.feedbacks = null;
+    this.frames = null;
     this.el.status.hidden = true;
   }
 
@@ -300,218 +217,126 @@ export class GameExperience {
     if (this.engine) storage.set(SAVE_KEY, this.engine.toJSON());
   }
 
-  /* ------------------------------------------------ missões */
-  async nextMission() {
+  /* ------------------------------------------------ partida */
+  /** Embaralhar: só no começo da partida. */
+  async _shuffle() {
     const token = this.token;
-    const engine = this.engine;
-    if (engine.deck.isCycleComplete && engine.phase !== PHASE.IDLE) {
-      this._showSummary();
-      return;
-    }
-    this.el.skip.disabled = true;
-    this.feedbacks?.forEach((f) => f.hide());
-    const upcoming = this.byId.get(engine.deck.order[engine.deck.position] ?? engine.deck.order[0]);
-    const preload = this._preload(upcoming);
-
-    // "roleta" de embaralhar, como no ShuffleAndGenerate do jogo original
-    this._clearTarget();
-    this._setPrompt('🃏 Embaralhando...');
-    const reveal = this.el.reveal;
-    reveal.hidden = false;
-    reveal.dataset.phase = 'shuffle';
-    this.el.revealText.textContent = 'Embaralhando...';
-    let elapsed = 0;
-    let interval = 50;
-    while (elapsed < GAME.shuffleTime * 1000) {
-      reveal.style.setProperty('--shuffle-step', String(Math.random()));
-      reveal.classList.toggle('tick');
-      sfx.tick();
-      await sleep(interval);
-      if (!this._alive(token)) return;
-      elapsed += interval;
-      interval += 10;
-    }
-    await preload;
-    if (!this._alive(token)) return;
-
-    const id = engine.startMission({ visibleCards: this._visibleCardIds() });
-    if (id === null) {
-      reveal.hidden = true;
-      this._showSummary();
-      return;
-    }
-    const card = this.byId.get(id);
-    this.el.revealImg.src = card.file;
-    this.el.revealImg.alt = card.label;
-    this.el.revealName.textContent = GAME.showLabels ? card.label : '';
-    this.el.revealText.textContent = 'Encontre esta carta!';
-    reveal.dataset.phase = 'reveal';
+    this.el.reveal.hidden = false;
     sfx.reveal();
-    announce(`Nova carta: ${card.label}. Encontre esta carta!`);
-    this._showTarget(id);
+    announce('Embaralhando as cartas.');
+    await sleep(GAME.shuffleTime * 1000);
+    if (this._alive(token)) this.el.reveal.hidden = true;
+  }
+
+  nextMission() {
+    const engine = this.engine;
+    this.frames?.forEach((f) => f.hide());
+    this.el.feedback.hidden = true;
+    const pair = engine.startMission();
+    if (!pair) {
+      this._showSummary();
+      return;
+    }
+    this._showTarget(pair);
     this._renderStats();
     this._save();
-    // a carta-alvo pode já estar na frente da câmera
-    if (this.session.isVisible(card.index)) this._found(card.index);
-
-    // mostra grande por um instante e "voa" para o placar (toque para pular)
-    await Promise.race([sleep(1700), new Promise((r) => { this._revealSkipWait = r; })]);
-    this._revealSkipWait = null;
-    if (!this._alive(token)) return;
-    if (engine.phase === PHASE.SEARCHING) reveal.dataset.phase = 'fly';
-    await sleep(350);
-    if (!this._alive(token)) return;
-    reveal.hidden = true;
-    reveal.dataset.phase = '';
-    if (engine.phase === PHASE.SEARCHING) this._startSearching();
+    sfx.reveal();
+    announce(`Ache o sinal: ${pair.label}.`);
+    this._startSearching();
+    // a carta certa pode já estar na frente da câmera
+    const answer = this.cards.find((c) => c.id === pair.answer);
+    if (answer && this.session.isVisible(answer.index)) this._found(answer.index);
   }
 
   _startSearching() {
     this.el.skip.disabled = false;
-    this._setPrompt('Encontre esta carta!');
     this.el.scan.hidden = false;
   }
 
   async skip() {
     const r = this.engine?.skip();
     if (!r || r.type !== 'skipped') return;
-    const card = this.byId.get(r.card);
     sfx.skip();
-    toast(`⏭️ Carta pulada: ${card.label}. Ela volta no próximo baralho.`, { type: 'info', duration: 2600 });
     this._renderStats();
     this._save();
     this.el.skip.disabled = true;
-    await sleep(350);
-    if (this.active) this.nextMission();
+    await sleep(250);
+    if (this.active) this._next();
   }
 
-  async newDeck() {
-    this.engine.newCycle();
+  _next() {
+    if (this.engine.matchComplete) this._showSummary();
+    else this.nextMission();
+  }
+
+  async newMatch() {
+    this.engine.newMatch();
     this.recordAtStart = storage.get(RECORD_KEY, 0);
     this.el.summary.hidden = true;
     this._renderStats();
     this._save();
-    announce('Novo baralho embaralhado!');
-    await this.nextMission();
+    await this._shuffle();
+    if (this.active) this.nextMission();
   }
 
   /* ------------------------------------------------ detecção */
-  _visibleCardIds() {
-    return (this.session?.visibleTargets || []).map((i) => this.byIndex.get(i)?.id).filter(Boolean);
-  }
-
   _found(index) {
-    const card = this.byIndex.get(index);
+    const card = this.byIndex?.get(index);
     if (!card || !this.engine) return;
     const result = this.engine.detect(card.id);
-    const fb = this.feedbacks?.[index];
-    if (result.type === 'hit') this._hit(result, card, fb);
-    else if (result.type === 'wrong') this._wrong(result, card, fb);
-    else if (result.type === 'ignored' && result.reason === 'already-visible') fb?.show('neutral');
+    const frame = this.frames?.[index];
+    if (result.type === 'hit') this._hit(result, frame);
+    else if (result.type === 'flip') this._flip(result, frame);
+    else if (result.type === 'wrong') this._wrong(result, frame);
   }
 
-  _lost(index) {
-    const card = this.byIndex.get(index);
-    if (card) this.engine?.cardLost(card.id);
-    this.feedbacks?.[index]?.hide();
-  }
-
-  async _hit(result, card, fb) {
+  async _hit(result, frame) {
     const token = this.token;
-    fb?.show('hit');
+    frame?.show('hit');
     sfx.correct();
-    confetti(this.screen);
+    celebrate(this.screen, 34);
     this.el.skip.disabled = true;
     this.el.scan.hidden = true;
-    this._feedback('hit', `
-      <div class="feedback__icon">🎉</div>
-      <div class="feedback__title">ACERTO!</div>
-      <div class="feedback__text">Muito bem! Você achou <strong>${escapeHtml(card.label)}</strong> em ${formatSeconds(result.seconds)}.</div>
-      <div class="feedback__points"><span>+${result.base} pontos</span>${result.bonus ? `<span class="bonus">+${result.bonus} bônus de tempo</span>` : ''}</div>`);
-    announce(`Acerto! Mais ${result.total} pontos. Total: ${result.score}.`);
-    this._renderStats(true);
+    this._feedback('certo', 'check', 'ISSO!', `Este é o sinal: ${result.pair.label.toUpperCase()}`, `+${result.total}`);
+    announce(`Isso! Mais ${result.total} pontos.`);
+    this._renderStats();
     this._updateRecord();
     this._save();
     await sleep(GAME.delayNextMission * 1000);
     if (!this._alive(token)) return;
-    this.el.feedback.hidden = true;
-    if (this.engine.cycleComplete) this._showSummary();
-    else this.nextMission();
+    this._next();
   }
 
-  _wrong(result, card, fb) {
-    fb?.show('wrong');
-    if (!result.counted) {
-      this._setPrompt(`Essa é “${card.label}”. Procure a carta mostrada acima!`, true);
-      return;
-    }
+  _flip(result, frame) {
+    frame?.show('flip');
+    sfx.tick();
+    this._feedback('info', 'repetir', 'VIRE A CARTA!', 'Mostre o lado do sinal (a mão).', '', 2400);
+    announce('Vire a carta e mostre o lado do sinal.');
+  }
+
+  _wrong(result, frame) {
+    frame?.show('wrong');
     sfx.wrong();
-    this._feedback('wrong', `
-      <div class="feedback__icon">❌</div>
-      <div class="feedback__title">OPS!</div>
-      <div class="feedback__text">Essa não é a carta solicitada.</div>
-      ${result.penalty ? `<div class="feedback__points"><span class="minus">−${result.penalty} pontos</span></div>` : ''}`, 1700);
-    announce(`Essa não é a carta. ${result.penalty ? `Menos ${result.penalty} pontos.` : ''}`);
-    this._renderStats(true);
-    this._save();
+    this._feedback('quase', 'olho', 'QUASE!', `Procure outro sinal para: ${result.pair.label.toUpperCase()}`, '', 2200);
+    announce('Quase! Procure outra carta.');
   }
 
   /* ------------------------------------------------ interface */
-  _setupFeedback() {
-    const loader = new THREE.TextureLoader();
-    const shared = {
-      check: badgeTexture('✓', '#22b35e'),
-      cross: badgeTexture('✗', '#e23b3b'),
-      aia: loader.load('assets/img/aia.webp'),
-    };
-    shared.aia.colorSpace = THREE.SRGBColorSpace;
-    this.feedbacks = this.cards.map((c) => new CardFeedback(this.session.anchor(c.index), this.session.aspect(c.index), shared));
+  _renderStats() {
+    const e = this.engine;
+    this.el.score.textContent = e.stats.score;
+    const round = Math.max(1, Math.min(e.total, e.round));
+    this.el.round.textContent = `${round} DE ${e.total}`;
+    this.el.progress.style.width = `${(Math.max(0, e.round - (e.phase === PHASE.SEARCHING ? 1 : 0)) / e.total) * 100}%`;
   }
 
-  _frame(dt) {
-    this.feedbacks?.forEach((f) => f.update(dt));
-    const engine = this.engine;
-    if (!engine) return;
-    if (engine.phase === PHASE.SEARCHING) {
-      const t = engine.elapsed;
-      const sec = Math.floor(t);
-      if (sec !== this._lastSec) {
-        this._lastSec = sec;
-        this.el.clock.textContent = formatClock(t);
-        const bonus = timeBonus(t, GAME.scoring.timeBonus);
-        this.el.bonus.textContent = bonus > 0 ? `+${bonus} bônus` : 'sem bônus';
-        this.el.bonus.classList.toggle('is-zero', bonus === 0);
-      }
-    }
-  }
-
-  _renderStats(bump = false) {
-    const s = this.engine.stats;
-    const { stats } = this.el;
-    const set = (el, value) => {
-      if (el.textContent !== String(value)) {
-        el.textContent = value;
-        if (bump) {
-          el.classList.remove('bump');
-          void el.offsetWidth;
-          el.classList.add('bump');
-        }
-      }
-    };
-    set(stats.score, s.score);
-    set(stats.hits, s.hits);
-    set(stats.errors, s.errors);
-    set(stats.used, `${this.engine.deck.drawnInCycle}/${this.engine.deck.size}`);
-  }
-
-  _showTarget(id) {
-    const card = this.byId.get(id);
-    this.el.targetImg.src = card.file;
-    this.el.targetImg.alt = `Carta alvo: ${card.label}`;
-    this.el.targetName.textContent = GAME.showLabels ? card.label : '';
+  _showTarget(pair) {
+    const img = this.el.targetImg;
+    img.src = pair.image;
+    img.alt = pair.label;
+    img.className = `alvo__img ${pair.kind === 'animal' ? 'is-retrato' : 'is-carta'}`;
+    this.el.targetName.textContent = pair.kind === 'animal' ? pair.label : `LETRA ${pair.id}`;
     this.el.targetSlot.classList.add('has-card');
-    this._lastSec = -1;
-    this.el.clock.textContent = '00:00';
   }
 
   _clearTarget() {
@@ -520,17 +345,11 @@ export class GameExperience {
     this.el.scan.hidden = true;
   }
 
-  _setPrompt(text, warn = false) {
-    this.el.prompt.textContent = text;
-    this.el.prompt.classList.toggle('is-warn', warn);
-    clearTimeout(this._promptTimer);
-    if (warn) this._promptTimer = setTimeout(() => this._setPrompt('Encontre esta carta!'), 2600);
-  }
-
-  _feedback(kind, html, duration = 0) {
+  _feedback(kind, iconName, title, text, points = '', duration = 0) {
     const box = this.el.feedback;
-    box.className = `feedback feedback--${kind}`;
-    box.innerHTML = html;
+    box.className = `faixa faixa--${kind}`;
+    box.innerHTML = `${icon(iconName, 'ico faixa__ico')}<span><b class="faixa__titulo">${title}</b><span class="faixa__texto"></span></span>${points ? `<b class="faixa__pontos">${points}</b>` : ''}`;
+    box.querySelector('.faixa__texto').textContent = text;
     box.hidden = false;
     clearTimeout(this._feedbackTimer);
     if (duration) this._feedbackTimer = setTimeout(() => { box.hidden = true; }, duration);
@@ -538,24 +357,23 @@ export class GameExperience {
 
   _showSummary() {
     clearToasts();
+    this.el.feedback.hidden = true;
     const s = this.engine.summary();
     const record = Math.max(storage.get(RECORD_KEY, 0), this.recordAtStart || 0);
     const box = this.el.summary;
-    box.querySelector('[data-sum="used"]').textContent = `${s.used}/${s.total}`;
-    box.querySelector('[data-sum="hits"]').textContent = s.hits;
-    box.querySelector('[data-sum="errors"]').textContent = s.errors;
-    box.querySelector('[data-sum="skips"]').textContent = s.skips;
+    box.querySelector('[data-sum="hits"]').textContent = `${s.hits}/${s.total}`;
     box.querySelector('[data-sum="score"]').textContent = s.score;
-    box.querySelector('[data-sum="best"]').textContent = s.bestTime === null ? '—' : formatSeconds(s.bestTime);
     box.querySelector('[data-sum="record"]').textContent = Math.max(record, s.score);
     box.querySelector('[data-sum-new-record]').hidden = !(s.score > 0 && s.score > (this.recordAtStart || 0));
+    box.querySelector('[data-sum-stars]').innerHTML = [1, 2, 3].map((n) => icon('estrela', `ico${n <= s.stars ? ' is-acesa' : ''}`)).join('');
     box.hidden = false;
     this.el.skip.disabled = true;
     this.el.scan.hidden = true;
     this._updateRecord();
+    this._save();
     sfx.fanfare();
-    confetti(this.screen, 60);
-    announce(`Ciclo completo! ${s.hits} acertos, ${s.errors} erros, ${s.score} pontos.`);
+    celebrate(this.screen, 60);
+    announce(`Fim da partida! ${s.hits} acertos de ${s.total}, ${s.score} pontos.`);
     box.querySelector('[data-action="new-deck"]').focus();
   }
 
@@ -566,35 +384,19 @@ export class GameExperience {
 
   _renderSound() {
     const on = isSoundOn();
-    this.el.sound.textContent = on ? '🔊' : '🔇';
+    this.el.sound.querySelector('use').setAttribute('href', on ? '#i-som' : '#i-som-off');
     this.el.sound.setAttribute('aria-pressed', String(on));
     this.el.sound.setAttribute('aria-label', on ? 'Desligar sons' : 'Ligar sons');
-  }
-
-  _preload(card) {
-    if (!card) return Promise.resolve();
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = img.onerror = () => resolve();
-      img.src = card.file;
-      setTimeout(resolve, 4000);
-    });
   }
 
   _status(step, progress) {
     const text = {
       loading: 'Preparando o jogo...',
-      camera: '📷 Abrindo a câmera... Se o navegador perguntar, toque em “Permitir”.',
+      camera: 'Abrindo a câmera... Se o navegador perguntar, toque em "Permitir".',
       targets: 'Carregando as cartas...',
       preparing: 'Quase pronto...',
     }[step];
     if (text) this.el.statusText.textContent = text;
-    if (step === 'targets' && typeof progress === 'number') {
-      this.el.statusBar.style.setProperty('--progress', `${Math.round(progress * 100)}%`);
-    }
-  }
-
-  _activity() {
-    this.ui.classList.remove('is-idle');
+    if (step === 'targets' && typeof progress === 'number') this.el.statusBar.style.width = `${Math.round(progress * 100)}%`;
   }
 }

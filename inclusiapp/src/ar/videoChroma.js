@@ -15,6 +15,8 @@
  *
  * O vídeo é desenhado no HUD do mesmo renderer da cena AR (sem um segundo
  * contexto WebGL) e não captura toques — os controles continuam livres.
+ * Toca trechos (playSegment): só a soletração, só o sinal, ou o sinal duas
+ * vezes — os tempos ficam em src/libras/librasVideos.js.
  */
 import * as THREE from '../lib/three.js';
 
@@ -78,7 +80,7 @@ export class LibrasVideo {
     const video = document.createElement('video');
     video.className = 'libras-source';
     video.muted = true;
-    video.loop = true;
+    video.loop = false;
     video.playsInline = true;
     video.preload = 'auto';
     video.crossOrigin = 'anonymous';
@@ -172,7 +174,61 @@ export class LibrasVideo {
     }
     this.video.src = url;
     this.video.load();
-    if (this.enabled) this._play();
+    if (!this.video.isConnected) document.body.appendChild(this.video);
+  }
+
+  /**
+   * Toca só um trecho do vídeo (em segundos), `repeat` vezes seguidas, e para
+   * no fim. `onEnd` é chamado quando acaba (não é chamado se outro trecho
+   * começar antes). Devolve uma promessa resolvida no fim do trecho.
+   */
+  playSegment(start, end, { repeat = 1, onEnd = null } = {}) {
+    this.segment = { start, end, left: repeat - 1, onEnd };
+    this.ended = false;
+    const go = () => {
+      try {
+        this.video.currentTime = start;
+      } catch { /* sem metadados ainda: o loadedmetadata chama de novo */ }
+      this._play();
+    };
+    if (this.video.readyState >= 1) go();
+    else this.video.addEventListener('loadedmetadata', go, { once: true });
+    return new Promise((resolve) => {
+      const seg = this.segment;
+      seg.resolve = resolve;
+    });
+  }
+
+  /** Para o vídeo e esconde (com fade). */
+  stop() {
+    const seg = this.segment;
+    this.segment = null;
+    this.video.pause();
+    this.ended = true;
+    seg?.resolve?.(false);
+  }
+
+  /** Instante atual do vídeo (s). */
+  get currentTime() {
+    return this.video.currentTime || 0;
+  }
+
+  _checkSegment() {
+    const seg = this.segment;
+    if (!seg || this.video.paused && !this.video.seeking) return;
+    if (this.video.currentTime >= seg.end || this.video.ended) {
+      if (seg.left > 0) {
+        seg.left -= 1;
+        this.video.currentTime = seg.start;
+        this._play();
+        return;
+      }
+      this.video.pause();
+      this.segment = null;
+      this.ended = true;
+      seg.onEnd?.();
+      seg.resolve?.(true);
+    }
   }
 
   _play() {
@@ -184,10 +240,10 @@ export class LibrasVideo {
     });
   }
 
+  /** Mostra (on) ou esconde o vídeo; esconder também pausa. */
   setEnabled(on) {
     this.enabled = on;
-    if (on) this._play();
-    else this.video.pause();
+    if (!on) this.stop();
   }
 
   /**
@@ -204,6 +260,7 @@ export class LibrasVideo {
 
   /** Atualiza o fade-in/out (chamar a cada quadro). */
   update(dt) {
+    this._checkSegment();
     const show = this.enabled && this.ready && !this.failed && !!this.src;
     const u = this.material.uniforms.opacity;
     u.value = Math.max(0, Math.min(1, u.value + (show ? dt : -dt) * 4));

@@ -1,21 +1,29 @@
 /**
- * Modelos 3D dos animais: carregamento sob demanda, cache e animação.
+ * Animais 3D (traço do Igor, repositório inclusivr-animais): carregamento sob
+ * demanda, cache e animações gravadas no próprio arquivo.
  *
- * Os GLB (assets/models/*.glb) vêm normalizados pelo conversor: Y para cima,
- * olhando para +Z, patas em y = 0 e maior dimensão = 1. Cada animal ganha:
- *   - material com cores por região, padrões e partes animadas (asas, cauda...)
- *   - "respiração" e, para a abelha, voo pairando
- *   - sombra de contato (deixa o animal "pousado" na página)
- *   - animação de entrada (pop) ao aparecer
+ * O contrato dos .glb (docs/ENTREGA.md do inclusivr-animais):
+ *   - olhando para +Z, Y para cima, os pés em y = 0, maior medida = 1;
+ *   - material sem luz com a textura pintada (não trocar o material);
+ *   - animações com nome: `parado` e `andar`/`voar` em laço, `feliz` e as
+ *     especiais (`agua`, `crista`, `brincar`, `mel`) uma vez;
+ *   - malha e animações comprimidas (EXT_meshopt_compression): o leitor
+ *     precisa do decodificador meshopt;
+ *   - os adereços (gotas, borboleta, pote de mel) nascem pequenos dentro do
+ *     animal: o corte da câmera (frustumCulled) fica desligado.
+ *
+ * Cada AnimalModel é uma instância independente (o zoológico pode ter
+ * vários ursos): a cena é clonada com o esqueleto e os materiais são
+ * próprios, para o "sumir aos poucos" de um não afetar os outros.
  */
 import * as THREE from '../lib/three.js';
-import { createAnimalMaterial, PartAnimator } from './animalMaterial.js';
 
 const loader = new THREE.GLTFLoader();
+loader.setMeshoptDecoder(THREE.MeshoptDecoder);
 const gltfCache = new Map();
-const instances = new Map();
 
-function loadGLTF(url) {
+/** Carrega (uma única vez) um .glb. */
+export function loadGLTF(url) {
   if (!gltfCache.has(url)) {
     gltfCache.set(url, loader.loadAsync(url).catch((err) => {
       gltfCache.delete(url);
@@ -23,6 +31,11 @@ function loadGLTF(url) {
     }));
   }
   return gltfCache.get(url);
+}
+
+/** Baixa o .glb em segundo plano (sem criar a instância). */
+export function prefetchModel(url) {
+  loadGLTF(url).catch(() => {});
 }
 
 let shadowTexture = null;
@@ -33,8 +46,8 @@ function getShadowTexture() {
     canvas.width = canvas.height = size;
     const ctx = canvas.getContext('2d');
     const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    g.addColorStop(0, 'rgba(0,0,0,0.55)');
-    g.addColorStop(0.55, 'rgba(0,0,0,0.25)');
+    g.addColorStop(0, 'rgba(0,0,0,0.5)');
+    g.addColorStop(0.55, 'rgba(0,0,0,0.22)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
@@ -43,121 +56,183 @@ function getShadowTexture() {
   return shadowTexture;
 }
 
-const easeOutBack = (t) => {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
-};
+/** Nome do clipe de cada papel; `null` = o animal não tem. */
+const DEFAULT_CLIPS = { idle: 'parado', walk: 'andar', happy: 'feliz', special: null, worried: 'preocupado' };
 
 export class AnimalModel {
+  /**
+   * @param {object} gltf    resultado do GLTFLoader (compartilhado; aqui é clonado)
+   * @param {object} animal  entrada de ANIMALS (config.js)
+   */
   constructor(gltf, animal) {
     this.animal = animal;
-    const scene = gltf.scene;
-    const info = scene.children[0]?.userData || {};
-    this.info = info;
+    this.clipNames = { ...DEFAULT_CLIPS, ...(animal.clips || {}) };
+    const scene = THREE.cloneSkinned(gltf.scene);
+    let extras = {};
+    scene.traverse((o) => {
+      if (o.userData?.inclusivr) extras = o.userData.inclusivr;
+    });
+    this.extras = extras;
+    this.flies = !!(animal.flies ?? extras.voa);
 
-    /** `root` é o que se move (página ↔ modo interação) */
+    /** `root` é o que o app move; `body` recebe saltos, giros e o "pop" */
     this.root = new THREE.Group();
     this.root.name = `animal-${animal.id}`;
-    /** `body` recebe as animações de vida (pairar, respirar, pop) */
     this.body = new THREE.Group();
     this.root.add(this.body);
     this.body.add(scene);
+    this.scene = scene;
 
     this.materials = [];
+    const seen = new Map();
     scene.traverse((obj) => {
       if (!obj.isMesh) return;
-      const wings = obj.material?.name === 'asas';
-      obj.material = createAnimalMaterial({
-        parts: info.parts || [],
-        pattern: wings ? null : info.pattern,
-        transparent: wings,
-        opacity: wings ? 0.42 : 1,
-      });
       obj.frustumCulled = false;
-      obj.renderOrder = wings ? 2 : 1;
-      this.materials.push(obj.material);
+      // material próprio desta instância (o original fica intacto no cache)
+      let mat = seen.get(obj.material);
+      if (!mat) {
+        mat = obj.material.clone();
+        seen.set(obj.material, mat);
+        this.materials.push(mat);
+      }
+      obj.material = mat;
     });
-    this.animator = new PartAnimator(info.parts || [], this.materials);
 
-    const size = info.size || [1, 1, 1];
-    const footprint = Math.max(size[0], size[2]) * 0.9;
+    // medidas (o arquivo já vem com a maior medida = 1)
+    const box = new THREE.Box3();
+    scene.updateMatrixWorld(true);
+    scene.traverse((obj) => {
+      if (obj.isMesh && !/contorno/i.test(obj.name)) box.expandByObject(obj);
+    });
+    const size = box.getSize(new THREE.Vector3());
+    this.size = [size.x || 1, size.y || 1, size.z || 1];
+
     this.shadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(footprint, footprint * (size[2] > size[0] ? 1 : 0.8)),
+      new THREE.PlaneGeometry(1, 1),
       new THREE.MeshBasicMaterial({ map: getShadowTexture(), transparent: true, depthWrite: false }),
     );
+    this.shadow.scale.set(Math.max(this.size[0], 0.3) * 1.1, Math.max(this.size[2], 0.3) * 1.1, 1);
     this.shadow.rotation.x = -Math.PI / 2;
-    this.shadow.position.y = 0.003;
+    this.shadow.position.y = 0.004;
     this.shadow.renderOrder = 0;
     this.root.add(this.shadow);
 
-    this.hover = !!info.hover;
-    this.hoverHeight = animal.lift || 0;
-    this.time = Math.random() * 10;
-    this.popT = 1;
+    this.mixer = new THREE.AnimationMixer(scene);
+    this.clips = new Map(gltf.animations.map((c) => [c.name, c]));
+    this.actions = new Map();
+    this.base = null; // ação em laço do momento (parado ou andar)
+    this.oneShot = null;
+    this.opacity = 1;
+    this._finished = (e) => this._onFinished(e);
+    this.mixer.addEventListener('finished', this._finished);
+    this.setLocomotion('idle', 0);
   }
 
-  /** Animação de entrada. */
-  pop() {
-    this.popT = 0;
+  /** O arquivo tem a animação deste papel ('idle', 'walk', 'happy', 'special', 'worried')? */
+  has(role) {
+    const name = this.clipNames[role];
+    return !!(name && this.clips.has(name));
+  }
+
+  _action(name) {
+    if (!this.actions.has(name)) {
+      const clip = this.clips.get(name);
+      if (!clip) return null;
+      this.actions.set(name, this.mixer.clipAction(clip));
+    }
+    return this.actions.get(name);
+  }
+
+  /** Laço de base: 'idle' (parado) ou 'walk' (andar; a abelha voa). */
+  setLocomotion(role, fade = 0.3) {
+    const action = this._action(this.clipNames[role]) || this._action(this.clipNames.idle);
+    if (!action) return;
+    this.locomotion = role;
+    if (this.oneShot) {
+      this.base = action; // assume quando o clipe de uma vez terminar
+      return;
+    }
+    if (action === this.base) return;
+    action.reset().setLoop(THREE.LoopRepeat, Infinity);
+    action.enabled = true;
+    if (this.base && fade > 0) action.crossFadeFrom(this.base, fade, false);
+    action.play();
+    this.base = action;
+  }
+
+  /**
+   * Toca um clipe uma vez ('happy', 'special' ou 'worried') e volta ao laço.
+   * Devolve uma promessa resolvida no fim (ou na hora, se o clipe não existir).
+   */
+  playOnce(role, { fade = 0.25 } = {}) {
+    const action = this._action(this.clipNames[role]);
+    if (!action) return Promise.resolve(false);
+    if (this.oneShot && this.oneShot.action === action) return this.oneShot.promise;
+    this._endOneShot(false);
+    const from = this.base;
+    action.reset().setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.enabled = true;
+    if (from && fade > 0) action.crossFadeFrom(from, fade, false);
+    action.play();
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    this.oneShot = { action, resolve, promise, role };
+    return promise;
+  }
+
+  get busy() {
+    return !!this.oneShot;
+  }
+
+  _onFinished(e) {
+    if (this.oneShot && e.action === this.oneShot.action) this._endOneShot(true);
+  }
+
+  _endOneShot(finished) {
+    const shot = this.oneShot;
+    if (!shot) return;
+    this.oneShot = null;
+    const back = this.base || this._action(this.clipNames.idle);
+    if (back) {
+      back.reset().setLoop(THREE.LoopRepeat, Infinity);
+      back.enabled = true;
+      back.crossFadeFrom(shot.action, 0.25, false).play();
+      this.base = back;
+    }
+    shot.resolve(finished);
+  }
+
+  /** Transparência do animal inteiro (0 … 1), para o "sumir aos poucos". */
+  setOpacity(value) {
+    const o = THREE.MathUtils.clamp(value, 0, 1);
+    if (Math.abs(o - this.opacity) < 1e-3) return;
+    this.opacity = o;
+    for (const m of this.materials) {
+      m.transparent = o < 0.999;
+      m.opacity = o;
+      m.needsUpdate = true;
+    }
+    this.shadow.material.opacity = o;
+    this.root.visible = o > 0.01;
   }
 
   update(dt) {
-    this.time += dt;
-    this.animator.update(dt);
-    const t = this.time;
-    let scale = 1 + 0.012 * Math.sin(t * 2.1); // respiração
-    if (this.popT < 1) {
-      this.popT = Math.min(1, this.popT + dt / 0.5);
-      scale *= Math.max(0.001, easeOutBack(this.popT));
-    }
-    this.body.scale.setScalar(scale);
-    if (this.hover) {
-      // voo pairando em "oito", com leve inclinação
-      const lift = this.hoverHeight / Math.max(this.root.scale.x, 1e-3);
-      this.body.position.set(0.05 * Math.sin(t * 0.9), lift + 0.035 * Math.sin(t * 2.4), 0.04 * Math.sin(t * 1.8));
-      this.body.rotation.set(0.08 * Math.sin(t * 2.4 + 0.6), 0.25 * Math.sin(t * 0.45), 0.05 * Math.sin(t * 1.8));
-      this.shadow.scale.setScalar(0.85 - 0.08 * Math.sin(t * 2.4));
-      this.shadow.material.opacity = 0.75;
-    } else {
-      this.body.position.set(0, 0, 0);
-      this.body.rotation.set(0, 0, 0);
-    }
+    this.mixer.update(dt);
   }
 
   dispose() {
+    this.mixer.removeEventListener('finished', this._finished);
+    this.mixer.stopAllAction();
     this.root.removeFromParent();
-    this.root.traverse((obj) => {
-      if (obj.isMesh) {
-        obj.geometry.dispose();
-        obj.material.dispose();
-      }
-    });
+    this.materials.forEach((m) => m.dispose());
+    this.shadow.geometry.dispose();
+    this.shadow.material.dispose();
   }
 }
 
-/** Devolve (carregando se preciso) a instância 3D de um animal. */
-export async function getAnimalModel(animal) {
-  if (!instances.has(animal.id)) {
-    const promise = loadGLTF(animal.model).then((gltf) => new AnimalModel(gltf, animal));
-    instances.set(animal.id, promise);
-    promise.catch(() => instances.delete(animal.id));
-  }
-  return instances.get(animal.id);
-}
-
-/** Baixa o GLB em segundo plano (sem criar a instância). */
-export function prefetchModel(animal) {
-  loadGLTF(animal.model).catch(() => {});
-}
-
-/** Libera todos os modelos (ex.: memória baixa). */
-export async function disposeAllModels() {
-  for (const promise of instances.values()) {
-    try {
-      (await promise).dispose();
-    } catch { /* ignorado */ }
-  }
-  instances.clear();
-  gltfCache.clear();
+/** Cria uma instância nova de um animal (cada chamada = um animal a mais na cena). */
+export async function createAnimal(animal, { url = animal.model } = {}) {
+  const gltf = await loadGLTF(url);
+  return new AnimalModel(gltf, animal);
 }

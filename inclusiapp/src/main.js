@@ -1,10 +1,10 @@
 /**
  * Inicialização do app SinalizaAção: Animais em Voga.
  *
- *   MENU ─┬─ 📖 LIVRO ─────────── explicação ─ AR (páginas → animais 3D + LIBRAS)
- *         └─ 🎮 SALA DE JOGOS ─┬─ 🃏 JOGO DE CARTAS ─── explicação ─ AR (cartas → pontos)
- *                              ├─ 🐾 BICHINHO VIRTUAL ─ como jogar ─ quarto + cartas mágicas (AR)
- *                              └─ ✋ SINALIZE E CONTE ─ como jogar ─ AR (carta → sinal → contar)
+ *   INÍCIO ─┬─ LIVRO ── instruções ── câmera (páginas → animais, Aia e Seu Zé + LIBRAS)
+ *           └─ JOGOS ─┬─ JOGO DE CARTAS ── como jogar ── câmera (ache o sinal do par)
+ *                     ├─ ZOOLÓGICO (caixa de areia com os animais e as runas)
+ *                     └─ SINALIZE! ── como jogar ── câmera frontal (veja o sinal e faça igual)
  */
 import { Router } from './router.js';
 import { BookExperience } from './ar/bookAR.js';
@@ -13,8 +13,7 @@ import { loadMindAR } from './ar/arSession.js';
 import { setupMenu } from './ui/menu.js';
 import { setupBookIntro, setupGameIntro } from './ui/instructions.js';
 import { setupSala } from './ui/sala.js';
-import { PetGame } from './pet/petGame.js';
-import { setupPetIntro } from './pet/petIntro.js';
+import { ZooGame } from './zoo/zooGame.js';
 import { SignGame } from './sign/signGame.js';
 import { setupSignIntro } from './sign/signIntro.js';
 import { toast } from './ui/notifications.js';
@@ -28,13 +27,12 @@ const screens = {
   gameIntro: $('[data-screen="game-intro"]'),
   gameAR: $('[data-screen="game-ar"]'),
   sala: $('[data-screen="sala"]'),
-  petIntro: $('[data-screen="pet-intro"]'),
-  petGame: $('[data-screen="pet-game"]'),
+  zoo: $('[data-screen="zoo"]'),
   signIntro: $('[data-screen="sign-intro"]'),
   signGame: $('[data-screen="sign-game"]'),
 };
 
-/* ---------------------------------------------------------------- loading */
+/* ---------------------------------------------------------------- carregamento */
 const loading = {
   bar: $('#loading-bar'),
   text: $('#loading-text'),
@@ -63,9 +61,9 @@ function withTimeout(promise, ms) {
 /* ---------------------------------------------------------------- telas */
 const book = new BookExperience(screens.bookAR);
 const game = new GameExperience(screens.gameAR);
-const pet = new PetGame(screens.petGame);
+const zoo = new ZooGame(screens.zoo);
 const sign = new SignGame(screens.signGame);
-let permit = null; // rota AR liberada por um toque em "Começar"
+let permit = null; // rota com câmera liberada por um toque em "Começar"
 let resumeGame = false;
 
 const router = new Router({
@@ -88,42 +86,30 @@ const router = new Router({
       return book.leave();
     },
   },
-  jogo: {
+  sala: { screen: screens.sala, ...setupSala(screens.sala) },
+  cartas: {
     screen: screens.gameIntro,
     ...setupGameIntro(screens.gameIntro, {
       start: ({ resume }) => {
         resumeGame = resume;
-        permit = 'jogo/jogar';
-        router.go('jogo/jogar');
+        permit = 'cartas/jogar';
+        router.go('cartas/jogar');
       },
     }),
   },
-  'jogo/jogar': {
+  'cartas/jogar': {
     screen: screens.gameAR,
-    guard: () => (permit === 'jogo/jogar' ? null : 'jogo'),
+    guard: () => (permit === 'cartas/jogar' ? null : 'cartas'),
     enter: () => game.enter({ resume: resumeGame }),
     leave: () => {
       permit = null;
       return game.leave();
     },
   },
-  sala: { screen: screens.sala, ...setupSala(screens.sala) },
-  bichinho: {
-    screen: screens.petIntro,
-    ...setupPetIntro(screens.petIntro, {
-      start: () => {
-        pet.markTutorialSeen();
-        router.go('bichinho/jogar');
-      },
-    }),
-  },
-  // o quarto não liga a câmera (ela só abre no botão "Cartas mágicas");
-  // na primeira vez, passa antes pelo "Como jogar?"
-  'bichinho/jogar': {
-    screen: screens.petGame,
-    guard: () => (pet.tutorialSeen() ? null : 'bichinho'),
-    enter: () => pet.enter(),
-    leave: () => pet.leave(),
+  zoo: {
+    screen: screens.zoo,
+    enter: () => zoo.enter(),
+    leave: () => zoo.leave(),
   },
   sinalize: {
     screen: screens.signIntro,
@@ -134,7 +120,7 @@ const router = new Router({
       },
     }),
   },
-  // a câmera só abre depois de "Iniciar" (abrir o link direto leva ao "Como jogar?")
+  // a câmera só abre depois de "Jogar" (abrir o link direto leva ao "Como jogar")
   'sinalize/jogar': {
     screen: screens.signGame,
     guard: () => (permit === 'sinalize/jogar' ? null : 'sinalize'),
@@ -144,25 +130,28 @@ const router = new Router({
       return sign.leave();
     },
   },
+  // endereços antigos (links salvos, atalhos na tela inicial)
+  jogo: { screen: screens.gameIntro, guard: () => 'cartas' },
+  'jogo/jogar': { screen: screens.gameIntro, guard: () => 'cartas' },
+  bichinho: { screen: screens.zoo, guard: () => 'zoo' },
+  'bichinho/jogar': { screen: screens.zoo, guard: () => 'zoo' },
 });
 
-/* ---------------------------------------------------------------- boot */
+/* ---------------------------------------------------------------- início */
 async function boot() {
   const started = performance.now();
-  loading.set(0.15, 'Preparando sua experiência...');
-  const wide = window.matchMedia('(min-width: 900px), (min-resolution: 2.5dppx)').matches;
+  loading.set(0.15, 'PREPARANDO...');
   const tasks = [
     withTimeout(document.fonts?.ready || Promise.resolve(), 2500),
-    decodeImage('assets/img/logo.webp'),
-    decodeImage(wide ? 'assets/img/vila-1920.webp' : 'assets/img/vila-1080.webp'),
+    decodeImage('assets/img/logo-livro.webp'),
+    decodeImage('assets/img/fundo-claro.webp'),
   ];
   let done = 0;
   tasks.forEach((t) => t.then(() => loading.set(0.15 + (0.75 * ++done) / tasks.length)));
   await withTimeout(Promise.all(tasks), 6000);
-  loading.set(1, 'Tudo pronto!');
-  // um instante para a animação de abertura (sem atrasar quem tem internet lenta)
+  loading.set(1, 'TUDO PRONTO!');
   const elapsed = performance.now() - started;
-  if (elapsed < 900) await new Promise((r) => setTimeout(r, 900 - elapsed));
+  if (elapsed < 700) await new Promise((r) => setTimeout(r, 700 - elapsed));
   await router.start();
   await loading.hide();
 
@@ -181,9 +170,9 @@ window.addEventListener('unhandledrejection', (event) => {
 window.addEventListener('error', (event) => {
   console.error('[app]', event.error || event.message);
 });
-window.addEventListener('offline', () => toast('📶 Você está sem internet. O que já foi carregado continua funcionando.', { type: 'warning' }));
+window.addEventListener('offline', () => toast('Você está sem internet. O que já foi carregado continua funcionando.', { type: 'warning' }));
 
-if (params.has('test')) window.__app = { router, book, game, pet, sign };
+if (params.has('test')) window.__app = { router, book, game, zoo, sign };
 
 boot().catch((err) => {
   console.error(err);

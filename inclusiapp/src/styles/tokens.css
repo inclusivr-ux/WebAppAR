@@ -1,0 +1,69 @@
+/*
+ * Tokens do design system "InclusiVR" (tema signaria-app: as Telas do Signária).
+ * Valores copiados de project/tokens.css do design system — não invente tons:
+ * se a paleta mudar lá, atualize aqui.
+ */
+@font-face {
+  font-family: "Fraunces Soft";
+  src: url("../../assets/fonts/fraunces-soft.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  /* paleta do Signária (livro e telas) */
+  --signaria-pergaminho: #ebf5b8;
+  --signaria-ceu: #c7edfb;
+  --signaria-rosa: #f799d1;
+  --signaria-rosa-claro: #f9c3e2;
+  --signaria-carvao: #444141;
+  --signaria-tinta: #231f20;
+  --signaria-noite: #223d3e;
+  --signaria-runa-pedra: #4b5028;
+  --signaria-runa-brilho: #74d0d8;
+  --signaria-runa-aura: #58c4c8;
+  --signaria-contorno: #42433a;
+  --signaria-pagina: #e6f0dc;
+  --signaria-ambar: #f4b224;
+  --signaria-ciano: #63cbc9;
+  --signaria-ciano-claro: #a6e4e0;
+  --signaria-ouro: #f6c744;
+  --signaria-pedra: #4b4d46;
+  --signaria-pedra-escura: #2e2f2a;
+  --signaria-pedra-clara: #a9ac9d;
+  --signaria-pedra-media: #5c5f56;
+  --signaria-musgo: #4c5c24;
+  --signaria-musgo-claro: #b9c77a;
+  --signaria-musgo-borda: #93a552;
+  --signaria-video: #2b2c27;
+  --signaria-profundo: #162a2c;
+  --marca-branco: #ffffff;
+
+  /* papéis (tema signaria-app) */
+  --ui-fundo: var(--signaria-pagina);
+  --ui-superficie: var(--signaria-pergaminho);
+  --ui-texto: var(--signaria-contorno);
+  --ui-texto-suave: var(--signaria-carvao);
+  --ui-acao: var(--signaria-ambar);
+  --ui-acerto: var(--signaria-ciano);
+  --ui-erro: var(--signaria-rosa);
+  --ui-dica: var(--signaria-rosa);
+
+  --brilho-runa: 0 0 20px 6px #58c4c8b3;
+  --foco: 0 0 0 2px #e6f0dc, 0 0 0 4px #42433a;
+
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 20px;
+  --espaco-6: 24px;
+  --espaco-7: 32px;
+
+  --font-signaria: Cooper, "Fraunces Soft", Fraunces, Georgia, serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}

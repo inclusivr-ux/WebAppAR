@@ -4,12 +4,12 @@
 As imagens originais continuam intactas nas pastas do projeto; este script
 cria derivados leves em inclusiapp/assets/img/:
 
-  vila-1920.webp / vila-1080.webp   fundo de Signária (original: 4961x3508, 13,8 MB)
-  logo.webp                          logotipo SinalizaAção
   aia.webp                           protagonista, com as margens transparentes cortadas
-  pagina-exemplo.webp                miniatura de página para a arte explicativa do livro
-  carta-exemplo-*.webp               miniaturas de cartas para a arte explicativa do jogo
   icon-*.png                         ícones do app (PWA / tela inicial)
+
+As outras imagens do app (fundos, runas, retratos dos animais, páginas) vêm
+da arte final do Igor e do design system: tools/preparar-imagens.py e
+tools/compor-instrucoes.py.
 
 Uso: python3 tools/optimize_images.py   (requer Pillow com suporte a WebP)
 """
@@ -37,23 +37,11 @@ def fit_width(img, width):
 def main():
     os.makedirs(OUT, exist_ok=True)
 
-    vila = Image.open(os.path.join(APP, "exemplo", "vila.jpg")).convert("RGB")
-    save_webp(fit_width(vila, 1920), "vila-1920.webp", quality=72)
-    save_webp(fit_width(vila, 1080), "vila-1080.webp", quality=72)
-
     logo = Image.open(os.path.join(APP, "exemplo", "logo.png")).convert("RGBA")
-    save_webp(logo, "logo.webp", quality=92, alpha_quality=95)
 
     aia = Image.open(os.path.join(APP, "exemplo", "protagonista.png")).convert("RGBA")
     aia = aia.crop(aia.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox())
     save_webp(fit_width(aia, 520), "aia.webp", quality=85, alpha_quality=90)
-
-    page = Image.open(os.path.join(APP, "pag", "Pagina2.png")).convert("RGB")
-    save_webp(fit_width(page, 480), "pagina-exemplo.webp", quality=76)
-
-    for n in (2, 7, 16):
-        card = Image.open(os.path.join(APP, "cartas", f"carta{n}.png")).convert("RGB")
-        save_webp(fit_width(card, 220), f"carta-exemplo-{n}.webp", quality=80)
 
     # Ícones: logotipo sobre um quadrado verde-floresta com cantos de "AR".
     for size in (180, 192, 512):
