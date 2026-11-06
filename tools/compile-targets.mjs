@@ -46,6 +46,7 @@ console.log(`Páginas: ${files.paginas.length} | Cartas: ${files.cartas.length}`
 const server = await startServer({ port: 0, root: ROOT });
 const { port } = server.address();
 const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || undefined, // ex.: um Chromium já instalado no sistema
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 });
 try {

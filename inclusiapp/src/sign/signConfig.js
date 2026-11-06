@@ -1,48 +1,44 @@
 /**
- * ✋ SINALIZE E CONTE — configuração central do Jogo 3 da Sala de Jogos.
+ * SINALIZE! — configuração (Jogo 3 da sala de jogos).
  *
- *   carta sorteada → 📷 escanear a carta → ✋ fazer o sinal (MediaPipe)
- *   → 🐾 aparecem 1, 2 ou 3 animais → 🔢 contar → ⭐ pontos
+ *   o jogo sorteia uma letra ou um animal (ordem fixa por partida, com semente)
+ *   → mostra a carta → o Fauston faz o sinal DUAS vezes (OLHE)
+ *   → 3, 2, 1… SUA VEZ: a criança faz o sinal para a câmera (frontal)
+ *   → a câmera reconheceu dentro do tempo: ISSO! + pontos → próximo
  *
- * Tudo o que liga vogal → carta → animal, as regras de pontuação, os tempos
- * e os ajustes do reconhecimento de mãos fica aqui: mude este arquivo para
- * alterar o jogo sem mexer no resto do código.
+ * Sem escanear carta, sem contar animais, sem desenhar a mão na tela.
+ * Mude este arquivo para alterar o jogo sem mexer no resto do código.
  */
+import { LIBRAS_VIDEOS, VOWEL_CLIPS } from '../libras/librasVideos.js';
 
 export const SIGN_GAME = {
-  /** rodadas por partida (cada vogal aparece uma vez por partida) */
-  rounds: 5,
-
   /**
-   * As 5 vogais do jogo (só as cartas das vogais em LIBRAS).
-   *   card    número da carta (arquivo cartas/cartaN.png) com o sinal em LIBRAS
-   *   animal  id do animal (ANIMALS em src/config.js) que aparece para contar
-   *   plural  nome usado na pergunta: "Quantas abelhas apareceram?"
-   *   male    true para "Quantos", false para "Quantas"
-   *
-   * Cada vogal é a inicial do seu animal: A de Abelha, E de Elefante,
-   * I de Iguana, O de Onça e U de Urso. Para trocar um animal, basta mudar
-   * `animal`, `plural` e `male` da vogal.
+   * O que pode ser sorteado. `card` = a face da carta com o sinal (cartaN.png).
+   * As letras usam o trecho da soletração do Fauston (A de ABELHA...); os
+   * animais, o trecho do sinal feito duas vezes (src/libras/librasVideos.js).
    */
-  vowels: [
-    { letter: 'A', card: 11, animal: 'abelha', plural: 'abelhas', male: false },
-    { letter: 'E', card: 12, animal: 'elefante', plural: 'elefantes', male: true },
-    { letter: 'I', card: 13, animal: 'iguana', plural: 'iguanas', male: false },
-    { letter: 'O', card: 14, animal: 'onca', plural: 'onças', male: false },
-    { letter: 'U', card: 15, animal: 'urso', plural: 'ursos', male: true },
+  items: [
+    { kind: 'letra', id: 'A', letter: 'A', card: 11, label: 'LETRA A' },
+    { kind: 'letra', id: 'E', letter: 'E', card: 12, label: 'LETRA E' },
+    { kind: 'letra', id: 'I', letter: 'I', card: 13, label: 'LETRA I' },
+    { kind: 'letra', id: 'O', letter: 'O', card: 14, label: 'LETRA O' },
+    { kind: 'letra', id: 'U', letter: 'U', card: 15, label: 'LETRA U' },
+    { kind: 'animal', id: 'abelha', animal: 'abelha', card: 6, label: 'ABELHA' },
+    { kind: 'animal', id: 'elefante', animal: 'elefante', card: 7, label: 'ELEFANTE' },
+    { kind: 'animal', id: 'iguana', animal: 'iguana', card: 8, label: 'IGUANA' },
+    { kind: 'animal', id: 'onca', animal: 'onca', card: 9, label: 'ONÇA' },
+    { kind: 'animal', id: 'urso', animal: 'urso', card: 10, label: 'URSO' },
   ],
 
-  /** quantos animais podem aparecer para contar (e os botões de resposta) */
-  animals: { min: 1, max: 3 },
+  /** desafios por partida (no máximo a quantidade de itens) */
+  rounds: 10,
+
+  /** a letra (trecho curto) é mostrada duas vezes; o trecho do animal já tem o sinal duas vezes */
+  watch: { letterTimes: 2, animalTimes: 1 },
 
   /**
-   * PONTUAÇÃO — quanto mais rápido e preciso, mais pontos.
-   *   sign   sinal correto: `points` + bônus pelo Tempo 1
-   *          (de "✋ Faça o sinal" até o MediaPipe reconhecer o sinal certo;
-   *          errar o sinal não tira pontos, mas o tempo continua correndo)
-   *   count  contagem correta: `points` + bônus pelo Tempo 2
-   *          (de quando os animais aparecem até a resposta certa)
-   * Faixas: o bônus da primeira faixa com tempo ≤ `upTo` segundos.
+   * PONTUAÇÃO: sinal reconhecido = `points` + bônus de rapidez (contado do
+   * "SUA VEZ!" até a câmera reconhecer). Errar ou pular não tira pontos.
    */
   scoring: {
     sign: {
@@ -50,55 +46,32 @@ export const SIGN_GAME = {
       speed: {
         mode: 'tiers',
         tiers: [
-          { upTo: 2, bonus: 50 },
-          { upTo: 4, bonus: 30 },
-          { upTo: 6, bonus: 15 },
+          { upTo: 3, bonus: 50 },
+          { upTo: 6, bonus: 30 },
+          { upTo: 9, bonus: 15 },
           { upTo: Infinity, bonus: 5 },
         ],
       },
     },
-    count: {
-      points: 50,
-      speed: {
-        mode: 'tiers',
-        tiers: [
-          { upTo: 1, bonus: 30 },
-          { upTo: 2, bonus: 20 },
-          { upTo: 4, bonus: 10 },
-          { upTo: Infinity, bonus: 0 },
-        ],
-      },
-    },
   },
 
-  /** classificação no fim da partida: fração da pontuação máxima possível */
-  ranks: [
-    { min: 0.75, medal: '🥇', title: 'Excelente!' },
-    { min: 0.5, medal: '🥈', title: 'Muito bem!' },
-    { min: 0, medal: '🥉', title: 'Continue praticando!' },
-  ],
+  /** estrelas no fim: fração dos sinais certos */
+  stars: [{ min: 0.9, stars: 3 }, { min: 0.5, stars: 2 }, { min: 0, stars: 1 }],
 
-  /** tempos da interface */
   timing: {
-    shuffleMs: 1500, // "roleta" ao sortear a carta
-    revealMs: 1800, // carta sorteada em destaque (toque para pular)
-    celebrateMs: 1300, // comemoração do sinal certo, antes dos animais
-    animalGapMs: 450, // intervalo entre um animal e o próximo aparecer
-    nextRoundMs: 2200, // depois da contagem certa, até a próxima rodada
-    skipScanAfter: 8, // s até oferecer "fazer o sinal sem escanear"
-    skipSignAfter: 15, // s até oferecer "pular este sinal"
+    countdown: 3, // 3, 2, 1… antes da vez da criança
+    tryFor: 15, // segundos para fazer o sinal (depois: QUASE! e as opções)
+    nextMs: 1700, // depois do ISSO!, até o próximo desafio
   },
+
+  /** câmera: 'user' = frontal (padrão; dá para trocar na tela) */
+  camera: { facing: 'user', width: 640, height: 480 },
 
   /**
-   * RECONHECIMENTO DO SINAL (MediaPipe Hand Landmarker + src/sign/handSigns.js)
+   * RECONHECIMENTO (MediaPipe Hand Landmarker + src/sign/signRecognizers.js)
    *   fps          análises da câmera por segundo (menos = menos bateria)
    *   minScore     nota mínima (0 … 1) para considerar que a mão faz uma vogal
-   *   holdMs       tempo segurando o sinal certo até ele ser aceito
-   *   wrongMs      tempo mostrando OUTRO sinal até aparecer "❌ Sinal incorreto"
-   *   unknownMs    tempo com a mão na câmera sem nenhum sinal reconhecível até o aviso
-   *   cooldownMs   intervalo mínimo entre dois avisos de sinal incorreto
-   *   lostMs       se a mão some por mais que isso, a contagem recomeça
-   *   smoothing    peso de cada novo quadro na média das notas (0 … 1)
+   *   holdMs       tempo segurando a vogal certa até ela valer
    *   delegate     'GPU' (mais rápido) ou 'CPU' — se a GPU falhar, usa a CPU
    */
   recognition: {
@@ -118,17 +91,15 @@ export const SIGN_GAME = {
   },
 };
 
-/** Vogal pela letra ('A' … 'U'). */
-export function vowelByLetter(letter) {
-  return SIGN_GAME.vowels.find((v) => v.letter === letter) || null;
-}
+export const itemById = (id) => SIGN_GAME.items.find((i) => i.id === id) || null;
 
-/** Vogal pelo número da carta (11 … 15), ou null se a carta não é de vogal. */
-export function vowelByCard(card) {
-  return SIGN_GAME.vowels.find((v) => v.card === card) || null;
-}
-
-/** "Quantas abelhas apareceram?" */
-export function countQuestion(vowel) {
-  return `${vowel.male ? 'Quantos' : 'Quantas'} ${vowel.plural} apareceram?`;
+/** O trecho do vídeo do Fauston de cada desafio: { src, start, end, repeat }. */
+export function clipFor(item) {
+  if (item.kind === 'letra') {
+    const c = VOWEL_CLIPS[item.letter];
+    return { src: LIBRAS_VIDEOS[c.video].src, start: c.start, end: c.end, repeat: SIGN_GAME.watch.letterTimes };
+  }
+  const v = LIBRAS_VIDEOS[item.animal];
+  const seg = v.signTwice || v.sign;
+  return { src: v.src, start: seg.start, end: seg.end, repeat: SIGN_GAME.watch.animalTimes };
 }

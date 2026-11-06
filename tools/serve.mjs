@@ -32,6 +32,7 @@ const MIME = {
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
   '.glb': 'model/gltf-binary',
+  '.vrm': 'model/gltf-binary',
   '.mind': 'application/octet-stream',
   '.wasm': 'application/wasm',
   '.task': 'application/octet-stream',

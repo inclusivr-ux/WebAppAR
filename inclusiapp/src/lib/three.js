@@ -7,3 +7,5 @@
  */
 export * from '../../vendor/three/three.module.min.js';
 export { GLTFLoader } from '../../vendor/three/addons/GLTFLoader.js';
+export { MeshoptDecoder } from '../../vendor/three/addons/meshopt_decoder.module.js';
+export { clone as cloneSkinned } from '../../vendor/three/addons/SkeletonUtils.js';

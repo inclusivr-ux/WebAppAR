@@ -3,8 +3,6 @@
  * de tela e telas de erro amigáveis com "Tentar novamente".
  */
 
-const TOAST_ICONS = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '⛔' };
-
 /** Aviso rápido no topo da tela. */
 export function toast(message, { type = 'info', duration = 4200 } = {}) {
   const box = document.getElementById('toasts');
@@ -13,7 +11,6 @@ export function toast(message, { type = 'info', duration = 4200 } = {}) {
   el.className = `toast toast--${type}`;
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
   el.textContent = message;
-  if (!/^\p{Extended_Pictographic}/u.test(message)) el.textContent = `${TOAST_ICONS[type] || ''} ${message}`;
   box.appendChild(el);
   requestAnimationFrame(() => el.classList.add('is-in'));
   const close = () => {
@@ -51,54 +48,54 @@ function isIOS() {
 
 const PERMISSION_HELP = () => (isIOS()
   ? 'No iPhone/iPad (Safari): toque em <strong>aA</strong> na barra de endereço → <strong>Ajustes do Site</strong> → <strong>Câmera</strong> → <strong>Permitir</strong>. Depois toque em “Tentar novamente”.'
-  : 'No Android (Chrome): toque no <strong>cadeado 🔒</strong> ao lado do endereço → <strong>Permissões</strong> → <strong>Câmera</strong> → <strong>Permitir</strong>. Depois toque em “Tentar novamente”.');
+  : 'No Android (Chrome): toque no <strong>cadeado</strong> ao lado do endereço → <strong>Permissões</strong> → <strong>Câmera</strong> → <strong>Permitir</strong>. Depois toque em “Tentar novamente”.');
 
 const ERRORS = {
   denied: {
-    icon: '📷',
+    icon: 'camera',
     title: 'Precisamos acessar sua câmera',
     text: () => `para utilizar a Realidade Aumentada.<br><small>${PERMISSION_HELP()}</small>`,
   },
   notfound: {
-    icon: '📷',
+    icon: 'camera',
     title: 'Não encontramos uma câmera',
     text: () => 'Use um celular ou tablet com câmera traseira — ou conecte uma webcam ao computador — e tente novamente.',
   },
   busy: {
-    icon: '📷',
+    icon: 'camera',
     title: 'A câmera está ocupada',
     text: () => 'Outro aplicativo (videochamada, câmera...) está usando a câmera. Feche-o e tente novamente.',
   },
   ended: {
-    icon: '📷',
+    icon: 'camera',
     title: 'A câmera foi desligada',
     text: () => 'Isso acontece quando a tela é bloqueada ou outro aplicativo usa a câmera. Toque para reativar.',
     retry: 'Reativar câmera',
   },
   insecure: {
-    icon: '🔒',
+    icon: 'cadeado',
     title: 'Conexão não segura',
     text: () => 'Por segurança, os navegadores só liberam a câmera em endereços <strong>https://</strong>. Abra o aplicativo pelo endereço oficial.',
   },
   unsupported: {
-    icon: '🌐',
+    icon: 'globo',
     title: 'Navegador sem acesso à câmera',
     text: () => (isInAppBrowser()
       ? 'Parece que o link foi aberto dentro de outro aplicativo. Toque em <strong>⋯</strong> e escolha <strong>“Abrir no navegador”</strong> (Chrome ou Safari).'
       : 'Use o <strong>Chrome</strong> (Android) ou o <strong>Safari</strong> (iPhone) atualizados.'),
   },
   webgl: {
-    icon: '🖥️',
+    icon: 'cubo',
     title: 'Gráficos 3D indisponíveis',
     text: () => 'Este aparelho ou navegador não suporta WebGL, necessário para mostrar os animais em 3D. Tente atualizar o navegador.',
   },
   load: {
-    icon: '📶',
+    icon: 'nuvem',
     title: 'Não foi possível carregar',
     text: () => 'Verifique sua conexão com a internet e tente novamente.',
   },
   camera: {
-    icon: '📷',
+    icon: 'camera',
     title: 'Não foi possível abrir a câmera',
     text: () => 'Feche outros aplicativos que usam a câmera, verifique as permissões e tente novamente.',
   },
@@ -119,13 +116,13 @@ export function showARError(err, { onRetry, screen }) {
   box.setAttribute('aria-modal', 'true');
   box.setAttribute('aria-labelledby', 'ar-error-title');
   box.innerHTML = `
-    <div class="ar-error__card">
-      <div class="ar-error__icon" aria-hidden="true">${info.icon}</div>
+    <div class="ar-error__card sg-cartela sg-cartela--centro">
+      <svg class="ico ar-error__icon" aria-hidden="true"><use href="#i-${info.icon}"/></svg>
       <h2 id="ar-error-title">${info.title}</h2>
       <p>${info.text()}</p>
       <div class="ar-error__actions">
-        <button type="button" class="btn btn--primary" data-retry>🔄 ${info.retry || 'Tentar novamente'}</button>
-        <a class="btn btn--ghost" href="#/">← Voltar ao menu</a>
+        <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/">VOLTAR</a>
+        <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-retry>${(info.retry || 'Tentar de novo').toUpperCase()}</button>
       </div>
     </div>`;
   box.querySelector('[data-retry]').addEventListener('click', () => {

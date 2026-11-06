@@ -4,14 +4,14 @@
  *
  *  - código e páginas (html/js/css/json): rede primeiro, cache como reserva
  *    → atualizações aparecem assim que publicadas;
- *  - arquivos pesados e estáveis (modelos, alvos, imagens, fontes e o
+ *  - arquivos pesados e estáveis (animais .glb, Aia e Seu Zé .vrm, alvos, imagens, fontes e o
  *    reconhecimento de mãos do MediaPipe — .wasm/.task): cache primeiro,
  *    atualizando em segundo plano;
- *  - vídeos (.mp4): sempre pela rede (o navegador cuida do streaming/Range).
+ *  - vídeos (.mp4 e .webm): sempre pela rede (o navegador cuida do streaming/Range).
  *
  * Ao publicar mudanças grandes, aumente VERSION para descartar caches antigos.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CODE_CACHE = `sinalizaacao-code-${VERSION}`;
 const ASSET_CACHE = `sinalizaacao-assets-${VERSION}`;
 
@@ -27,13 +27,13 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-const HEAVY = /\.(glb|mind|gz|webp|png|jpe?g|woff2|wasm|task)$/i;
+const HEAVY = /\.(glb|vrm|mind|gz|webp|png|jpe?g|woff2|wasm|task)$/i;
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (/\.mp4$/i.test(url.pathname) || request.headers.has('range')) return;
+  if (/\.(mp4|webm)$/i.test(url.pathname) || request.headers.has('range')) return;
 
   if (HEAVY.test(url.pathname)) {
     event.respondWith((async () => {

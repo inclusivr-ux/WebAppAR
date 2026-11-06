@@ -1,0 +1,155 @@
+/*
+ * Componentes das "Telas do Signária" (design system InclusiVR), em HTML puro.
+ * Os nomes das classes são os mesmos do design system (sg-*), para quem
+ * conhece os componentes React (Cartela, BotaoPlaca, LetrasPalavra...).
+ */
+
+/* ---------- Cartela / plaquinha: cantos recortados côncavos + contorno tinta ---------- */
+.sg-cartela {
+  --sg-r: 9px; --sg-b: 3px; --sg-fundo: var(--signaria-pergaminho);
+  --sg-traco: var(--signaria-contorno); --sg-tinta: var(--signaria-contorno);
+  position: relative; isolation: isolate; display: block; box-sizing: border-box;
+  padding: 14px 18px; color: var(--sg-tinta);
+  font-family: var(--font-signaria); font-weight: 600; font-size: 16px; line-height: 1.28; letter-spacing: .02em;
+}
+.sg-cartela--caixa-alta { text-transform: uppercase; }
+.sg-cartela--centro { text-align: center; }
+.sg-cartela--ceu { --sg-fundo: var(--signaria-ceu); }
+.sg-cartela--rosa { --sg-fundo: var(--signaria-rosa); }
+.sg-cartela--rosa-claro { --sg-fundo: var(--signaria-rosa-claro); }
+.sg-cartela--ambar { --sg-fundo: var(--signaria-ambar); }
+.sg-cartela--ciano { --sg-fundo: var(--signaria-ciano); }
+.sg-cartela--branco { --sg-fundo: var(--marca-branco); }
+.sg-cartela--escuro { --sg-fundo: var(--signaria-contorno); --sg-traco: var(--signaria-pergaminho); --sg-tinta: var(--signaria-pergaminho); }
+.sg-cartela--noite { --sg-fundo: var(--signaria-noite); --sg-traco: var(--signaria-pergaminho); --sg-tinta: var(--signaria-pergaminho); }
+.sg-cartela--chip { --sg-r: 6px; --sg-b: 2.5px; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px;
+  font-weight: 800; font-size: 13px; letter-spacing: .06em; white-space: nowrap; text-transform: uppercase; }
+.sg-cartela strong, .sg-cartela b { font-weight: 900; }
+.sg-cartela p { margin: 0; }
+.sg-cartela p + p { margin-top: var(--espaco-2); }
+.sg-cartela::before, .sg-cartela::after { content: ""; position: absolute; z-index: -1; pointer-events: none; }
+.sg-cartela::before {
+  inset: 0; background: var(--sg-traco);
+  -webkit-mask:
+    radial-gradient(circle at 0 0, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) top left / 51% 51% no-repeat,
+    radial-gradient(circle at 100% 0, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) top right / 51% 51% no-repeat,
+    radial-gradient(circle at 0 100%, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) bottom left / 51% 51% no-repeat,
+    radial-gradient(circle at 100% 100%, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) bottom right / 51% 51% no-repeat;
+          mask:
+    radial-gradient(circle at 0 0, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) top left / 51% 51% no-repeat,
+    radial-gradient(circle at 100% 0, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) top right / 51% 51% no-repeat,
+    radial-gradient(circle at 0 100%, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) bottom left / 51% 51% no-repeat,
+    radial-gradient(circle at 100% 100%, #0000 var(--sg-r), #000 calc(var(--sg-r) + .5px)) bottom right / 51% 51% no-repeat;
+}
+.sg-cartela::after {
+  inset: var(--sg-b); background: var(--sg-fundo);
+  -webkit-mask:
+    radial-gradient(circle at calc(-1 * var(--sg-b)) calc(-1 * var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) top left / 51% 51% no-repeat,
+    radial-gradient(circle at calc(100% + var(--sg-b)) calc(-1 * var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) top right / 51% 51% no-repeat,
+    radial-gradient(circle at calc(-1 * var(--sg-b)) calc(100% + var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) bottom left / 51% 51% no-repeat,
+    radial-gradient(circle at calc(100% + var(--sg-b)) calc(100% + var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) bottom right / 51% 51% no-repeat;
+          mask:
+    radial-gradient(circle at calc(-1 * var(--sg-b)) calc(-1 * var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) top left / 51% 51% no-repeat,
+    radial-gradient(circle at calc(100% + var(--sg-b)) calc(-1 * var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) top right / 51% 51% no-repeat,
+    radial-gradient(circle at calc(-1 * var(--sg-b)) calc(100% + var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) bottom left / 51% 51% no-repeat,
+    radial-gradient(circle at calc(100% + var(--sg-b)) calc(100% + var(--sg-b)), #0000 calc(var(--sg-r) + var(--sg-b)), #000 calc(var(--sg-r) + var(--sg-b) + .5px)) bottom right / 51% 51% no-repeat;
+}
+
+/* ---------- BotaoPlaca ---------- */
+.sg-btn {
+  --sg-r: 9px; --sg-b: 3px; --sg-fundo: var(--signaria-pergaminho);
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; border: 0; background: none; cursor: pointer;
+  min-height: 58px; padding: 9px 16px; color: var(--signaria-contorno);
+  font-family: var(--font-signaria); font-size: 17px; font-weight: 900; line-height: 1.15; letter-spacing: .05em; text-transform: uppercase;
+  text-decoration: none; -webkit-tap-highlight-color: transparent; transition: transform .08s, filter .15s; touch-action: manipulation;
+}
+.sg-btn .ico { width: 28px; height: 28px; flex: none; }
+.sg-btn--inline { width: auto; display: inline-flex; }
+.sg-btn--ambar { --sg-fundo: var(--signaria-ambar); }
+.sg-btn--pergaminho { --sg-fundo: var(--signaria-pergaminho); min-height: 54px; font-size: 15.5px; font-weight: 800; }
+.sg-btn--branco { --sg-fundo: var(--marca-branco); min-height: 52px; font-size: 14.5px; font-weight: 800; }
+.sg-btn--ciano { --sg-fundo: var(--signaria-ciano); }
+.sg-btn--noite { --sg-fundo: var(--signaria-noite); --sg-traco: var(--signaria-pergaminho); --sg-tinta: var(--signaria-pergaminho); color: var(--signaria-pergaminho); }
+.sg-btn--mini { min-height: 46px; padding: 7px 14px; font-size: 13.5px; }
+.sg-btn--grande { min-height: 68px; font-size: 20px; }
+.sg-btn:active { transform: translateY(2px); filter: brightness(.93); }
+@media (hover: hover) { .sg-btn:not(:disabled):hover { filter: brightness(1.05); } }
+.sg-btn:disabled, .sg-btn[aria-disabled="true"] { filter: grayscale(1) opacity(.5); cursor: default; transform: none; }
+.sg-btn:focus-visible { outline: 3px solid var(--signaria-contorno); outline-offset: 3px; border-radius: 10px; }
+.sg-btn--noite:focus-visible { outline-color: var(--signaria-ciano); }
+.sg-btn[aria-pressed="true"] { --sg-fundo: var(--signaria-ambar); }
+
+/* botão redondo de ícone (fechar, ajuda, som) */
+.sg-redondo {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 48px; height: 48px; margin: 0; padding: 0;
+  border: 3px solid var(--signaria-contorno); border-radius: 12px; background: var(--signaria-pergaminho); color: var(--signaria-contorno);
+  cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: transform .08s;
+}
+.sg-redondo .ico { width: 26px; height: 26px; }
+.sg-redondo:active { transform: translateY(2px); }
+.sg-redondo:focus-visible { outline: 3px solid var(--signaria-contorno); outline-offset: 3px; }
+.sg-redondo[aria-pressed="false"] { background: var(--signaria-pedra-clara); }
+
+/* ---------- Ícones (linha, de uma cor) ---------- */
+.ico { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+
+/* ---------- Opcao ---------- */
+.sg-opcao--certa { --sg-fundo: var(--signaria-ciano); }
+.sg-opcao--errada { --sg-fundo: var(--signaria-rosa); animation: sg-tremer .36s; }
+@keyframes sg-tremer { 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+
+/* ---------- BarraProgresso ---------- */
+.sg-barra { display: block; box-sizing: border-box; height: 14px; border: 2.5px solid var(--signaria-contorno); border-radius: 7px; background: var(--marca-branco); overflow: hidden; }
+.sg-barra > i { display: block; width: 0; height: 100%; background: var(--signaria-ciano); box-shadow: 2.5px 0 0 var(--signaria-contorno); transition: width .5s ease; }
+
+/* ---------- LetrasPalavra: soletrar (pedra → âmbar da vez → ciano feita) ---------- */
+.sg-letras { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; font-family: var(--font-signaria); }
+.sg-letras > li { box-sizing: border-box; height: 48px; flex: 0 1 42px; min-width: 0; display: flex; align-items: center; justify-content: center;
+  border: 3px solid var(--signaria-contorno); border-radius: 8px; background: var(--signaria-pedra); color: var(--signaria-pedra-clara);
+  font-size: 25px; font-weight: 900; transition: transform .18s, background-color .18s; }
+.sg-letras > li.is-feita { background: var(--signaria-ciano); color: var(--signaria-contorno); }
+.sg-letras > li.is-atual { background: var(--signaria-ambar); color: var(--signaria-contorno); transform: translateY(-5px) scale(1.12); box-shadow: 0 5px 0 #0003; }
+
+/* ---------- Ficha ---------- */
+.sg-ficha { display: block; box-sizing: border-box; width: 100%; padding: 12px 14px; border: 2.5px solid var(--signaria-contorno); border-radius: 12px;
+  background: var(--marca-branco); color: var(--signaria-contorno); font-family: var(--font-signaria); font-size: 15px; line-height: 1.3; text-align: left; }
+.sg-ficha--ceu { background: var(--signaria-ceu); }
+.sg-ficha--pergaminho { background: var(--signaria-pergaminho); }
+.sg-ficha--noite { background: var(--signaria-noite); color: var(--signaria-pergaminho); }
+
+/* ---------- PainelVideo e PainelCamera ---------- */
+.sg-video { position: relative; overflow: hidden; box-sizing: border-box; width: 100%; border: 3px solid var(--signaria-contorno); border-radius: 14px; background: var(--signaria-video); }
+.sg-video__rotulo, .sg-cam__rotulo { position: absolute; left: 8px; bottom: 8px; z-index: 3; max-width: calc(100% - 16px); padding: 4px 10px; border-radius: 99px;
+  background: color-mix(in srgb, var(--signaria-contorno) 91%, transparent); color: var(--signaria-pergaminho);
+  font-family: var(--font-signaria); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.sg-cam { position: relative; overflow: hidden; box-sizing: border-box; width: 100%; border: 3px solid var(--signaria-contorno); border-radius: 14px;
+  background: var(--signaria-profundo); transition: box-shadow .2s; }
+.sg-cam--confere { box-shadow: 0 0 0 3px var(--signaria-ciano); }
+.sg-cam--acertou { box-shadow: 0 0 0 5px var(--signaria-ciano), 0 0 22px 4px var(--signaria-ciano); }
+
+/* ---------- Peça / carta / runa (imagens com contorno e brilho) ---------- */
+.sg-peca { position: relative; display: block; flex: none; aspect-ratio: 300 / 440; border-radius: 8.5% / 5.8%; overflow: hidden; }
+.sg-peca > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sg-peca--acesa { box-shadow: 0 0 0 4px var(--signaria-ciano), 0 0 18px 2px var(--signaria-ciano); }
+
+/* retrato redondo (animais, Aia) */
+.sg-retrato { display: block; flex: none; box-sizing: border-box; aspect-ratio: 1; border: 3px solid var(--signaria-contorno); border-radius: 50%;
+  background: var(--signaria-ceu); object-fit: cover; }
+
+/* selo de página do livro */
+.sg-selo { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 6px; box-sizing: border-box;
+  border-radius: 9px; background: var(--signaria-carvao); color: var(--signaria-pergaminho); box-shadow: inset 0 0 0 2px var(--signaria-pergaminho);
+  font-family: var(--font-signaria); font-weight: 800; font-size: 17px; }
+
+/* faíscas mágicas: quadradinhos turquesa (magia, acerto, recompensa) */
+.faiscas { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.faiscas > i { position: absolute; left: var(--x); top: var(--y); width: var(--s, 8px); height: var(--s, 8px); background: var(--signaria-runa-brilho);
+  opacity: 0; animation: faisca var(--d, 1.2s) ease-out var(--t, 0s) forwards; }
+.faiscas > i:nth-child(3n) { background: var(--signaria-ciano-claro); }
+@keyframes faisca { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 15% { opacity: .95; } 100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, -60px)) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-btn, .sg-redondo, .sg-letras > li { transition: none; }
+  .sg-opcao--errada { animation: none; }
+  .faiscas { display: none; }
+}

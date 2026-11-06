@@ -64,8 +64,7 @@ export function loadHandLandmarker({ onProgress } = {}) {
         baseOptions: { modelAssetBuffer: model, delegate },
         // IMAGE: cada quadro é analisado do zero. No modo VIDEO o MediaPipe
         // segue a região onde a mão estava no quadro anterior e pode "ver"
-        // uma mão no desenho da carta que aparece ali depois — e a carta
-        // nunca pode valer como sinal.
+        // uma mão onde ela não está mais (ex.: o desenho de uma carta).
         runningMode: 'IMAGE',
         numHands: cfg.numHands,
         minHandDetectionConfidence: cfg.minDetectionConfidence,
@@ -139,12 +138,3 @@ export class HandTracker {
     return hands;
   }
 }
-
-/** Ligações entre os 21 pontos (para desenhar a mão na tela). */
-export const HAND_BONES = [
-  [0, 1], [1, 2], [2, 3], [3, 4],
-  [0, 5], [5, 6], [6, 7], [7, 8],
-  [5, 9], [9, 10], [10, 11], [11, 12],
-  [9, 13], [13, 14], [14, 15], [15, 16],
-  [13, 17], [0, 17], [17, 18], [18, 19], [19, 20],
-];

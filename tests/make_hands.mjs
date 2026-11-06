@@ -32,7 +32,7 @@ const CANDIDATES = [
 ];
 
 const server = await startServer({ port: 0, root: ROOT });
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
 page.on('pageerror', (e) => console.error('[página]', e.message));
 await page.goto(`http://127.0.0.1:${server.address().port}/tests/e2e/hand-renderer.html`);

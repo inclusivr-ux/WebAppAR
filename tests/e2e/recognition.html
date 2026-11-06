@@ -8,7 +8,7 @@
   cada quadro sintético (tests/make_frames.py) passa pelo mesmo ciclo do
   processVideo — 9 recortes "detectMoving" + matching no worker — e depois
   por uma etapa de tracking. Resultado em window.__RESULT__.
-  Parâmetros: ?mind=/inclusiapp/assets/targets/cartas.mind&frames=cartas&count=20&variants=frente,inclinada
+  Parâmetros: ?mind=/inclusiapp/assets/targets/cartas.mind&frames=cartas&count=20&variants=frente,inclinada&from=0
 -->
 </head>
 <body>
@@ -20,6 +20,7 @@ const params = new URLSearchParams(location.search);
 const mindUrl = params.get('mind');
 const set = params.get('frames');
 const count = +params.get('count');
+const from = +(params.get('from') || 0); // só os alvos a partir deste (ex.: páginas com a cartela de texto)
 const variants = (params.get('variants') || 'frente,inclinada,longe,escura').split(',');
 const log = (s) => { document.getElementById('log').textContent += `${s}\n`; };
 
@@ -45,7 +46,7 @@ const all = dimensions.map((_, i) => i);
 log(`${dimensions.length} alvos carregados`);
 
 const results = [];
-for (let target = 0; target < count; target++) {
+for (let target = from; target < count; target++) {
   for (const variant of variants) {
     const img = await loadImage(`/tests/fixtures/frames/${set}/${target}_${variant}.jpg`);
     ctx.drawImage(img, 0, 0, 640, 480);

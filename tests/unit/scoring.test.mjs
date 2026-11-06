@@ -22,13 +22,18 @@ test('bônus linear: cheio, decrescente e zero', () => {
 });
 
 test('modo tiers reproduz a tabela do jogo original (Unity)', () => {
-  const cfg = GAME.scoring.timeBonus;
-  const tiers = { ...cfg, mode: 'tiers' };
+  // a tabela do ARCombinationGameManager.cs (o jogo de cartas usa hoje o modo linear)
+  const tiers = { mode: 'tiers', tiers: [{ upTo: 3, bonus: 100 }, { upTo: 6, bonus: 70 }, { upTo: 10, bonus: 40 }, { upTo: Infinity, bonus: 10 }] };
   assert.equal(timeBonus(2.9, tiers), 100);
   assert.equal(timeBonus(3, tiers), 100);
   assert.equal(timeBonus(5, tiers), 70);
   assert.equal(timeBonus(9.9, tiers), 40);
   assert.equal(timeBonus(60, tiers), 10);
+});
+
+test('jogo de cartas: errar não tira pontos (público de 3 a 8 anos)', () => {
+  assert.equal(GAME.scoring.wrongPenalty, 0);
+  assert.deepEqual(applyPenalty(100, GAME.scoring), { score: 100, deducted: 0 });
 });
 
 test('acerto = pontos fixos + bônus', () => {

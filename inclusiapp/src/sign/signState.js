@@ -1,31 +1,24 @@
 /**
- * Regras de uma partida do ✋ Sinalize e Conte — sem DOM, testadas em Node
+ * Regras de uma partida do Sinalize! — sem DOM, testadas em Node
  * (tests/unit/signState.test.mjs).
  *
- *   start() → nextRound()
- *     [SCAN]    cardSeen(letra) até ser a carta certa   (ou skipScan())
- *     [SIGN]    startSign() → signWrong()* → signCorrect()   (ou skipSign())
- *     [ANIMALS] a interface mostra os animais → startCount()
- *     [COUNT]   answer(n)* até acertar a quantidade
- *     [DONE]    finishRound() → próxima rodada … → [FINISHED] summary()
+ *   start(seed) → embaralha UMA vez (ordem fixa na partida)
+ *   nextRound() → [WATCH] o Fauston mostra o sinal
+ *               → startTry() [TRY] a vez da criança (cronômetro)
+ *               → correct() | fail() → [DONE] → nextRound() … → [FINISHED]
  *
- * O baralho é o mesmo do Jogo de Cartas (game/deck.js): as vogais são
- * embaralhadas e cada uma sai uma vez — sem repetir até completar o ciclo.
- * Cada partida (inclusive "Jogar novamente") começa com um novo embaralhamento.
- *
- * Tempo 1 (sinal) e Tempo 2 (contagem) usam o cronômetro do Jogo de Cartas,
- * que pausa quando o app vai para segundo plano.
+ * Ver o sinal de novo e tentar de novo não tiram pontos; o bônus de rapidez
+ * conta só o tempo da vez da criança.
  */
 import { Deck } from '../game/deck.js';
 import { Stopwatch } from '../game/timer.js';
-import { maxRoundScore, rankFor, stepPoints } from './signScore.js';
+import { newSeed, seededRandom } from '../game/random.js';
+import { stepPoints } from './signScore.js';
 
 export const PHASE = {
   IDLE: 'idle',
-  SCAN: 'scan',
-  SIGN: 'sign',
-  ANIMALS: 'animals',
-  COUNT: 'count',
+  WATCH: 'watch',
+  TRY: 'try',
   DONE: 'done',
   FINISHED: 'finished',
 };
@@ -34,253 +27,118 @@ export class SignMatch {
   /**
    * @param {object} config  SIGN_GAME (signConfig.js)
    * @param {object} [options]
-   * @param {() => number} [options.now]     relógio em ms (testes)
-   * @param {() => number} [options.random]  gerador aleatório (testes)
+   * @param {() => number} [options.now]  relógio em ms (testes)
    */
-  constructor(config, { now = () => performance.now(), random = Math.random } = {}) {
+  constructor(config, { now = () => performance.now() } = {}) {
     this.config = config;
-    this.random = random;
-    this.vowels = new Map(config.vowels.map((v) => [v.letter, v]));
-    this.deck = new Deck(config.vowels.map((v) => v.letter), { random });
-    this.clock = new Stopwatch(now); // tempo total da partida
-    this.signTimer = new Stopwatch(now); // Tempo 1
-    this.countTimer = new Stopwatch(now); // Tempo 2
-    this.fresh = true;
-    this._reset();
-  }
-
-  _reset() {
+    this.items = new Map(config.items.map((i) => [i.id, i]));
+    this.clock = new Stopwatch(now);
+    this.tryTimer = new Stopwatch(now);
     this.phase = PHASE.IDLE;
-    this.round = null;
-    this.results = [];
-    this.stats = {
-      score: 0,
-      signsCorrect: 0,
-      signsSkipped: 0,
-      wrongSigns: 0,
-      countsCorrect: 0, // contagens certas na primeira tentativa
-      countsWrong: 0,
-      streak: 0,
-      bestStreak: 0,
-    };
-    this._paused = null;
-    this.signTimer.reset();
-    this.countTimer.reset();
   }
 
   get rounds() {
-    return this.config.rounds;
+    return Math.min(this.config.rounds, this.config.items.length);
   }
 
-  /** Nova partida: novo embaralhamento, placar zerado e relógio correndo. */
-  start() {
-    if (!this.fresh) this.deck.newCycle();
-    this.fresh = false;
-    this._reset();
+  /** Nova partida: nova semente (ou a dada), um embaralhamento, placar zerado. */
+  start(seed = newSeed()) {
+    this.seed = seed >>> 0;
+    this.deck = new Deck(this.config.items.map((i) => i.id), { random: seededRandom(this.seed) });
+    this.order = this.deck.order.slice(0, this.rounds);
+    this.index = -1;
+    this.round = null;
+    this.results = [];
+    this.stats = { score: 0, signsCorrect: 0, skipped: 0, streak: 0, bestStreak: 0 };
+    this.phase = PHASE.IDLE;
+    this.tryTimer.reset();
     this.clock.start();
   }
 
-  /** Sorteia a próxima vogal (ou null se a partida acabou). */
+  /** Próximo desafio (o Fauston mostra o sinal). Devolve o item, ou null no fim. */
   nextRound() {
-    if (this.phase !== PHASE.IDLE) return null;
-    if (this.results.length >= this.rounds) {
-      this._finish();
+    if (this.phase === PHASE.WATCH || this.phase === PHASE.TRY) return this.round.item;
+    this.index += 1;
+    if (this.index >= this.order.length) {
+      this.phase = PHASE.FINISHED;
+      this.round = null;
+      this.clock.pause();
       return null;
     }
-    const letter = this.deck.draw();
-    const { min, max } = this.config.animals;
-    this.round = {
-      number: this.results.length + 1,
-      letter,
-      vowel: this.vowels.get(letter),
-      animals: min + Math.floor(this.random() * (max - min + 1)),
-      scanned: false,
-      scanSkipped: false,
-      wrongCards: 0,
-      signAttempts: 0,
-      sign: null,
-      countAttempts: 0,
-      count: null,
-    };
-    this.signTimer.reset();
-    this.countTimer.reset();
-    this.phase = PHASE.SCAN;
-    return this.round;
+    const item = this.items.get(this.order[this.index]);
+    this.round = { item, number: this.index + 1, tries: 0, result: null };
+    this.phase = PHASE.WATCH;
+    return item;
   }
 
-  /* ------------------------------------------------ 📷 carta */
-
-  /** Uma carta foi reconhecida (`letter` = vogal da carta, ou null se não é de vogal). */
-  cardSeen(letter) {
-    if (this.phase !== PHASE.SCAN) return { type: 'ignored' };
-    if (letter !== this.round.letter) {
-      this.round.wrongCards += 1;
-      return { type: 'wrong', letter: letter ?? null };
-    }
-    this.round.scanned = true;
-    this.phase = PHASE.SIGN;
-    return { type: 'ok' };
+  /** Ver o sinal de novo (volta para WATCH, sem perder nada). */
+  watchAgain() {
+    if (this.phase !== PHASE.TRY && this.phase !== PHASE.WATCH) return;
+    this.tryTimer.pause();
+    this.phase = PHASE.WATCH;
   }
 
-  /** Fazer o sinal sem escanear (ex.: a carta sumiu). */
-  skipScan() {
-    if (this.phase !== PHASE.SCAN) return false;
-    this.round.scanSkipped = true;
-    this.phase = PHASE.SIGN;
-    return true;
+  /** A vez da criança: o cronômetro do bônus corre (soma as tentativas). */
+  startTry() {
+    if (this.phase !== PHASE.WATCH) return;
+    this.round.tries += 1;
+    this.phase = PHASE.TRY;
+    if (this.round.tries === 1) this.tryTimer.start();
+    else this.tryTimer.resume();
   }
 
-  /* ------------------------------------------------ ✋ sinal */
-
-  /** Começa o Tempo 1 (quando aparece "✋ Faça o sinal"). */
-  startSign() {
-    if (this.phase !== PHASE.SIGN || this.signTimer.running || this.signTimer.elapsed > 0) return;
-    this.signTimer.start();
+  get tryElapsed() {
+    return this.tryTimer.elapsed;
   }
 
-  /** O MediaPipe viu outro sinal: o tempo continua correndo. */
-  signWrong() {
-    if (this.phase !== PHASE.SIGN) return false;
-    this.round.signAttempts += 1;
-    this.stats.wrongSigns += 1;
-    return true;
-  }
-
-  /** O MediaPipe reconheceu o sinal pedido. */
-  signCorrect() {
-    if (this.phase !== PHASE.SIGN) return null;
-    this.startSign();
-    this.signTimer.pause();
-    const seconds = this.signTimer.elapsed;
-    this.round.sign = { seconds, ...stepPoints(seconds, this.config.scoring.sign), skipped: false };
-    this.stats.score += this.round.sign.total;
-    this.stats.signsCorrect += 1;
-    this._success();
-    this.phase = PHASE.ANIMALS;
-    return { ...this.round.sign, score: this.stats.score };
-  }
-
-  /** Pular o sinal: sem pontos do sinal, mas a rodada continua (contagem). */
-  skipSign() {
-    if (this.phase !== PHASE.SIGN) return null;
-    this.signTimer.pause();
-    this.round.sign = { seconds: this.signTimer.elapsed, base: 0, bonus: 0, total: 0, skipped: true };
-    this.stats.signsSkipped += 1;
-    this._fail();
-    this.phase = PHASE.ANIMALS;
-    return this.round.sign;
-  }
-
-  /* ------------------------------------------------ 🔢 contagem */
-
-  /** Os animais terminaram de aparecer: começa o Tempo 2. */
-  startCount() {
-    if (this.phase !== PHASE.ANIMALS) return false;
-    this.countTimer.start();
-    this.phase = PHASE.COUNT;
-    return true;
-  }
-
-  /** Resposta do jogador (1, 2, 3...). Errar não encerra a rodada. */
-  answer(n) {
-    if (this.phase !== PHASE.COUNT) return { type: 'ignored' };
-    const round = this.round;
-    if (n !== round.animals) {
-      round.countAttempts += 1;
-      this.stats.countsWrong += 1;
-      if (round.countAttempts === 1) this._fail();
-      return { type: 'wrong', attempts: round.countAttempts };
-    }
-    this.countTimer.pause();
-    const seconds = this.countTimer.elapsed;
-    const firstTry = round.countAttempts === 0;
-    round.count = { seconds, ...stepPoints(seconds, this.config.scoring.count), firstTry };
-    this.stats.score += round.count.total;
-    if (firstTry) {
-      this.stats.countsCorrect += 1;
-      this._success();
-    }
+  /** A câmera reconheceu (ou a pessoa confirmou "ACERTEI" no modo sem câmera). */
+  correct({ self = false } = {}) {
+    if (this.phase !== PHASE.TRY) return null;
+    const seconds = this.tryTimer.elapsed;
+    this.tryTimer.pause();
+    const points = stepPoints(seconds, this.config.scoring.sign);
+    const s = this.stats;
+    s.score += points.total;
+    s.signsCorrect += 1;
+    s.streak += 1;
+    s.bestStreak = Math.max(s.bestStreak, s.streak);
+    this.round.result = { ok: true, self, seconds, ...points };
+    this.results.push({ id: this.round.item.id, ...this.round.result });
     this.phase = PHASE.DONE;
-    return { type: 'correct', ...round.count, score: this.stats.score };
+    return this.round.result;
   }
 
-  /** Fecha a rodada; devolve { finished } (true depois da última). */
-  finishRound() {
-    if (this.phase !== PHASE.DONE) return null;
-    const r = this.round;
-    this.results.push({
-      number: r.number,
-      letter: r.letter,
-      animals: r.animals,
-      scanned: r.scanned,
-      sign: r.sign,
-      signAttempts: r.signAttempts,
-      count: r.count,
-      countAttempts: r.countAttempts,
-      points: (r.sign?.total || 0) + (r.count?.total || 0),
-    });
-    if (this.results.length >= this.rounds) {
-      this._finish();
-      return { finished: true };
-    }
-    this.phase = PHASE.IDLE;
-    return { finished: false };
-  }
-
-  get finished() {
-    return this.phase === PHASE.FINISHED;
-  }
-
-  /* ------------------------------------------------ sequência de acertos */
-  _success() {
-    this.stats.streak += 1;
-    this.stats.bestStreak = Math.max(this.stats.bestStreak, this.stats.streak);
-  }
-
-  _fail() {
+  /** Não deu: o tempo acabou ou a pessoa disse "ERREI" (pode tentar de novo). */
+  miss() {
+    if (this.phase !== PHASE.TRY) return;
+    this.tryTimer.pause();
     this.stats.streak = 0;
+    this.phase = PHASE.WATCH;
   }
 
-  _finish() {
-    this.clock.pause();
-    this.signTimer.pause();
-    this.countTimer.pause();
-    this.phase = PHASE.FINISHED;
+  /** Pular para o próximo (sem pontos). */
+  skip() {
+    if (this.phase !== PHASE.TRY && this.phase !== PHASE.WATCH) return null;
+    this.tryTimer.pause();
+    this.stats.skipped += 1;
+    this.stats.streak = 0;
+    this.round.result = { ok: false, skipped: true, total: 0 };
+    this.results.push({ id: this.round.item.id, ...this.round.result });
+    this.phase = PHASE.DONE;
+    return this.round.result;
   }
 
-  /* ------------------------------------------------ pausa (app em segundo plano) */
-  pause() {
-    if (this._paused) return;
-    this._paused = [this.clock, this.signTimer, this.countTimer].filter((t) => t.running);
-    this._paused.forEach((t) => t.pause());
-  }
+  pause() { this.clock.pause(); this.tryTimer.pause(); }
 
   resume() {
-    if (!this._paused) return;
-    this._paused.forEach((t) => t.resume());
-    this._paused = null;
-  }
-
-  /* ------------------------------------------------ resultado */
-  get maxScore() {
-    return maxRoundScore(this.config.scoring) * this.rounds;
+    this.clock.resume();
+    if (this.phase === PHASE.TRY) this.tryTimer.resume();
   }
 
   summary() {
-    const s = this.stats;
-    const maxScore = this.maxScore;
-    return {
-      score: s.score,
-      maxScore,
-      seconds: this.clock.elapsed,
-      rounds: this.rounds,
-      played: this.results.length,
-      signsCorrect: s.signsCorrect,
-      signsSkipped: s.signsSkipped,
-      countsCorrect: s.countsCorrect,
-      bestStreak: s.bestStreak,
-      rank: rankFor(s.score, maxScore, this.config.ranks),
-      results: this.results.slice(),
-    };
+    const total = this.order.length;
+    const ratio = total ? this.stats.signsCorrect / total : 0;
+    const stars = (this.config.stars.find((s) => ratio >= s.min) || { stars: 1 }).stars;
+    return { ...this.stats, total, seconds: this.clock.elapsed, stars, seed: this.seed, countsCorrect: 0 };
   }
 }
