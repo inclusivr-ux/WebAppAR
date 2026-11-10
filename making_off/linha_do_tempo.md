@@ -93,3 +93,134 @@ Claude nada aparecia porque o servidor de teste não comprimia.
 tamanho anunciado só para a barra. E o servidor de teste aprendeu a comprimir
 como o GitHub: com o código antigo, o teste do livro passou a falhar do mesmo
 jeito que o celular; com o novo, passa. Versão 2.1.1.
+
+## Capítulo 3. O app simplificado (segunda, 10/11/2026)
+
+**O que se queria.** Com a 2.1.1 no ar, a equipe testou de novo em dois
+celulares e gravou vídeos. Mandou nove pedidos, todos na mesma direção: um
+app mais simples e mais liso.
+- Tirar a Maga Aia e o Seu Zé em 3D.
+- Deixar o rastreio fluido como na primeira versão do JLeo.
+- A página como validador.
+- O zoológico sem a página 22.
+- O Sinalize sem pontos e sem tempo.
+- Fotos de verdade nas instruções.
+- Tela inicial sem rolar e tela cheia.
+- A música do Luigi.
+
+Antes de mexer, o Claude fez quatro perguntas. As respostas:
+- tentar o zoológico sem a página 22;
+- sem a página, o animal vai para o centro;
+- as imagens estão na versão do site com o plugin;
+- a música é o arquivo "oogway morto", no PC do Luciano.
+
+**A Aia e o Seu Zé arquivados.** "Modelos deles com poses e animações
+genéricas." O Claude tirou do app:
+- os modelos;
+- as bibliotecas que só eles usavam (o leitor de VRM e o de texturas KTX2);
+- as 4 páginas deles;
+- cada menção nos textos.
+
+Nada se perdeu. O `docs/ARQUIVO.md` explica como trazer tudo de volta a partir
+do commit `a6eba3a`.
+
+**Por que o rastreio tinha piorado.** "Na primeira versão feita pelo JLeo [...]
+o tracking estava fenomenal." O Claude comparou com a versão do JLeo (commit
+`19a1252`). Os dados de reconhecimento das 5 páginas dos animais eram
+idênticos, byte a byte, e os ajustes do filtro também. O que tinha mudado:
+1. A 2.0 juntou as 4 páginas da Aia e do Seu Zé. O app passou a procurar 9
+   imagens em vez de 5, e cada tentativa ficou quase duas vezes mais lenta.
+2. Ao perder a página, o animal congelava numa cópia parada, piscava, ficava
+   transparente e depois pulava de volta.
+3. O app baixava os 8 MB da Aia e do Seu Zé com a câmera aberta.
+4. O animal ficava preso à pose do rastreio, que muda 10 a 20 vezes por
+   segundo. A tela é desenhada 60 vezes: ele andava "aos saltinhos".
+
+Os vídeos do Drive (47 e 94 MB) não abriram de primeira nas ferramentas do
+Claude, e o diagnóstico veio da descrição da equipe e do código. Depois, pelo
+link de download direto do Drive, o Claude baixou os dois e olhou quadro a
+quadro. Eles confirmaram o diagnóstico:
+- no livro, com o celular e a página parados, o elefante dava pulinhos de 2 a
+  6 pixels e às vezes ficava parado uns 0,2 segundo antes de pular de novo;
+- no zoológico, as cartas cobriam a página 22, e o app dizia "NÃO ENCONTREI A
+  PÁGINA 22".
+
+Os vídeos estão na pasta de testes do Drive:
+`Screen_Recording_20261110_115316_Brave.mp4` e
+`Screen_Recording_20261110_115555_Brave.mp4`.
+
+**O que resolveu.**
+- O arquivo de 5 páginas do JLeo voltou.
+- O animal passou a morar num grupo que **segue** a página a cada quadro, com
+  um amortecimento de 70 milésimos de segundo (`poseFollower.js`).
+- Num teste, a página andava 20 unidades a cada atualização do rastreio. O
+  maior passo do animal na tela ficou abaixo de 12.
+
+**A página como validador.** "Como se a página fosse um validador, e depois
+permitisse a brincadeira continuar mesmo que o tracking se perca."
+- Sem a página, o animal desliza, em 0,65 segundo, para um "palco de brincar":
+  uma página invisível no meio da tela. Lá ele continua passeando.
+- Os gestos voltaram do "Modo Interação" da primeira versão: um dedo gira e
+  dois aproximam.
+- A mesma página voltou: ele desliza de volta para ela.
+- Saíram o pisca-pisca e o "QUERO VOLTAR PARA MINHA PÁGINA!" (imagem `03_01`).
+
+**O zoológico sem a página 22.** "Possivelmente remover a necessidade de
+manter a página 22 em vista já resolveria esse problema." As cartas viraram
+validadoras: a carta só mostra quem chega, e o animal vai para o palco.
+- Nos testes, as cartas apareceram giradas, deitadas, de cabeça para baixo,
+  inclinadas e duas juntas. Cada uma foi reconhecida em cerca de um segundo.
+- Com os 10 juntos (5 animais e 5 letras), o reconhecimento para e o celular
+  só desenha: 101 mil triângulos e 30 chamadas de desenho (imagem `03_04`).
+- Se fica fluido num celular comum, só o teste da equipe vai dizer.
+
+**O Sinalize sem relógio.** "O tempo passa a impressão de que tem que fazer
+rápido." Saíram os pontos, os recordes, as estrelas, a contagem 3-2-1 e o
+tempo limite.
+- Na vez da criança, a tela diz: "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA".
+- Outra vogal na câmera mostra "QUASE!", e a criança continua tentando.
+
+Um tropeço: o teste automático tentou tocar em PULAR e não conseguiu, porque a
+faixa do "QUASE!" ficava por cima dos botões durante quase três segundos. O
+aviso passou para a instrução e para a câmera (imagem `03_05`).
+
+**As instruções sem a pessoa.** "Ser humano ali está um pouco feio, não combina
+com o estilo da InclusiVR." A imagem teve duas versões, e a primeira ficou.
+1. Na primeira, a foto do livro aberto e o celular vieram do site com o plugin
+   de LIBRAS, junto com a animação do "salto". O elefante do site era um
+   elefante cinza genérico, diferente do que a criança vê no app. O Claude
+   fotografou o elefante do próprio app, feito do traço do Igor, jogando água
+   com a tromba (`tools/render-instrucoes.mjs`).
+2. O Luciano lembrou que "o site" é a versão em atualização no artefato, de
+   04/11. A primeira tinha vindo da versão de teste do plugin, de 19/10. O
+   Claude trocou a imagem pela montagem da versão de 04/11, como está lá, com
+   o elefante cinza mexendo a orelha e a tromba. E avisou: aquele elefante não
+   é o do Igor.
+3. O Luciano comparou as duas: "O elefante do Igor é melhor que esse do site."
+   A primeira voltou inteira, com a troca desfeita pelo git (imagens `03_02` e
+   `03_06`).
+
+**Tela inicial e tela cheia.**
+- A tela inicial passou a ocupar a altura exata do aparelho. Foi conferida sem
+  rolar em seis tamanhos de celular e tablet, mais paisagem (imagem `03_03`).
+- O botão TELA CHEIA aparece onde o navegador deixa (o Safari do iPhone não deixa).
+
+**A música.** O código ficou pronto antes do arquivo. Com um tom de teste no
+lugar, a música entra no primeiro toque e o botão liga e desliga. O arquivo
+veio depois:
+- O primeiro link do Drive pedia login, porque a música não estava aberta como
+  a pasta dos vídeos. O Luciano a pôs na mesma pasta, e o download funcionou.
+- O original, "oogoway morrendo", é um WAV de quase 6 minutos e 63 MB: pesado
+  demais para um celular.
+- O Claude fez um MP3 de 4,3 MB (96 kbps) e tirou os 4,6 segundos de silêncio
+  do fim, para o laço não ter um buraco.
+- Mediu o volume: −22 LUFS no todo e −29 no começo, que é calmo. Com o volume
+  escolhido antes de existir a faixa (0,22), o começo tocaria perto de −42
+  LUFS, quase nada num alto-falante de celular. O volume do app passou para
+  0,45.
+
+**Números.** 96 testes de unidade e 115 verificações ponta a ponta, todas
+passando (112 antes da música; as 3 novas conferem a trilha de verdade e o
+botão que some sem ela). O teste no celular de verdade ficou como pedido à equipe, com um
+medidor novo: abrir o app com `?debug=1` mostra quantas vezes por segundo a
+tela é desenhada e o rastreio roda.

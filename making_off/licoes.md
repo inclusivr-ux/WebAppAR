@@ -23,3 +23,28 @@
    comprime (gzip) modelos, alvos e código, e o tamanho anunciado é o
    comprimido. Nunca reserve memória pelo `Content-Length`; e o servidor de
    teste precisa comprimir igual, senão o erro só aparece no celular. (Capítulo 2)
+9. **Modelo preso direto à pose do rastreio anda aos saltinhos.** O rastreio
+   atualiza 10 a 20 vezes por segundo, e a tela, 60. Ponha o modelo num grupo
+   que segue a pose a cada quadro (amortecimento curto). Calcule o "virar
+   para a câmera" na pose já suavizada, senão o tremor do rastreio aumenta.
+   (Capítulo 3)
+10. **Cada imagem a mais na procura deixa o reconhecimento mais lento.** Procure
+    só o que o app usa naquele momento. Arquive o resto. (Capítulo 3)
+11. **Em AR para crianças, o alvo valida, e a brincadeira não depende dele.**
+    Quando a câmera sai do alvo, leve o objeto para um palco fixo na tela, em
+    vez de congelar, piscar ou sumir. (Capítulo 3)
+12. **Aviso de "quase" não tapa botões.** Um teste automático que toca nos
+    botões acha esse tipo de problema; a faixa do Sinalize tapava PULAR por
+    quase três segundos. (Capítulo 3)
+13. **A imagem de instrução mostra o que a criança vai ver.** Se o material de
+    divulgação usa outro modelo, use o modelo do próprio app, fotografado por
+    script. O Luciano confirmou ao comparar as duas imagens: "O elefante do
+    Igor é melhor que esse do site." (Capítulo 3)
+14. **"O site" tem várias versões: pergunte qual antes de copiar material.** A
+    publicada, a de teste do plugin e a que está em atualização no artefato têm
+    imagens diferentes. Ao trocar, guarde a anterior (o git guarda): às vezes
+    ela era a melhor. (Capítulo 3)
+15. **Meça o volume da faixa antes de fixar o volume do app.** Uma trilha calma
+    pede mais ganho que uma faixa comum. O `ebur128` do ffmpeg dá o número em
+    LUFS em segundos; o volume escolhido antes de existir a faixa deixaria o
+    começo dela quase mudo. (Capítulo 3)

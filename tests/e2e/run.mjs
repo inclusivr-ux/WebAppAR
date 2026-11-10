@@ -4,7 +4,7 @@
  *
  *   python3 tests/make_frames.py      # quadros sintéticos (uma vez)
  *   npm run test:e2e                   # todos
- *   npm run test:e2e -- livro          # só uma parte: telas, livro, personagens, cartas, zoo, sinalize, erros, paisagem
+ *   npm run test:e2e -- livro          # só uma parte: telas, livro, cartas, zoo, sinalize, erros, paisagem
  *
  * A câmera falsa (tests/e2e/fakeCamera.js) entrega ao app um MediaStream de
  * verdade com as fotos de teste: o caminho real (câmera → MindAR/MediaPipe →
@@ -74,16 +74,41 @@ async function testScreens() {
     return { cabe: a.scrollWidth <= a.clientWidth + 1, alto: a.getBoundingClientRect().height };
   });
   check('início: "NÃO TEM O LIVRO?" numa linha só', linhas.cabe && linhas.alto < 52, JSON.stringify(linhas));
+  check('início: botão TELA CHEIA (o Chrome deixa)', await page.isVisible('[data-action="fullscreen"]'));
+  await page.waitForSelector('[data-action="music"]', { state: 'visible', timeout: 5000 }).catch(() => {});
+  check('início: a trilha está no app e o botão MÚSICA aparece', await page.isVisible('[data-action="music"]'));
+  const trilha = await page.evaluate(async () => {
+    const { arquivo } = await (await fetch('assets/musica/musica.json')).json();
+    const audio = new Audio(`assets/musica/${arquivo}`);
+    audio.preload = 'metadata';
+    await new Promise((ok, falha) => { audio.onloadedmetadata = ok; audio.onerror = falha; setTimeout(falha, 8000); }).catch(() => {});
+    return { arquivo, segundos: Math.round(audio.duration || 0) };
+  });
+  check('início: a trilha é um MP3 que toca (oogway-morrendo.mp3, 5 min 55 s)', /^[a-z0-9-]+\.mp3$/.test(trilha.arquivo) && trilha.segundos > 300, JSON.stringify(trilha));
   await shot(page, 'menu');
+  await page.locator('[data-action="fullscreen"]').click();
+  await page.waitForFunction(() => !!document.fullscreenElement && document.querySelector('[data-fullscreen-label]').textContent.includes('SAIR'), null, { timeout: 5000 }).catch(() => {});
+  const tela = await page.evaluate(() => ({ cheia: !!document.fullscreenElement, texto: document.querySelector('[data-fullscreen-label]').textContent }));
+  check('início: TELA CHEIA liga a tela cheia (e o botão vira SAIR DA TELA CHEIA)', tela.cheia && tela.texto.includes('SAIR'), JSON.stringify(tela));
+  await page.click('[data-action="fullscreen"]');
+  await page.waitForFunction(() => !document.fullscreenElement, null, { timeout: 5000 }).catch(() => {});
 
   await go(page, 'livro', 'book-intro');
   check('instruções: o texto de sempre ("Aponte o celular...", "30 cm")', (await page.textContent('.passos')).includes('30 cm de distância'));
-  check('instruções: esquema com a pessoa, o celular, o livro aberto na mesa e a distância', await page.locator('.esquema svg').count() === 1 &&
-    (await page.textContent('.esquema__medida')).includes('30 cm') && (await page.textContent('.passos')).includes('mesa'));
+  const salto = await page.evaluate(() => ({
+    fotos: [...document.querySelectorAll('.salto img')].map((i) => i.getAttribute('src').split('/').pop()).join(','),
+    carregadas: [...document.querySelectorAll('.salto img')].every((i) => i.complete && i.naturalWidth > 0),
+    medida: document.querySelector('.salto__medida')?.textContent,
+    pessoa: !!document.querySelector('.esquema'),
+  }));
+  check('instruções: fotos do livro aberto e do celular, e o elefante do app saltando (sem pessoa desenhada)', salto.fotos === 'livro-aberto.webp,celular.webp,elefante.webp' &&
+    salto.carregadas && salto.medida.includes('30 cm') && !salto.pessoa, JSON.stringify(salto));
+  check('instruções: o palco de brincar está explicado', (await page.textContent('.passos')).includes('continua na tela'));
   const pages = await page.locator('[data-pages] .paginas__item').count();
-  check('instruções: mostra as páginas com AR (5 com animal + 4 da Aia e do Seu Zé)', pages === 9, `${pages}`);
+  check('instruções: só as 5 páginas dos animais (a Aia e o Seu Zé foram arquivados)', pages === 5, `${pages}`);
   const numeros = await page.locator('[data-pages] .paginas__selo').allTextContents();
-  check('instruções: os números do livro impresso (animais da 13 à 21)', numeros.join(',') === '13,15,17,19,21,8,11,22,23', numeros.join(','));
+  check('instruções: os números do livro impresso (13 a 21)', numeros.join(',') === '13,15,17,19,21', numeros.join(','));
+  check('instruções: nenhuma menção à Aia ou ao Seu Zé', !/aia\b|seu zé/i.test(await page.textContent('[data-screen="book-intro"]')));
   check('instruções: a runa sozinha não tem AR (imagem + aviso)', (await page.textContent('.dupla figcaption')).includes('RUNA SOZINHA'));
   check('instruções: cartas só nos jogos e "em breve" mais páginas', /cartas recortadas[\s\S]*jogos[\s\S]*mais páginas/i.test(await page.textContent('.avisos')));
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -98,13 +123,16 @@ async function testScreens() {
   await go(page, 'sinalize', 'sign-intro');
   const signText = await page.textContent('[data-screen="sign-intro"]');
   check('sinalize: como jogar sem termos técnicos (sem "MediaPipe")', !/mediapipe/i.test(signText) && signText.includes('duas vezes'));
-  check('sinalize: resumo descritivo (VEJA A VOGAL, OLHE O INTÉRPRETE...)', (await page.locator('[data-screen="sign-intro"] .demo__rotulo').allTextContents()).map((t) => t.trim()).join('|') === 'VEJA A VOGAL|OLHE O INTÉRPRETE|FAÇA NA CÂMERA|GANHE PONTOS');
+  check('sinalize: resumo descritivo (VEJA A VOGAL, OLHE O INTÉRPRETE...)', (await page.locator('[data-screen="sign-intro"] .demo__rotulo').allTextContents()).map((t) => t.trim()).join('|') === 'VEJA A VOGAL|OLHE O INTÉRPRETE|FAÇA NA CÂMERA|ISSO!');
+  check('sinalize: sem pontos e sem pressa ("com calma", "não tem tempo")', !/pontos|rápido|recorde/i.test(signText) && /com calma/i.test(signText) && /não tem tempo/i.test(signText));
   check('sinalize: sem ERREI/ACERTEI; deixa claro que não gravamos imagens', !/ERREI|ACERTEI/.test(signText) && signText.includes('Não gravamos suas imagens em nenhum momento'));
   await go(page, 'zoo', 'zoo-intro');
-  check('zoo: como brincar com o livro (página 22) e as cartas', (await page.textContent('[data-screen="zoo-intro"]')).includes('página 22') && !/lixeira/i.test(await page.textContent('[data-screen="zoo-intro"]')));
+  const zooText = await page.textContent('[data-screen="zoo-intro"]');
+  check('zoo: como brincar só com as cartas (sem a página 22), em qualquer posição', !/página 22/i.test(zooText) && /qualquer posição/i.test(zooText) && !/lixeira|aia|seu zé/i.test(zooText));
   // nomes da equipe não aparecem no app (só a função: "intérprete")
   const todo = await page.evaluate(() => document.body.innerHTML + document.querySelector('meta[name="description"]').content);
-  check('nenhum nome da equipe no app (o intérprete aparece pela função)', !/fauston|igor|luciano/i.test(todo));
+  check('nenhum nome da equipe no app (o intérprete aparece pela função)', !/fauston|igor|luciano|luigi/i.test(todo));
+  check('nenhum botão ou imagem da Aia e do Seu Zé', !/aia-rosto|seuze|data-zoo-call|\.vrm/i.test(todo));
 
   // endereços antigos continuam funcionando
   await page.goto(`${BASE}#/bichinho`);
@@ -115,6 +143,49 @@ async function testScreens() {
   check('endereço antigo #/jogo leva ao jogo de cartas', true);
   noErrors(page, 'telas');
   await page.context().close();
+
+  // a tela inicial cabe inteira, sem rolar, e a marca da InclusiVR fica à vista
+  for (const [w, h] of [[360, 640], [375, 667], [390, 844], [412, 915], [768, 1024], [844, 390]]) {
+    const p = await newPage({ width: w, height: h });
+    await go(p, '', 'menu');
+    const fit = await p.evaluate(() => {
+      const scr = document.querySelector('[data-screen="menu"]');
+      const marca = document.querySelector('.menu__assinatura img').getBoundingClientRect();
+      const links = document.querySelector('.menu__links').getBoundingClientRect();
+      return { rola: scr.scrollHeight > scr.clientHeight + 1, marca: marca.bottom <= innerHeight && marca.height >= 28, links: links.bottom <= innerHeight };
+    });
+    check(`início ${w}×${h}: cabe sem rolar, com a marca da InclusiVR à vista`, !fit.rola && fit.marca && fit.links, JSON.stringify(fit));
+    if (w === 360 || w === 412) await shot(p, `menu-${w}x${h}`);
+    await p.context().close();
+  }
+
+  // a música (com um tom de teste no lugar do arquivo de verdade): entra no primeiro toque, e o botão liga/desliga
+  const m = await newPage();
+  await m.route('**/assets/musica/musica.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ arquivo: 'teste.mp3' }) }));
+  await m.route('**/assets/musica/teste.mp3', (r) => r.fulfill({ contentType: 'audio/mpeg', body: readFileSync(join(ROOT, 'tests/fixtures/musica/teste.mp3')) }));
+  await go(m, '', 'menu');
+  check('música: com o arquivo, o botão MÚSICA aparece', await m.isVisible('[data-action="music"]'));
+  await m.touchscreen.tap(195, 200);
+  await m.waitForTimeout(900);
+  const tocando = () => m.evaluate(async () => (await import('./src/ui/music.js')).musicPlaying());
+  check('música: começa depois do primeiro toque', await tocando());
+  await m.click('[data-action="music"]');
+  await m.waitForTimeout(700);
+  check('música: o botão desliga (SEM MÚSICA)', !(await tocando()) && (await m.textContent('[data-music-label]')) === 'SEM MÚSICA');
+  await m.click('[data-action="music"]');
+  await m.waitForTimeout(500);
+  check('música: e liga de novo', await tocando());
+  noErrors(m, 'música');
+  await m.context().close();
+
+  // sem arquivo de música (musica.json vazio), o botão some e nada quebra
+  const s = await newPage();
+  await s.route('**/assets/musica/musica.json', (r) => r.fulfill({ contentType: 'application/json', body: '{}' }));
+  await go(s, '', 'menu');
+  await s.waitForTimeout(600);
+  check('música: sem o arquivo, o botão MÚSICA não aparece', await s.isHidden('[data-action="music"]'));
+  noErrors(s, 'música (sem arquivo)');
+  await s.context().close();
 }
 
 /* ================================================================ livro */
@@ -144,10 +215,16 @@ async function testBook() {
   await page.waitForTimeout(3500);
   const walk = await page.evaluate(() => {
     const a = window.__app.book.ready.get(1)[0];
-    const b = a.bounds;
+    const b = a.wander.bounds;
     return { inside: a.wander.pos[0] >= b.minX && a.wander.pos[0] <= b.maxX && a.wander.pos[1] >= b.minY && a.wander.pos[1] <= b.maxY, pos: a.wander.pos };
   });
   check('livro: o animal passeia dentro da página', walk.inside, JSON.stringify(walk.pos));
+  const liso = await page.evaluate(async () => {
+    // o animal segue o grupo da página, que vai até a pose do rastreio a cada quadro (sem saltos)
+    const f = window.__app.book.frames.get(1);
+    return { noGrupo: window.__app.book.ready.get(1)[0].container.parent === f.group, ancora: f.group.parent?.type };
+  });
+  check('livro: o animal fica no grupo que segue a página (movimento liso), não preso na âncora', liso.noGrupo && liso.ancora === 'Scene', JSON.stringify(liso));
   check('livro: dica "TOQUE NO ELEFANTE"', (await page.textContent('[data-tap-hint-text]')) === 'TOQUE NO ELEFANTE');
   await shot(page, 'livro-ar-elefante');
 
@@ -181,69 +258,70 @@ async function testBook() {
   await page.click('[data-libras-close]');
   check('livro: fechar o LIBRAS para o vídeo', await page.isHidden('[data-libras-panel]') && await page.evaluate(() => window.__app.book.libras.video.paused));
 
-  // uma falha curta do rastreamento passa sem piscar e sem festa
+  // a página é o validador: sem a página, o animal desliza para o palco de brincar e CONTINUA na tela
   await page.evaluate(() => __fakeCam.clear());
-  await page.waitForFunction(() => window.__app.book.ready.get(1)[0].state === 'holding', null, { timeout: 15000 });
-  const quieto = await page.evaluate(() => ({ op: window.__app.book.ready.get(1)[0].model.opacity, balao: !document.querySelector('[data-bubble]').hidden }));
-  await page.evaluate((u) => __fakeCam.show(u), frame('paginas', 1));
-  await page.waitForFunction(() => window.__app.book.ready.get(1)[0].state === 'living', null, { timeout: 20000 }).catch(() => {});
-  check('livro: falha curta do rastreamento: o animal só espera (sem piscar, sem balão)', quieto.op === 1 && !quieto.balao &&
-    await page.evaluate(() => window.__app.book.ready.get(1)[0].state === 'living'), JSON.stringify(quieto));
-  await page.waitForTimeout(1500);
-
-  // a página some de vez
-  await page.evaluate(() => __fakeCam.clear());
-  await page.waitForFunction(() => window.__app.book.ready.get(1)[0].state === 'lost', null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__app.book.frames.get(1).mode === 'stage', null, { timeout: 20000 });
   await page.waitForTimeout(1200);
-  const lost = await page.evaluate(() => {
-    const a = window.__app.book.ready.get(1)[0];
-    return { op: a.model.opacity, bubble: document.querySelector('[data-bubble-text]').textContent, visible: !document.querySelector('[data-bubble]').hidden };
+  const palco = await page.evaluate(() => {
+    const b = window.__app.book;
+    const a = b.ready.get(1)[0];
+    const p = a.screenPoint(b.session.camera, b.session.viewport);
+    return {
+      state: a.state, op: a.model.opacity, visivel: a.visible, naTela: p.x > 0 && p.x < innerWidth && p.y > 0 && p.y < innerHeight,
+      placa: !document.querySelector('[data-stage-plaque]').hidden, moldura: !document.querySelector('[data-scan]').hidden,
+      voltar: /QUERO VOLTAR/.test(document.body.innerText),
+    };
   });
-  check('livro: sem a página, pisca, fica transparente e pede "QUERO VOLTAR PARA MINHA PÁGINA!"', lost.op < 0.95 && lost.visible && lost.bubble === 'QUERO VOLTAR PARA MINHA PÁGINA!', JSON.stringify(lost));
-  await shot(page, 'livro-quero-voltar');
+  check('livro: sem a página, o animal vai para o palco e continua na tela (sem piscar, sem "QUERO VOLTAR")', palco.state === 'living' && palco.op === 1 && palco.visivel && palco.naTela && !palco.voltar, JSON.stringify(palco));
+  check('livro: no palco, só a plaquinha "aponte para outra página" (sem a moldura grande)', palco.placa && !palco.moldura);
+  await shot(page, 'livro-palco');
+  await page.waitForTimeout(4000);
+  check('livro: no palco ele continua lá depois de vários segundos', await page.evaluate(() => {
+    const a = window.__app.book.ready.get(1)[0];
+    return a.visible && a.state === 'living';
+  }));
+  // carinho e gestos no palco
+  const pp = await page.evaluate(() => {
+    const b = window.__app.book;
+    const a = b.ready.get(1)[0];
+    a.wander.hold(10);
+    const p = a.screenPoint(b.session.camera, b.session.viewport);
+    return { x: p.x, y: p.y + 60, taps: a.taps };
+  });
+  await page.touchscreen.tap(pp.x, pp.y);
+  await page.waitForTimeout(300);
+  check('livro: carinho no palco também', await page.evaluate((t) => window.__app.book.ready.get(1)[0].taps === t + 1, pp.taps));
+  await page.mouse.move(120, 600);
+  await page.mouse.down();
+  await page.mouse.move(260, 600, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(500);
+  check('livro: no palco, um dedo gira o animal', await page.evaluate(() => Math.abs(window.__app.book.gestures.state.yaw) > 0.5));
+  await shot(page, 'livro-palco-girado');
+  // a mesma página volta: ele desliza de volta para ela
   await page.evaluate((u) => __fakeCam.show(u), frame('paginas', 1, 'inclinada'));
-  await page.waitForFunction(() => window.__app.book.ready.get(1)[0].state === 'living', null, { timeout: 20000 }).catch(() => {});
-  check('livro: a página volta a tempo e o animal se anima de novo', await page.evaluate(() => window.__app.book.ready.get(1)[0].state === 'living' && window.__app.book.ready.get(1)[0].model.opacity === 1));
+  await page.waitForFunction(() => window.__app.book.frames.get(1).mode === 'page', null, { timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(900);
+  check('livro: a página volta e o animal volta para ela (liso, sem pular)', await page.evaluate(() => {
+    const b = window.__app.book;
+    const f = b.frames.get(1);
+    return f.mode === 'page' && !f.follower.gliding && b.ready.get(1)[0].state === 'living' && document.querySelector('[data-stage-plaque]').hidden;
+  }));
+  check('livro: na página, girar com o dedo não vale (quem mexe é o celular)', await page.evaluate(() => !window.__app.book.gestures.manipulate));
+  await page.waitForTimeout(800);
 
   // outra página, outro animal
   await page.evaluate((u) => __fakeCam.show(u), frame('paginas', 4));
   await page.waitForFunction(() => (window.__app.book.ready.get(4) || [])[0]?.state === 'living', null, { timeout: 60000 });
   check('livro: a página 21 traz o urso', await page.evaluate(() => window.__app.book.ready.get(4)[0].model.animal.id === 'urso'));
+  await page.waitForFunction(() => window.__app.book.ready.get(1)[0].state === 'gone', null, { timeout: 8000 }).catch(() => {});
+  check('livro: e o elefante da página anterior se despediu (tchau e um pulinho)', await page.evaluate(() => window.__app.book.ready.get(1)[0].state === 'gone'));
+  check('livro: só as 5 páginas dos animais são procuradas (como na primeira versão)', await page.evaluate(() => window.__app.book.session.targetCount === 5));
 
   await go(page, '', 'menu');
   await page.waitForFunction(() => __fakeCam.liveTracks() === 0, null, { timeout: 8000 }).catch(() => {});
   check('livro: câmera desligada ao sair', await page.evaluate(() => __fakeCam.liveTracks()) === 0);
   noErrors(page, 'livro');
-  await page.context().close();
-}
-
-async function testCharacters() {
-  const page = await newPage();
-  await openBook(page);
-  await page.evaluate((u) => __fakeCam.show(u), frame('paginas', 6));
-  await page.waitForFunction(() => (window.__app.book.ready.get(6) || []).every((a) => a.state === 'living') && (window.__app.book.ready.get(6) || []).length === 2, null, { timeout: 120000 });
-  const who = await page.evaluate(() => window.__app.book.ready.get(6).map((a) => a.model.character?.id).join(','));
-  check('personagens: a página 11 traz o Seu Zé e a Maga Aia (VRM)', who === 'seuze,aia', who);
-  const fisica = await page.evaluate(() => {
-    const aia = window.__app.book.ready.get(6)[1].model;
-    const juntas = [...aia.vrm.springBoneManager.joints];
-    // a íris continua transparente depois de sumir e voltar (os olhos não somem)
-    const iris = aia.materials.find((m) => /EyeIris/.test(m.material.name));
-    aia.setOpacity(0.4);
-    aia.setOpacity(1);
-    return { molas: juntas.length, centro: juntas.every((j) => j.center === aia.vrm.scene), iris: iris.material.transparent, roupa: aia.materials.find((m) => /Roupa_creme/.test(m.material.name)).material.transparent };
-  });
-  check('personagens: as molas (cabelo, capa, vestido) rodam no espaço da personagem', fisica.molas > 100 && fisica.centro, JSON.stringify(fisica));
-  check('personagens: depois de sumir e voltar, os olhos continuam (íris transparente, roupa opaca)', fisica.iris && !fisica.roupa, JSON.stringify(fisica));
-  check('personagens: sem botão LIBRAS (só nas páginas com animal)', await page.isHidden('[data-action="libras"]'));
-  const tapped = await page.evaluate(() => {
-    const a = window.__app.book.ready.get(6)[0];
-    return a.tap(a.cameraInPage());
-  });
-  check('personagens: tocar = olá (aceno)', tapped === 'ola', tapped);
-  await page.waitForTimeout(800);
-  await shot(page, 'livro-aia-seu-ze');
-  noErrors(page, 'personagens');
   await page.context().close();
 }
 
@@ -290,62 +368,74 @@ async function testCards() {
 
 /* ================================================================ zoológico */
 async function testZoo() {
-  const page = await newPage({ width: 844, height: 390 }); // a câmera de teste é deitada: assim a página inteira aparece
+  const page = await newPage();
   await go(page, 'zoo', 'zoo-intro');
   await page.click('[data-action="start-zoo"]');
   await page.waitForFunction(() => window.__app.zoo.session?.running, null, { timeout: 120000 });
   check('zoo: ajuda visual na primeira vez (sem lixeira: a casinha)', await page.isVisible('[data-zoo-help-box]') &&
-    !/lixeira/i.test(await page.textContent('[data-zoo-help-box]')) && (await page.textContent('[data-zoo-help-box]')).includes('casinha'));
+    !/lixeira|página 22/i.test(await page.textContent('[data-zoo-help-box]')) && (await page.textContent('[data-zoo-help-box]')).includes('casinha'));
   await page.click('[data-action="zoo-help-close"]');
-  check('zoo: pede para abrir o livro na página 22', (await page.textContent('[data-screen="zoo"] [data-scan-text]')).includes('PÁGINA 22'));
+  check('zoo: pede só uma carta (sem a página 22)', (await page.textContent('[data-screen="zoo"] [data-scan-text]')).includes('MOSTRE UMA CARTA'));
+  check('zoo: sem os botões da Aia e do Seu Zé', await page.locator('[data-zoo-call]').count() === 0);
 
   const zoo = (name) => `/tests/fixtures/frames/zoo/${name}.jpg`;
-  await page.evaluate((u) => __fakeCam.show(u), zoo('pagina'));
-  await page.waitForFunction(() => window.__app.zoo.pageVisible, null, { timeout: 60000 });
-  check('zoo: a página 22 vira o chão do zoológico', true);
-  check('zoo: zoológico vazio pede uma carta', (await page.textContent('[data-zoo-hint-text]')).includes('CARTA'));
+  const quem = () => page.evaluate(() => [...window.__app.zoo.state.items.values()].map((i) => `${i.kind}:${i.type}`).sort().join(','));
+  // espera chegar de verdade (o modelo carregado e em cena), não só entrar na lista
+  const espera = (kind, type) => page.waitForFunction(([k, t]) => [...window.__app.zoo.entries.values()].some((e) => e.item.kind === k && e.item.type === t), [kind, type], { timeout: 60000 }).catch(() => {});
 
-  await page.evaluate((u) => __fakeCam.show(u), zoo('pagina_carta3'));
-  await page.waitForFunction(() => window.__app.zoo.state.find('animal', 'urso'), null, { timeout: 60000 });
-  const urso = await page.evaluate(() => {
-    const it = window.__app.zoo.state.find('animal', 'urso');
-    return { x: it.x, y: it.y, ignorada: window.__app.zoo.session.entry.ignored.has(3) };
-  });
-  // a carta está a 28% da esquerda e 62% do alto da página: (−0,22; −0,12)
-  check('zoo: a carta do urso em cima da página traz o urso, saindo da carta', Math.abs(urso.x + 0.22) < 0.05 && Math.abs(urso.y + 0.12) < 0.05, JSON.stringify(urso));
-  check('zoo: a carta usada deixa de ser procurada (para achar a próxima)', urso.ignorada);
+  await page.evaluate((u) => __fakeCam.show(u), zoo('carta3'));
+  await espera('animal', 'urso');
+  const urso = await page.evaluate(() => ({ tem: !!window.__app.zoo.state.find('animal', 'urso'), ignoradas: [...window.__app.zoo.session.entry.ignored].sort((a, b) => a - b).join(',') }));
+  check('zoo: a carta do urso (sem a página) traz o urso', urso.tem);
+  check('zoo: as duas faces da carta do urso deixam de ser procuradas', urso.ignoradas === '2,9', urso.ignoradas);
 
-  await page.evaluate((u) => __fakeCam.show(u), zoo('pagina_carta3_carta11'));
-  await page.waitForFunction(() => [...window.__app.zoo.entries.values()].some((e) => e.item.kind === 'letra'), null, { timeout: 60000 }).catch(() => {});
-  check('zoo: a carta do SINAL do A traz a LETRA A do português', await page.evaluate(() => {
+  await page.evaluate((u) => __fakeCam.show(u), zoo('carta11_de_cabeca'));
+  await espera('letra', 'A');
+  check('zoo: a carta do SINAL do A, de cabeça para baixo, traz a LETRA A', await page.evaluate(() => {
     const e = [...window.__app.zoo.entries.values()].find((x) => x.item.kind === 'letra');
     return e?.item.type === 'A' && e.actor.model.letter === 'A' && e.actor.faceCamera;
   }));
-  await page.waitForFunction(() => [...window.__app.zoo.entries.values()].every((e) => e.actor.state === 'living'), null, { timeout: 20000 }).catch(() => {});
-  await page.click('[data-zoo-call="seuze"]');
-  await page.waitForFunction(() => window.__app.zoo.state.find('personagem', 'seuze'), null, { timeout: 120000 });
-  check('zoo: o Seu Zé vem pelo botão (ainda não tem carta)', true);
+  await page.evaluate((u) => __fakeCam.show(u), zoo('carta20_inclinada'));
+  await espera('letra', 'U');
+  check('zoo: a carta da letra U vista de lado traz a letra U', await page.evaluate(() => !!window.__app.zoo.state.find('letra', 'U')));
+  await page.evaluate((u) => __fakeCam.show(u), zoo('carta1_carta12'));
+  await espera('letra', 'E');
+  await espera('animal', 'abelha');
+  check('zoo: duas cartas juntas: as duas chegam (uma de cada vez)', /animal:abelha/.test(await quem()) && /letra:E/.test(await quem()), await quem());
+  for (const n of [2, 4, 5, 13, 19]) {
+    await page.evaluate((u) => __fakeCam.show(u), zoo(`carta${n}`));
+    const before = await page.evaluate(() => window.__app.zoo.entries.size);
+    await page.waitForFunction((b) => window.__app.zoo.entries.size > b, before, { timeout: 60000 }).catch(() => {});
+  }
+  await page.waitForFunction(() => !window.__app.zoo.session.tracking, null, { timeout: 10000 }).catch(() => {});
+  const dez = await page.evaluate(() => {
+    const z = window.__app.zoo;
+    const info = z.session.renderer.info.render;
+    return { n: z.state.count, rastreio: z.session.tracking, tri: info.triangles, chamadas: info.calls };
+  });
+  check('zoo: os 5 animais e as 5 letras juntos (cartas em várias posições)', dez.n === 10, await quem());
+  check('zoo: com os 10, o reconhecimento das cartas para (o celular só desenha)', dez.rastreio === false, JSON.stringify(dez));
+  check('zoo: os 10 cabem num celular comum (≤ 130 mil triângulos, ≤ 40 chamadas)', dez.tri <= 130000 && dez.chamadas <= 40, JSON.stringify(dez));
+  await page.evaluate((u) => __fakeCam.show(u), zoo('mesa'));
+  await page.waitForTimeout(3000);
+  await shot(page, 'zoo-10');
   // o urso e a letra U: U de Urso acende
   const lit = await page.evaluate(async () => {
     const z = window.__app.zoo;
-    const ev = [];
-    z._events = ((orig) => (events) => { events.forEach((e) => ev.push(e.type)); orig.call(z, events); })(z._events);
-    await z._bring('letra', 'U', [0.1, 0.0]);
     const u = z.state.find('letra', 'U');
     const urso = z.state.find('animal', 'urso');
     const e = z.entries.get(urso.id);
-    e.actor.wander.pos = [0.12, 0.02];
+    e.actor.wander.pos = [u.x + 0.02, u.y + 0.02];
     urso.busy = 0;
     await new Promise((r) => setTimeout(r, 1500));
-    return { evs: ev, acesa: u.state };
+    return { acesa: u.state };
   });
   check('zoo: o urso chega perto da letra U e ela acende (U de Urso)', lit.acesa === 'acesa', JSON.stringify(lit));
-  await page.waitForTimeout(1200);
-  await shot(page, 'zoo');
   await page.click('[aria-label="Levar o Urso para casa"]');
   await page.waitForFunction(() => !window.__app.zoo.state.find('animal', 'urso'), null, { timeout: 10000 }).catch(() => {});
-  check('zoo: a casinha leva o urso para casa e a carta volta a valer', await page.evaluate(() => !window.__app.zoo.state.find('animal', 'urso') &&
-    !window.__app.zoo.session.entry.ignored.has(3)));
+  check('zoo: a casinha leva o urso para casa e o reconhecimento volta', await page.evaluate(() => !window.__app.zoo.state.find('animal', 'urso') && window.__app.zoo.session.tracking));
+  await page.waitForFunction(() => !window.__app.zoo.session.entry.ignored.has(2), null, { timeout: 10000 }).catch(() => {});
+  check('zoo: e a carta do urso volta a valer (depois de um tempinho)', await page.evaluate(() => !window.__app.zoo.session.entry.ignored.has(2) && !window.__app.zoo.session.entry.ignored.has(9)));
   await go(page, 'sala', 'sala');
   await page.waitForFunction(() => __fakeCam.liveTracks() === 0, null, { timeout: 8000 }).catch(() => {});
   check('zoo: câmera desligada ao sair', await page.evaluate(() => __fakeCam.liveTracks()) === 0);
@@ -374,13 +464,35 @@ async function testSign() {
   await page.waitForFunction(() => document.querySelector('[data-step-text]').textContent.includes('OLHE'), null, { timeout: 10000 }).catch(() => {});
   check('sinalize: o intérprete mostra o sinal (OLHE)', (await page.textContent('[data-step-text]')).includes('OLHE'));
   await page.waitForFunction(() => window.__app.sign.match.phase === 'try', null, { timeout: 60000 });
-  check('sinalize: depois de olhar, "SUA VEZ!"', (await page.textContent('[data-step-text]')).includes('SUA VEZ'));
+  const vez = await page.textContent('[data-step-text]');
+  check('sinalize: depois de olhar, a instrução clara "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA"', /SUA VEZ/.test(vez) && /FAÇA O SINAL DO\s*A\s*PARA A CÂMERA/.test(vez), vez);
+  check('sinalize: sem placar, sem contagem e sem tempo', await page.locator('[data-score], [data-countdown], [data-sz-retry]').count() === 0 &&
+    await page.evaluate(() => window.__app.sign.match.stats.score === undefined));
+  await shot(page, 'sinalize-vez');
+  // outra vogal na câmera: QUASE! (e a vez continua, sem perder nada)
+  await page.evaluate(() => __fakeCam.show('/tests/fixtures/hands/E.jpg'));
+  await page.waitForFunction(() => window.__app.sign.match.stats.almost >= 1, null, { timeout: 30000 }).catch(() => {});
+  check('sinalize: o sinal de outra vogal = "QUASE!" (sem tapar os botões), e a criança continua tentando', await page.evaluate(() => window.__app.sign.match.stats.almost >= 1 && window.__app.sign.match.phase === 'try') &&
+    (await page.textContent('[data-step-text]')).includes('QUASE') && await page.isVisible('[data-sz-actions] [data-action="skip-round"]'));
+  await shot(page, 'sinalize-quase');
   await page.evaluate(() => __fakeCam.show('/tests/fixtures/hands/A.jpg'));
   await page.waitForFunction(() => window.__app.sign.match.stats.signsCorrect === 1, null, { timeout: 30000 }).catch(() => {});
-  check('sinalize: a câmera reconhece o sinal e dá pontos', await page.evaluate(() => window.__app.sign.match.stats.score) > 100);
+  check('sinalize: a câmera reconhece o sinal certo: "ISSO! Você fez o A!"', await page.evaluate(() => window.__app.sign.match.stats.signsCorrect === 1) &&
+    /ISSO/.test(await page.textContent('[data-step-text]')));
   await shot(page, 'sinalize-acerto');
   check('sinalize: só vogais, sem botões ACERTEI/ERREI', await page.evaluate(() => window.__app.sign.match.order.every((id) => 'AEIOU'.includes(id))) &&
     await page.locator('[data-action="self-right"], [data-action="no-camera"]').count() === 0);
+  // o fim: "você fez X de 5" (pulando o resto)
+  for (let i = 0; i < 6 && await page.isHidden('[data-screen="sign-game"] [data-summary]'); i++) {
+    await page.waitForFunction(() => ['watch', 'try'].includes(window.__app.sign.match.phase) || window.__app.sign.match.phase === 'finished', null, { timeout: 15000 }).catch(() => {});
+    if (await page.isVisible('[data-sz-actions] [data-action="skip-round"]')) await page.click('[data-sz-actions] [data-action="skip-round"]');
+    await page.waitForTimeout(400);
+  }
+  await page.waitForSelector('[data-screen="sign-game"] [data-summary]:not([hidden])', { timeout: 20000 }).catch(() => {});
+  const fim = await page.textContent('[data-screen="sign-game"] [data-summary]');
+  check('sinalize: no fim, "VOCÊ FEZ 1 DE 5 SINAIS", com cada vogal (sem pontos nem recorde)', /VOCÊ FEZ\s*1 DE 5\s*SINAIS/.test(fim) && !/PONTOS|RECORDE/.test(fim) &&
+    await page.locator('[data-sum-vowels] li').count() === 5, fim.replace(/\s+/g, ' ').trim());
+  await shot(page, 'sinalize-fim');
   await go(page, 'sala', 'sala');
   check('sinalize: sair desliga a câmera', await page.evaluate(() => __fakeCam.liveTracks()) === 0);
   noErrors(page, 'sinalize');
@@ -436,6 +548,8 @@ async function testLandscape() {
     await go(page, '', 'menu');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     check(`${name}: sem rolagem horizontal no início`, !overflow);
+    const rola = await page.evaluate(() => { const s = document.querySelector('[data-screen="menu"]'); return s.scrollHeight > s.clientHeight + 1; });
+    check(`${name}: o início cabe sem rolar`, !rola);
     await shot(page, `menu-${name}`);
     await page.context().close();
   }
@@ -444,7 +558,6 @@ async function testLandscape() {
 try {
   if (!only || only === 'telas') await testScreens();
   if (!only || only === 'livro') await testBook();
-  if (!only || only === 'personagens') await testCharacters();
   if (!only || only === 'cartas') await testCards();
   if (!only || only === 'zoo') await testZoo();
   if (!only || only === 'sinalize') await testSign();

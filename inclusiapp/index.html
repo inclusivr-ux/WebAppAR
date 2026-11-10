@@ -58,6 +58,10 @@
   <symbol id="i-sorriso" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M8 14.5c2 2.5 6 2.5 8 0"/><path d="M9 9.5v.6M15 9.5v.6"/></symbol>
   <symbol id="i-fome" viewBox="0 0 24 24"><path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0z"/><path d="M9 8c0-1.6 1-2.4 2-3.4M13 8c0-1.6 1-2.4 2-3.4"/></symbol>
   <symbol id="i-pagina" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/></symbol>
+  <symbol id="i-tela-cheia" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-tela-normal" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
+  <symbol id="i-musica" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-musica-off" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/><path d="M3 3l18 18"/></symbol>
   <symbol id="i-runa" viewBox="0 0 24 24"><rect x="5.5" y="3" width="13" height="18" rx="3"/><path d="M10 15.5V9a1.2 1.2 0 0 1 2.4 0v4M12.4 12.5V8a1.2 1.2 0 0 1 2.4 0v6.5"/></symbol>
 </svg>
 
@@ -79,6 +83,11 @@
   <!-- ========================================================== INÍCIO -->
   <section class="screen screen--claro screen--menu" data-screen="menu" aria-labelledby="menu-title" hidden>
     <div class="menu">
+      <!-- tela cheia (só onde o navegador deixa: o Safari do iPhone não deixa) e a música -->
+      <div class="menu__cantos">
+        <button type="button" class="sg-cartela sg-cartela--chip menu__canto" data-action="music" hidden aria-pressed="true"><svg class="ico" aria-hidden="true"><use href="#i-musica"/></svg> <span data-music-label>MÚSICA</span></button>
+        <button type="button" class="sg-cartela sg-cartela--chip menu__canto" data-action="fullscreen" hidden><svg class="ico" aria-hidden="true"><use href="#i-tela-cheia"/></svg> <span data-fullscreen-label>TELA CHEIA</span></button>
+      </div>
       <div class="menu__heroi">
         <!-- a cena do livro com todos no zoológico: o Seu Zé, a Maga Aia e os cinco animais -->
         <div class="menu__janela" aria-hidden="true">
@@ -126,58 +135,17 @@
         <p>Aponte seu celular para as páginas do livro e veja cada página <strong>ganhar vida!</strong></p>
       </div>
 
-      <figure class="intro__arte esquema" role="img" aria-label="Uma pessoa segura o celular a mais ou menos 30 centímetros do livro aberto em cima da mesa. O elefante aparece em cima da página. Dá para andar em volta da mesa.">
-        <!-- esquema desenhado por código (não é ilustração): a pessoa, o celular, o livro aberto na mesa e a distância -->
-        <svg viewBox="0 0 360 250" aria-hidden="true">
-          <defs>
-            <radialGradient id="esq-brilho"><stop offset="0" stop-color="#63cbc9" stop-opacity=".75"/><stop offset="1" stop-color="#63cbc9" stop-opacity="0"/></radialGradient>
-            <clipPath id="esq-retrato"><circle cx="268" cy="78" r="23"/></clipPath>
-            <marker id="esq-seta" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1l7 4-7 4z" fill="#42433a"/></marker>
-          </defs>
-          <!-- chão e o caminho em volta da mesa -->
-          <ellipse cx="226" cy="230" rx="128" ry="17" fill="#42433a" opacity=".08"/>
-          <path class="esquema__volta" d="M118 226 A 128 17 0 0 0 346 226" fill="none" stroke="#42433a" stroke-width="2.5" stroke-dasharray="7 6" marker-start="url(#esq-seta)" marker-end="url(#esq-seta)"/>
-          <!-- mesa (vista de cima e de lado) -->
-          <g stroke="#42433a" stroke-width="3" stroke-linejoin="round">
-            <path d="M139 176v58M303 176v58M336 134v74" fill="none"/>
-            <path d="M312 166l30-42v10l-30 42z" fill="#b77c44"/>
-            <path d="M126 166h186v10H126z" fill="#c98f52"/>
-            <path d="M156 124h186l-30 42H126z" fill="#e8bd7e"/>
-          </g>
-          <!-- livro aberto: capa, as duas páginas com a ilustração do elefante -->
-          <path d="M187 160l108 0l2-28l-90 0z" fill="#3e6b4a" stroke="#42433a" stroke-width="2.5" stroke-linejoin="round"/>
-          <clipPath id="esq-paginas"><path d="M191.5 157.6h85.5l16.5-23.1h-85.5z"/></clipPath>
-          <g clip-path="url(#esq-paginas)">
-            <image href="assets/img/paginas/pagina-ar2.webp" width="1" height="1" preserveAspectRatio="none" transform="matrix(85.5 0 -16.5 23.1 208 134.5)"/>
-          </g>
-          <path d="M191.5 157.6h85.5l16.5-23.1h-85.5zM234.3 157.6l16.5-23.1" fill="none" stroke="#42433a" stroke-width="2.5" stroke-linejoin="round"/>
-          <!-- o elefante em AR, saindo da página -->
-          <circle cx="268" cy="78" r="44" fill="url(#esq-brilho)"/>
-          <path class="esquema__magia" d="M246 140 C 250 118, 262 112, 266 102" fill="none" stroke="#63cbc9" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/>
-          <image href="assets/img/animais/elefante.webp" x="245" y="55" width="46" height="46" clip-path="url(#esq-retrato)"/>
-          <circle cx="268" cy="78" r="23" fill="none" stroke="#42433a" stroke-width="3"/>
-          <path class="esquema__estrela" d="M300 58l2.5 5.5 5.5 2.5-5.5 2.5-2.5 5.5-2.5-5.5-5.5-2.5 5.5-2.5z" fill="#63cbc9" stroke="#42433a" stroke-width="1.5"/>
-          <path class="esquema__estrela" d="M236 52l1.8 4 4 1.8-4 1.8-1.8 4-1.8-4-4-1.8 4-1.8z" fill="#f4b224" stroke="#42433a" stroke-width="1.5"/>
-          <!-- a pessoa com o celular -->
-          <g stroke="#42433a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M64 188l-9 46M68 188l9 46" fill="none" stroke-width="7"/>
-            <rect x="50" y="118" width="32" height="74" rx="14" fill="#63cbc9"/>
-            <path d="M56 132c-6 18-6 34-2 46" fill="none" stroke-width="6"/>
-            <path d="M78 130l26-12" fill="none" stroke-width="6"/>
-            <circle cx="66" cy="99" r="16" fill="#f3d9b8"/>
-            <path d="M51 96c2-12 12-17 20-15 7 1 11 6 11 13-6-4-14-5-31 2z" fill="#7a4b2a"/>
-            <g transform="rotate(-28 112 110)">
-              <rect x="104" y="96" width="16" height="28" rx="3.5" fill="#223d3e"/>
-              <rect x="107" y="100" width="10" height="19" rx="1.5" fill="#a6e4e0" stroke-width="1.5"/>
-            </g>
-          </g>
-          <!-- a distância -->
-          <path d="M122 112L232 146" fill="none" stroke="#42433a" stroke-width="2.5" stroke-dasharray="6 5" marker-start="url(#esq-seta)" marker-end="url(#esq-seta)"/>
-          <g class="esquema__medida">
-            <rect x="138" y="96" width="70" height="26" rx="13" fill="#ebf5b8" stroke="#42433a" stroke-width="2.5"/>
-            <text x="173" y="114" text-anchor="middle">± 30 cm</text>
-          </g>
+      <figure class="intro__arte salto" role="img" aria-label="O livro aberto e, ao lado, o celular a mais ou menos 30 centímetros da página. O elefante salta da página para a tela do celular.">
+        <!-- fotos do livro e do celular: site da InclusiVR; o elefante é o do próprio app, fotografado por tools/render-instrucoes.mjs -->
+        <img class="salto__livro" src="assets/img/instrucoes/livro-aberto.webp" alt="" width="760" height="412" decoding="async">
+        <span class="salto__brilho" aria-hidden="true"></span>
+        <img class="salto__celular" src="assets/img/instrucoes/celular.webp" alt="" width="360" height="726" decoding="async">
+        <img class="salto__animal" src="assets/img/instrucoes/elefante.webp" alt="" width="318" height="360" decoding="async">
+        <svg class="salto__distancia" viewBox="0 0 100 72" aria-hidden="true">
+          <defs><marker id="salto-seta" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse"><path d="M1 1l7 4-7 4z" fill="#42433a"/></marker></defs>
+          <path d="M71 13 C 63 16, 59 24, 56 33" fill="none" stroke="#42433a" stroke-width="1" stroke-dasharray="2.4 2" marker-start="url(#salto-seta)" marker-end="url(#salto-seta)"/>
         </svg>
+        <span class="salto__medida" aria-hidden="true">± 30 cm</span>
       </figure>
 
       <ol class="passos">
@@ -187,6 +155,7 @@
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-olho"/></svg><span>Aguarde o reconhecimento.</span></li>
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-cubo"/></svg><span>Veja o animal aparecer em Realidade Aumentada!</span></li>
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-toque"/></svg><span><strong>Toque no animal</strong> para fazer carinho.</span></li>
+        <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-mao"/></svg><span>Se a câmera sair da página, o animal <strong>continua na tela</strong> para brincar: gire com o dedo e aproxime com dois dedos.</span></li>
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-mao"/></svg><span>O botão <strong>LIBRAS</strong> chama o <strong>intérprete de LIBRAS</strong>, que mostra o sinal e soletra o nome do animal.</span></li>
       </ol>
 
@@ -239,7 +208,8 @@
         <div class="sg-barra" aria-hidden="true"><i data-model-loading-bar></i></div>
       </div>
       <div class="dica-toque sg-cartela sg-cartela--chip" data-tap-hint hidden><svg class="ico dica-toque__dedo" aria-hidden="true"><use href="#i-toque"/></svg> <span data-tap-hint-text>TOQUE NO ANIMAL</span></div>
-      <div class="balao sg-cartela sg-cartela--rosa sg-cartela--centro" data-bubble role="status" hidden><span data-bubble-text></span></div>
+      <!-- no palco de brincar (a página saiu da câmera): a moldura grande some e fica só este lembrete -->
+      <p class="placa-palco sg-cartela sg-cartela--chip" data-stage-plaque hidden><svg class="ico" aria-hidden="true"><use href="#i-livro"/></svg> <span>APONTE PARA OUTRA PÁGINA PARA TROCAR DE ANIMAL</span></p>
 
       <footer class="ar-rodape">
         <button type="button" class="botao-libras" data-action="libras" hidden>
@@ -300,7 +270,7 @@
           </span>
           <span class="jogo__corpo">
             <span class="jogo__titulo">ZOOLÓGICO</span>
-            <span class="jogo__texto">Ponha as cartas na página do zoológico!</span>
+            <span class="jogo__texto">Mostre as cartas e monte o zoológico!</span>
           </span>
           <svg class="ico jogo__ir" aria-hidden="true"><use href="#i-play"/></svg>
         </a>
@@ -312,7 +282,6 @@
           <span class="jogo__corpo">
             <span class="jogo__titulo">SINALIZE!</span>
             <span class="jogo__texto">Veja o sinal e faça igual!</span>
-            <span class="jogo__meta" data-tile-meta="sign" hidden></span>
           </span>
           <svg class="ico jogo__ir" aria-hidden="true"><use href="#i-play"/></svg>
         </a>
@@ -442,12 +411,12 @@
       </header>
       <ol class="demo" aria-label="Como brincar">
         <li class="demo__passo">
-          <span class="demo__arte demo__arte--pagina"><img src="assets/img/paginas/pagina22.webp" alt="" width="84" height="84"><span class="sg-selo">22</span></span>
-          <span class="demo__rotulo sg-cartela sg-cartela--chip">ABRA NA PÁGINA 22</span>
+          <span class="demo__arte demo__arte--celular"><svg class="ico" aria-hidden="true"><use href="#i-celular"/></svg><img src="assets/img/cartas-mini/carta3.webp" alt="" width="60" height="90"></span>
+          <span class="demo__rotulo sg-cartela sg-cartela--chip">MOSTRE A CARTA</span>
         </li>
         <li class="demo__passo">
-          <span class="demo__arte demo__arte--pousar"><img src="assets/img/paginas/pagina22.webp" alt="" width="84" height="84"><img class="demo__carta-cai" src="assets/img/cartas-mini/carta3.webp" alt="" width="34" height="51"></span>
-          <span class="demo__rotulo sg-cartela sg-cartela--chip">PONHA A CARTA</span>
+          <span class="demo__arte"><img class="sg-retrato" src="assets/img/animais/urso.webp" alt="" width="110" height="110"></span>
+          <span class="demo__rotulo sg-cartela sg-cartela--chip">O ANIMAL VEM</span>
         </li>
         <li class="demo__passo">
           <span class="demo__arte demo__arte--par"><img src="assets/img/cartas-mini/carta11.webp" alt="" width="60" height="90"><span class="sg-letra-grande" aria-hidden="true">A</span></span>
@@ -459,13 +428,12 @@
         </li>
       </ol>
       <div class="sg-cartela intro__texto">
-        <p>Abra o livro na <strong>página 22</strong>, a do zoológico, e aponte o celular.</p>
-        <p>Coloque uma <strong>carta</strong> em cima da página: o animal aparece no zoológico!</p>
+        <p>Mostre uma <strong>carta</strong> para a câmera, em qualquer posição: o animal aparece no zoológico!</p>
         <p>Com a carta do <strong>sinal de uma vogal</strong>, aparece a <strong>letra</strong>.</p>
-        <p>Ponha mais cartas: os animais brincam juntos. Toque para fazer <strong>carinho</strong>.</p>
+        <p>Mostre mais cartas, uma de cada vez: os animais brincam juntos. Toque para fazer <strong>carinho</strong>.</p>
       </div>
       <div class="sg-cartela sg-cartela--rosa intro__dica">
-        <p><strong>DICA:</strong> a Maga Aia e o Seu Zé vêm pelos botões. A <strong>casinha</strong> leva alguém para descansar.</p>
+        <p><strong>DICA:</strong> gire o zoológico com o dedo e aproxime com dois dedos. A <strong>casinha</strong> leva alguém para descansar.</p>
       </div>
       <div class="acoes">
         <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/sala">VOLTAR</a>
@@ -484,9 +452,9 @@
         <button type="button" class="sg-redondo zoo-ajuda-btn" data-action="zoo-help" aria-label="Como brincar"><svg class="ico" aria-hidden="true"><use href="#i-ajuda"/></svg></button>
       </header>
 
-      <div class="ar-scan" data-scan data-state="searching">
+      <div class="ar-scan ar-scan--carta" data-scan data-state="searching">
         <div class="ar-scan__moldura" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="ar-scan__demo" aria-hidden="true"><svg class="ico"><use href="#i-celular"/></svg><svg class="ico"><use href="#i-livro"/></svg></div>
+        <div class="ar-scan__demo" aria-hidden="true"><svg class="ico"><use href="#i-celular"/></svg><svg class="ico"><use href="#i-carta"/></svg></div>
         <p class="ar-scan__texto sg-cartela sg-cartela--centro" data-scan-text aria-live="polite"></p>
       </div>
 
@@ -495,23 +463,17 @@
         <p class="carregando__texto"><span class="giro" aria-hidden="true"></span> <span data-model-loading-text>CHEGANDO...</span></p>
         <div class="sg-barra" aria-hidden="true"><i data-model-loading-bar></i></div>
       </div>
-      <div class="balao sg-cartela sg-cartela--rosa sg-cartela--centro" data-bubble role="status" hidden><span data-bubble-text></span></div>
 
       <footer class="zoo-rodape">
         <div class="zoo-presentes" data-zoo-present role="group" aria-label="No zoológico (toque para levar para casa)" hidden></div>
-        <div class="zoo-chamar" role="group" aria-label="Chamar os personagens">
-          <button type="button" class="zoo-chamar__btn sg-cartela sg-cartela--chip" data-zoo-call="aia"><img class="sg-retrato" src="assets/img/aia-rosto.webp" alt="" width="40" height="40"> AIA</button>
-          <button type="button" class="zoo-chamar__btn sg-cartela sg-cartela--chip" data-zoo-call="seuze"><img class="sg-retrato" src="assets/img/seuze-rosto.webp" alt="" width="40" height="40"> SEU ZÉ</button>
-        </div>
       </footer>
 
       <div class="zoo__ajuda" data-zoo-help-box hidden role="dialog" aria-modal="true" aria-label="Como brincar">
         <div class="sg-cartela zoo__ajuda-card">
           <ul class="zoo__dicas">
-            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-livro"/></svg></span> <span>Abra o livro na <strong>página 22</strong> e aponte o celular.</span></li>
-            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-carta"/></svg></span> <span>Coloque uma <strong>carta</strong> em cima da página.</span></li>
+            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-carta"/></svg></span> <span>Mostre uma <strong>carta</strong> para a câmera, em qualquer posição.</span></li>
             <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-mao"/></svg></span> <span>Carta do <strong>sinal de uma vogal</strong>: aparece a <strong>letra</strong>.</span></li>
-            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-coracao"/></svg></span> <span>Toque para fazer <strong>carinho</strong>.</span></li>
+            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-coracao"/></svg></span> <span>Toque para fazer <strong>carinho</strong>. Gire com o dedo e aproxime com dois dedos.</span></li>
             <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-casa"/></svg></span> <span>A <strong>casinha</strong> leva alguém para descansar.</span></li>
           </ul>
           <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-action="zoo-help-close">ENTENDI</button>
@@ -549,18 +511,15 @@
         </li>
         <li class="demo__passo">
           <span class="demo__arte demo__arte--ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
-          <span class="demo__rotulo sg-cartela sg-cartela--chip">GANHE PONTOS</span>
+          <span class="demo__rotulo sg-cartela sg-cartela--chip">ISSO!</span>
         </li>
       </ol>
       <div class="sg-cartela intro__texto">
         <p>O jogo mostra uma <strong>vogal</strong>: A, E, I, O ou U.</p>
         <p>O intérprete de LIBRAS faz o sinal dela <strong>duas vezes</strong>.</p>
-        <p>Depois é a <strong>sua vez</strong>: faça o sinal para a câmera. Quanto mais rápido, mais pontos!</p>
+        <p>Depois é a <strong>sua vez</strong>: faça o sinal para a câmera, <strong>com calma</strong>. Não tem tempo!</p>
       </div>
       <div class="sg-ficha sg-ficha--ceu intro__privacidade"><svg class="ico" aria-hidden="true"><use href="#i-cadeado"/></svg> <span>Este jogo usa a <strong>câmera</strong>. <strong>Não gravamos suas imagens em nenhum momento</strong>: a câmera só é usada aqui no aparelho, enquanto você joga.</span></div>
-      <section class="recordes" data-records hidden aria-label="Seus recordes">
-        <span class="sg-cartela sg-cartela--chip"><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> RECORDE: <output data-record-score>0</output></span>
-      </section>
       <div class="acoes">
         <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/sala">VOLTAR</a>
         <button class="sg-btn sg-btn--ambar sg-cartela" type="button" data-action="start-sign"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg> JOGAR</button>
@@ -575,8 +534,7 @@
         <a class="sg-redondo" href="#/sala" aria-label="Sair do jogo"><svg class="ico" aria-hidden="true"><use href="#i-fechar"/></svg></a>
         <div class="placar">
           <div class="sg-barra placar__barra" aria-hidden="true"><i data-progress></i></div>
-          <span class="sg-cartela sg-cartela--chip" data-round-label>1 DE 10</span>
-          <span class="sg-cartela sg-cartela--chip"><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> <output data-score>0</output></span>
+          <span class="sg-cartela sg-cartela--chip" data-round-label>1 DE 5</span>
         </div>
         <button type="button" class="sg-redondo" data-action="sound" aria-pressed="true" aria-label="Desligar sons"><svg class="ico" aria-hidden="true"><use href="#i-som"/></svg></button>
       </header>
@@ -599,7 +557,6 @@
         </div>
         <div class="sg-cam sz__cam" data-cam-panel>
           <video class="sz__cam-video" data-cam-video playsinline muted autoplay></video>
-          <div class="sz__contagem" data-countdown aria-hidden="true" hidden></div>
           <div class="sz__cam-msg" data-cam-msg aria-live="polite"></div>
           <div class="sz__cam-prog" aria-hidden="true"><i data-hold></i></div>
           <button type="button" class="sg-redondo sz__trocar" data-action="flip-camera" aria-label="Trocar de câmera"><svg class="ico" aria-hidden="true"><use href="#i-trocar-camera"/></svg></button>
@@ -611,23 +568,14 @@
         <button type="button" class="sg-btn sg-btn--branco sg-btn--mini sg-cartela" data-action="watch-again"><svg class="ico" aria-hidden="true"><use href="#i-repetir"/></svg> VER DE NOVO</button>
         <button type="button" class="sg-btn sg-btn--branco sg-btn--mini sg-cartela" data-action="skip-round"><svg class="ico" aria-hidden="true"><use href="#i-pular"/></svg> PULAR</button>
       </div>
-      <div class="sz__acoes" data-sz-retry hidden>
-        <button type="button" class="sg-btn sg-btn--pergaminho sg-cartela" data-action="skip-round"><svg class="ico" aria-hidden="true"><use href="#i-pular"/></svg> PRÓXIMO</button>
-        <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-action="try-again"><svg class="ico" aria-hidden="true"><use href="#i-repetir"/></svg> TENTAR DE NOVO</button>
-      </div>
     </div>
     <div class="faixa" data-feedback hidden role="status"></div>
 
     <div class="resumo" data-summary hidden role="dialog" aria-modal="true" aria-labelledby="sz-summary-title">
       <div class="resumo__card sg-cartela sg-cartela--centro">
-        <h2 id="sz-summary-title" class="resumo__titulo">PARABÉNS!</h2>
-        <div class="resumo__estrelas" data-sum-stars aria-hidden="true"></div>
-        <dl class="resumo__numeros">
-          <div><dt><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg> SINAIS</dt><dd data-sum="signs">0</dd></div>
-          <div><dt><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> PONTOS</dt><dd data-sum="score">0</dd></div>
-          <div><dt><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> RECORDE</dt><dd data-sum="record">0</dd></div>
-        </dl>
-        <p class="resumo__novo sg-cartela sg-cartela--ambar sg-cartela--chip" data-sum-new-record hidden>NOVO RECORDE!</p>
+        <h2 id="sz-summary-title" class="resumo__titulo" data-sum-title>PARABÉNS!</h2>
+        <p class="resumo__fez">VOCÊ FEZ <b data-sum="signs">0 DE 5</b> SINAIS</p>
+        <ol class="resumo__vogais" data-sum-vowels aria-label="As vogais da partida"></ol>
         <div class="acoes">
           <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/sala">SAIR</a>
           <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-action="replay"><svg class="ico" aria-hidden="true"><use href="#i-repetir"/></svg> JOGAR DE NOVO</button>

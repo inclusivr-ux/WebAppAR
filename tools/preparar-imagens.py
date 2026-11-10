@@ -3,17 +3,20 @@
 Prepara as imagens do app (WebP leves) a partir da arte final do Igor e do
 design system "InclusiVR".
 
-    python3 tools/preparar-imagens.py --ds PASTA_DS --animais PASTA_ANIMAIS --personagens PASTA_PERSONAGENS
+    python3 tools/preparar-imagens.py --ds PASTA_DS --animais PASTA_ANIMAIS
 
   --ds           pasta com os arquivos baixados do design system (o nome de
                  cada arquivo é o id do asset; veja DS abaixo)
   --animais      clone do repositório inclusivr-animais (com o LFS baixado)
-  --personagens  clone do repositório inclusivr-personagens (com o LFS baixado)
   --so GRUPOS    só alguns grupos, separados por vírgula: ds, retratos,
                  paginas, abertura (o padrão é tudo; sem --ds, pula o grupo ds)
 
 Saída em inclusiapp/assets/img/. Nada é desenhado aqui: só recortes e
 reduções das ilustrações originais (o traço do Igor manda na aparência).
+
+A Maga Aia e o Seu Zé em 3D foram arquivados na versão 2.2 (docs/ARQUIVO.md):
+os retratos e as páginas deles saíram daqui (estão no histórico do git).
+As imagens das instruções do livro vêm de tools/render-instrucoes.mjs.
 """
 import argparse
 import glob
@@ -41,7 +44,6 @@ DS = {
     '23364933b3e95026ee31e6c2db2cefe8': 'logo-livro',
     '4c8cccea5ea922c4464b784720a2c6fd': 'inclusivr',
     '9d5ca41c2f113335538ce4f2f622c460': 'celular-moldura',
-    '7cb8cf7d8de25828fbac516e4c212465': 'aia-rosto',
     'afa67296a8e22135686fce7505c8ab20': 'cena-zoologico',
 }
 
@@ -54,21 +56,8 @@ RETRATOS = {
     'urso': ('Urso/00_referencias/igor/2025-11_livro_p24_urso_zoo.jpg', (30, 60, 350, 380)),
 }
 
-# retrato do Seu Zé (botão "chamar" do zoológico): o rosto na ilustração do portão (pág. 8)
-RETRATO_SEUZE = ('SeuZe/00_referencias/igor/2025-11_livro_p10_portao_do_zoo_seu_ze.jpg', (100, 40, 500, 440))
-
 # abertura do app: a cena do livro com TODOS no zoológico (Seu Zé, Aia e os 5 animais, pág. 22)
 ABERTURA = 'Elefante/00_referencias/igor/2025-11_livro_p24_zoologico_pagina.jpg'
-
-# páginas sem animal em AR em que a Aia e o Seu Zé aparecem (ilustrações do Igor).
-# O nome da miniatura usa o número impresso no livro; o nome da referência
-# (p10, p13...) segue a numeração do arquivo da diagramação, 2 a mais.
-PAGINAS_PERSONAGENS = {
-    'pagina8': '2025-11_livro_p10_portao_do_zoo.jpg',
-    'pagina11': '2025-11_livro_p13_runas_nas_maos.jpg',
-    'pagina22': '2025-11_livro_p24_volta_ao_zoo.jpg',
-    'pagina23': '2025-11_livro_p25_devolve_as_runas.jpg',
-}
 
 
 def webp(im, path, size=None, quality=82):
@@ -94,7 +83,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--ds')
     ap.add_argument('--animais', required=True)
-    ap.add_argument('--personagens', required=True)
     ap.add_argument('--so', default='ds,retratos,paginas,abertura')
     a = ap.parse_args()
     grupos = set(a.so.split(','))
@@ -125,7 +113,6 @@ def design_system(a):
     webp(Image.open(src['cena-zoologico']).convert('RGB'), f'{OUT}/cena-zoologico.webp', (1200, 600), 74)
     webp(Image.open(src['logo-livro']), f'{OUT}/logo-livro.webp', (640, 460), 86)
     webp(Image.open(src['inclusivr']), f'{OUT}/inclusivr.webp', (160, 224), 88)
-    webp(Image.open(src['aia-rosto']).convert('RGB'), f'{OUT}/aia-rosto.webp', (256, 256), 80)
     # a runa A acesa ilustra o Sinalize! na sala de jogos
     webp(Image.open(src['acesa-a']).convert('RGB'), f'{OUT}/runas/acesa-a.webp', (240, 348), 80)
 
@@ -136,15 +123,9 @@ def retratos(a):
         bg = Image.new('RGBA', im.size, (230, 240, 220, 255))
         bg.alpha_composite(im)
         webp(redondo(bg.crop(box)), f'{OUT}/animais/{animal}.webp', None, 84)
-    rel, box = RETRATO_SEUZE
-    im = Image.open(os.path.join(a.personagens, rel)).convert('RGB').crop(box)
-    webp(im, f'{OUT}/seuze-rosto.webp', (256, 256), 80)
 
 
 def paginas(a):
-    for nome, arq in PAGINAS_PERSONAGENS.items():
-        im = Image.open(os.path.join(a.personagens, 'SeuZe/00_referencias/igor', arq)).convert('RGB')
-        webp(im, f'{OUT}/paginas/{nome}.webp', (420, 420), 78)
     for i in range(1, 6):
         im = Image.open(os.path.join(ROOT, 'inclusiapp', 'pag', f'Pagina{i}.png')).convert('RGB')
         webp(im, f'{OUT}/paginas/pagina-ar{i}.webp', (420, 420), 78)

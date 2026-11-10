@@ -10,26 +10,21 @@ Copiadas localmente para o app não depender de CDN (escolas e redes móveis
 | GLTFLoader / BufferGeometryUtils | r160 | `three/examples/jsm/...` | MIT |
 | MediaPipe Tasks Vision (Hand Landmarker) | 1.0.1 | `@mediapipe/tasks-vision/vision_bundle.mjs` + `wasm/vision_wasm_internal.*` e `wasm/vision_wasm_nosimd_internal.*` | Apache-2.0 (`mediapipe/LICENSE`) |
 | Modelo `hand_landmarker.task` (float16) | 1 | `storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/` | Apache-2.0 |
-| MeshoptDecoder, KTX2Loader (+ WorkerPool, ktx-parse, zstddec), SkeletonUtils | r160 | `three/examples/jsm/...` | MIT |
-| Basis Universal (transcodificador KTX2) | r160 | `three/examples/jsm/libs/basis/` → `three/basis/` | Apache-2.0 |
-| three-vrm | 2.1.0 | `@pixiv/three-vrm/lib/three-vrm.module.min.js` | MIT (`three-vrm/LICENSE`) |
+| MeshoptDecoder, SkeletonUtils | r160 | `three/examples/jsm/...` | MIT |
 
 ## Ajustes feitos nas cópias
 
 - `three/addons/*.js`: `from 'three'` foi trocado por `from '../three.module.min.js'`
-  e os imports entre eles (`BufferGeometryUtils`, `WorkerPool`, `ktx-parse`,
-  `zstddec`) apontam para a mesma pasta. Assim os módulos funcionam sem
-  *import maps* (iOS < 16.4).
-- `three-vrm/three-vrm.module.min.js`: `from"three"` foi trocado por
-  `from"../three/three.module.min.js"` (o mesmo motivo).
+  e os imports entre eles (`BufferGeometryUtils`) apontam para a mesma pasta.
+  Assim os módulos funcionam sem *import maps* (iOS < 16.4).
 
-## Animais, Maga Aia e Seu Zé
+## Animais
 
 - Os animais (`assets/models/*.glb`) vêm com malha e animações comprimidas
   (`EXT_meshopt_compression`): o app usa o `MeshoptDecoder`.
-- A Aia leve (`assets/personagens/aia.vrm`) usa texturas KTX2 (Basis): o
-  `KTX2Loader` e o transcodificador só são baixados quando ela aparece.
-- O Seu Zé leve usa texturas WebP (o three.js lê sem nada a mais).
+- A Maga Aia e o Seu Zé em 3D foram arquivados na versão 2.2, junto com o
+  three-vrm 2.1.0 e o KTX2Loader/Basis que só eles usavam. Estão no commit
+  `a6eba3a` (ver `docs/ARQUIVO.md`).
 
 ## MediaPipe (✋ Sinalize e Conte)
 

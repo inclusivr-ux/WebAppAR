@@ -1,41 +1,39 @@
 /**
  * ZOOLÓGICO EM AR — configuração.
  *
- * A criança abre o livro na página 22 (o zoológico cheio, a volta ao
- * zoológico) e aponta o celular. Depois coloca as CARTAS em cima da página:
+ * Desde a versão 2.2 (10/11/2026), sem a página 22: as CARTAS são os
+ * validadores. A criança mostra uma carta para a câmera, em qualquer posição
+ * (girada, de lado, de cabeça para baixo):
  *   - carta de um animal (o desenho ou o sinal em LIBRAS) → o animal salta da
- *     carta para o zoológico;
+ *     carta para o zoológico, no palco de brincar (o "chão" invisível na
+ *     frente da câmera, o mesmo do livro);
  *   - carta de uma vogal (o sinal em LIBRAS ou a letra) → aparece a LETRA do
  *     português, grande e animada: o par entre o sinal e a letra.
- * Todos ficam juntos na página e se encontram: o que acontece depende de
- * quem está lá (as interações da história, abaixo). A Maga Aia e o Seu Zé
- * vêm pelos botões (ainda não têm carta). Tocar = carinho; a casinha leva
- * alguém para descansar (sai do zoológico).
+ * A carta que já trouxe alguém deixa de ser procurada (as duas faces), e com
+ * os 10 no zoológico (5 animais + 5 letras) o reconhecimento das cartas
+ * para: o celular só desenha. Todos ficam juntos e se encontram: o que
+ * acontece depende de quem está lá (as interações da história, abaixo).
+ * Tocar = carinho; a casinha leva alguém para descansar (sai do zoológico).
  *
  * As interações respeitam o livro e as fichas dos animais (repositório
  * inclusivr-animais). Nada de comida, remédio ou objetos de fora.
  */
-import { ANIMALS, CARD_PAIRS } from '../config.js';
+import { ANIMALS, CARD_PAIRS, GAME, STAGE } from '../config.js';
 
 export const ZOO = {
-  /** alvos: 0 = a página do zoológico; 1..20 = as cartas (tools/montar-zoologico.py) */
-  targets: 'assets/targets/zoologico',
-  pageTarget: 0,
-  bookPage: 22,
-  pageThumb: 'assets/img/paginas/pagina22.webp',
-  /**
-   * Ajustes do MindAR: a página e UMA carta ao mesmo tempo (maxTrack 2). A
-   * carta que já trouxe alguém deixa de ser procurada, para o celular achar
-   * a próxima carta que a criança colocar.
-   */
-  tuning: { filterMinCF: 0.001, filterBeta: 1, warmupTolerance: 3, missTolerance: 8, maxTrack: 2 },
-  /** quantos cabem de uma vez (desempenho em celulares simples) */
-  maxItems: 12,
-  /** tamanho de cada um na página (fração da largura da página) */
-  sizes: { abelha: 0.16, elefante: 0.26, iguana: 0.26, onca: 0.23, urso: 0.24, letra: 0.12, personagem: 0.28 },
-  /** onde a Aia e o Seu Zé estão desenhados na página (é dali que eles saltam) */
-  homes: { seuze: [-0.24, -0.08], aia: [0.24, -0.2] },
+  /** as 20 faces das cartas (o mesmo arquivo do jogo de cartas): alvo N−1 = cartaN.png */
+  targets: GAME.targets,
+  /** o palco do zoológico: o mesmo do livro, visto mais de cima (cabe todo mundo, um atrás do outro) */
+  stage: { ...STAGE, elevation: 55, widthFrac: 1.2, centerY: -0.03, maxHeightFrac: 0.72 },
+  /** área do passeio no palco (coordenadas da página do palco): larga e funda, para todos caberem */
+  bounds: { minX: -0.3, maxX: 0.3, minY: -0.38, maxY: 0.42 },
+  /** quantos cabem de uma vez: um de cada (5 animais + 5 letras) */
+  maxItems: 10,
+  /** tamanho de cada um no palco (fração da largura da página do palco) */
+  sizes: { abelha: 0.16, elefante: 0.26, iguana: 0.26, onca: 0.23, urso: 0.24, letra: 0.13 },
   beeLift: 0.06,
+  /** uma carta que voltou a valer (a casinha) só chama de novo depois deste tempo (s) */
+  cardCooldown: 4,
   /** distância (fração da largura da página) para dois "se encontrarem" */
   meetDistance: 0.16,
   /** depois de uma interação, o mesmo par só repete depois deste tempo (s) */
@@ -46,27 +44,21 @@ export const ZOO = {
   visitEvery: [7, 14],
   /** quanto tempo a letra fica acesa depois de encontrar o seu animal (s) */
   letterLit: 20,
-  /** a mesma carta, vista de novo, só chama o animal depois deste tempo (s) */
-  cardCooldown: 6,
-  /** sem a página, depois deste tempo (ms) aparece "volte para o zoológico" */
-  holdGraceMs: 1200,
-  lostGraceMs: 4500,
 };
 
 /**
  * CARTAS → o que aparece (as duas faces de cada carta valem).
- * Carta N do baralho = alvo N do zoologico.mind.
+ * Chave = o alvo no cartas.mind (carta N do baralho = alvo N−1);
+ * `twin` = o alvo da outra face da mesma carta.
  */
 export const ZOO_CARDS = (() => {
   const map = {};
-  for (const a of ANIMALS) {
-    map[a.cards.picture] = { kind: 'animal', type: a.id, face: 'desenho' };
-    map[a.cards.sign] = { kind: 'animal', type: a.id, face: 'sinal' };
-  }
-  for (const p of CARD_PAIRS.filter((c) => c.kind === 'letra')) {
-    map[p.answer] = { kind: 'letra', type: p.id, face: 'sinal' };
-    map[p.show] = { kind: 'letra', type: p.id, face: 'letra' };
-  }
+  const pair = (a, b, kind, type, faceA, faceB) => {
+    map[a - 1] = { kind, type, face: faceA, card: a, target: a - 1, twin: b - 1 };
+    map[b - 1] = { kind, type, face: faceB, card: b, target: b - 1, twin: a - 1 };
+  };
+  for (const a of ANIMALS) pair(a.cards.picture, a.cards.sign, 'animal', a.id, 'desenho', 'sinal');
+  for (const p of CARD_PAIRS.filter((c) => c.kind === 'letra')) pair(p.show, p.answer, 'letra', p.id, 'letra', 'sinal');
   return map;
 })();
 

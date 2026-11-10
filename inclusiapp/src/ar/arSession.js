@@ -133,6 +133,8 @@ export class ARSession {
 
     this.running = false;
     this.tracking = false;
+    /** contadores para o medidor da equipe (?debug=1, debugHud.js) */
+    this.stats = { renders: 0, tracks: 0 };
     this._clock = new THREE.Clock(false);
     this._onResize = () => this.resize();
     this._onVisibility = () => this._visibilityChanged();
@@ -324,14 +326,22 @@ export class ARSession {
     return this.anchors.map((a, i) => (a?.visible ? i : -1)).filter((i) => i >= 0);
   }
 
+  /** Quantas imagens o MindAR está procurando agora (para o medidor). */
+  get searching() {
+    const c = this.controller;
+    if (!c || !this.tracking) return 0;
+    if (c.interestedTargetIndex >= 0) return 1;
+    return this.targetCount - (this.entry?.ignored.size || 0);
+  }
+
   /**
    * Procura SÓ a imagem `targetIndex` por `ms` milissegundos (−1 = todas).
    *
    * Logo depois de perder uma página, quem segura o celular quase sempre está
    * tentando voltar para ela (abaixou o celular para ver o animal de lado).
-   * Procurar só essa página faz cada tentativa de reencontrar ficar várias
-   * vezes mais rápida (com 9 páginas, cada tentativa compara a imagem com
-   * todas). Depois do prazo, volta a procurar todas (a criança virou a página).
+   * Procurar só essa página faz cada tentativa de reencontrar ficar mais
+   * rápida (cada tentativa compara a imagem da câmera com todas as páginas).
+   * Depois do prazo, volta a procurar todas (a criança virou a página).
    */
   focusTarget(targetIndex, ms = 2000) {
     const c = this.controller;
@@ -389,6 +399,7 @@ export class ARSession {
 
   _onUpdate(data) {
     if (data.type === 'processDone') {
+      this.stats.tracks += 1;
       if (!this.entry?.controller.processingVideo) {
         this.entry.processing = false;
         this.entry.onDone?.();
@@ -507,6 +518,7 @@ export class ARSession {
     }
     renderer.autoClear = true;
     renderer.render(this.scene, this.camera);
+    this.stats.renders += 1;
     if (this.hud.scene.children.length) {
       renderer.autoClear = false;
       renderer.clearDepth();

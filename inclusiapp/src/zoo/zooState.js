@@ -1,7 +1,7 @@
 /**
  * Regras do zoológico em AR (sem DOM e sem Three.js — testadas em Node).
  *
- * Guarda quem está no zoológico (animais, letras, a Aia e o Seu Zé), as
+ * Guarda quem está no zoológico (os animais e as letras), as
  * necessidades de cada animal e decide quando dois "se encontram". A cena
  * em AR (zooAR.js) move os modelos sobre a página e toca as animações; aqui
  * só se decide O QUE acontece.
@@ -48,7 +48,7 @@ export class ZooState {
   }
 
   /**
-   * Coloca um animal ('urso'), uma letra ('A') ou um personagem ('aia').
+   * Coloca um animal ('urso') ou uma letra ('A').
    * Devolve o elemento, ou null se não couber ou se ele já estiver lá.
    */
   add(kind, type, pos = null) {
@@ -58,7 +58,7 @@ export class ZooState {
     const animal = kind === 'animal';
     const item = {
       id: nextId++, kind, type, x: 0, y: 0,
-      // animal: calmo | quer | feliz | satisfeito · letra: apagada | acesa · personagem: calmo
+      // animal: calmo | quer | feliz | satisfeito · letra: apagada | acesa
       state: kind === 'letra' ? 'apagada' : 'calmo',
       need: null,
       needIn: animal ? this._delay(this.config.needEvery, 0.4) : Infinity,

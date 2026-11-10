@@ -191,3 +191,48 @@ o servidor de teste não comprimia.
 - Medido: o teste do livro, com o código antigo e o servidor comprimindo, falha
   igual ao celular; com a correção, 92 testes de unidade e 83 verificações
   ponta a ponta passam.
+
+## 8. Versão 2.2 — "Web App AR simplificado" (10/11/2026)
+
+A equipe testou a 2.1.1 em dois celulares (vídeos de demonstração no Drive) e
+pediu um app mais simples e mais liso. As respostas às perguntas:
+- zoológico: tentar sem a página 22;
+- página perdida: o animal vai para o centro;
+- imagens: da versão do site com o plugin;
+- música: o arquivo "oogway morto", no PC do Luciano (depois, na pasta do Drive,
+  com o nome "oogoway morrendo").
+
+| Pedido | O que foi feito | Onde |
+|---|---|---|
+| Arquivar a Aia e o Seu Zé (e as menções a eles) | Saíram os modelos, o código, as bibliotecas, as 4 páginas, os retratos, os botões do zoológico e todos os textos. O reconhecimento voltou a ser **o arquivo de 5 páginas da primeira versão** (o mesmo do JLeo). Como trazer de volta: `docs/ARQUIVO.md` | `config.js`, `bookAR.js`, `zooAR.js`, `index.html` |
+| Tracking liso, sem o animal "travando" | Antes o animal ficava preso à pose do rastreio, que muda só 10 a 20 vezes por segundo (a tela muda 60). Agora ele **segue** a página com amortecimento a cada quadro (`poseFollower.js`). Também saíram o "congela e pula" ao perder a página, a pré-carga de 8 MB com a câmera aberta e as 4 páginas a mais na procura. Virar para a câmera usa a pose já suavizada (o tremor não aumenta mais) | `ar/poseFollower.js`, `ar/bookAR.js`, `ar/pageActor.js` |
+| A página é o validador: tirar a câmera da página e continuar brincando | Sem a página, o animal **desliza para o palco de brincar**, no meio da tela, e continua: passeia, recebe carinho, gira com um dedo e aproxima com dois (os gestos do "Modo Interação" da primeira versão). A mesma página voltou: ele desliza de volta. Outra página: ele se despede e o novo animal salta. Saíram o piscar, o "sumir aos poucos" e o "QUERO VOLTAR PARA MINHA PÁGINA!" | `ar/bookAR.js`, `ar/gestures.js`, `config.js` (`STAGE`, `BOOK`) |
+| Imagem de distância genérica, com uma pessoa | A foto do livro aberto e o celular, **do site da InclusiVR**, com o elefante saltando da página para o celular (a animação do "salto" do site) e "± 30 cm". O elefante é **o do próprio app** (traço do Igor), não o elefante cinza do site: é o que a criança vai ver na câmera. Sem pessoa desenhada. A montagem da versão de 04/11 do site também foi testada; o Luciano escolheu esta: "O elefante do Igor é melhor que esse do site" | `index.html`, `app.css` (`.salto`), `assets/img/instrucoes/`, `tools/render-instrucoes.mjs` |
+| Tela inicial sem rolar | A tela inicial ocupa a altura exata do aparelho: a janela em arco usa o espaço que sobra, e a marca da InclusiVR fica sempre à vista. Conferido em 360×640, 375×667, 390×844, 412×915, 430×932, tablet e paisagem | `app.css` (`.menu`) |
+| Zoológico: muitas cartas tampavam a página 22 | **Sem a página 22**: as cartas são os validadores, em qualquer posição (girada, de cabeça para baixo, de lado). O animal ou a letra salta do lugar da carta para o palco do zoológico. A carta usada sai da procura (as duas faces), e com os 10 no zoológico o reconhecimento para (o celular só desenha) | `zoo/zooAR.js`, `zoo/zooConfig.js` |
+| Sinalize sem pontos e sem tempo; só certo e errado, com instrução clara | Saíram os pontos, os recordes, as estrelas, a contagem 3-2-1 e o tempo limite. Na vez da criança: "SUA VEZ! FAÇA O SINAL DO **A** PARA A CÂMERA". Outra vogal na câmera: "QUASE! OLHE DE NOVO O SINAL DO A NA CARTA", e ela continua tentando. Certo: "ISSO! VOCÊ FEZ O A!". Fim: "VOCÊ FEZ 4 DE 5 SINAIS", com cada vogal | `sign/signGame.js`, `sign/signState.js`, `sign/signConfig.js` |
+| Música do Luigi | Feita: a trilha "oogway morrendo", em laço, baixinha, entra suave no primeiro toque, para em segundo plano, botão MÚSICA (separado dos efeitos). O WAV de 63 MB virou um MP3 de 4,3 MB (96 kbps), sem os 4,6 s de silêncio do fim. A faixa mede −22 LUFS (o começo, −29); o volume no app é 0,45 (`MUSIC` no `config.js`) | `ui/music.js`, `assets/musica/` |
+| Tela cheia na página inicial | Botão **TELA CHEIA** (vira "SAIR DA TELA CHEIA"). Aparece só onde o navegador deixa (o Safari do iPhone não deixa). Instalado como aplicativo, ele já abre em tela cheia | `ui/fullscreen.js`, `manifest.webmanifest` |
+
+**Medidor para o teste no celular:** abra o app com `?debug=1` no endereço (ex.:
+`…/inclusiapp/?debug=1`). No canto aparece "desenho X/s · rastreio Y/s":
+- "desenho" baixo (bem menos que 60): o aparelho está pesado;
+- só "rastreio" baixo: o gargalo é o reconhecimento da página.
+
+**Medido nesta rodada:**
+- 96 testes de unidade (com os novos do movimento liso e do palco);
+- testes ponta a ponta com a câmera falsa e o servidor comprimindo como o GitHub Pages.
+
+O zoológico com os 10 (5 animais e 5 letras) tem 101 mil triângulos e 30 chamadas de desenho, com o reconhecimento parado.
+
+**Pedido de teste no celular** (o computador não mede a câmera de um celular):
+1. Livro com `?debug=1`:
+   - o animal acompanha a página sem "travar";
+   - tirar a câmera da página: ele vai para o meio da tela;
+   - girar e aproximar com os dedos;
+   - voltar para a página.
+2. Zoológico:
+   - mostrar as 10 cartas, uma de cada vez, em posições diferentes;
+   - ver se continua fluido com todos. Se não ficar, o caminho para arquivar está em `docs/ARQUIVO.md`.
+3. Tela inicial sem rolar, no aparelho de cada um, e o botão TELA CHEIA.
+4. A música: se o volume está bom no alto-falante do celular (é um número só: `MUSIC.volume`, no `config.js`).

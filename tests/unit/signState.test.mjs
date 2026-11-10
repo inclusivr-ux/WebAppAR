@@ -2,15 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SIGN_GAME, clipFor, itemById } from '../../inclusiapp/src/sign/signConfig.js';
 import { PHASE, SignMatch } from '../../inclusiapp/src/sign/signState.js';
-import { maxRoundScore, stepPoints } from '../../inclusiapp/src/sign/signScore.js';
 
 import { LIBRAS_VIDEOS, VOWEL_CLIPS } from '../../inclusiapp/src/libras/librasVideos.js';
 
 function newMatch(seed = 1) {
-  const clock = { now: 0 };
-  const match = new SignMatch(SIGN_GAME, { now: () => clock.now });
+  const match = new SignMatch(SIGN_GAME);
   match.start(seed);
-  return { match, clock };
+  return { match };
 }
 
 test('os itens: só as 5 vogais, cada uma com a carta do sinal e a carta da letra', () => {
@@ -42,43 +40,48 @@ test('a ordem é embaralhada uma vez por partida, com semente (mesma semente = m
   assert.notDeepEqual(newMatch(43).match.order, order);
 });
 
-test('rodada: olhar → vez → reconhecido = pontos + bônus de rapidez', () => {
-  const { match, clock } = newMatch();
+test('sem pontos e sem tempo: a configuração não tem placar, estrelas, contagem nem tempo limite', () => {
+  assert.equal(SIGN_GAME.scoring, undefined);
+  assert.equal(SIGN_GAME.stars, undefined);
+  assert.equal(SIGN_GAME.timing.countdown, undefined);
+  assert.equal(SIGN_GAME.timing.tryFor, undefined);
+  assert.ok(SIGN_GAME.timing.tipAfter >= 8, 'a dica vem com calma');
+});
+
+test('rodada: olhar → vez → reconhecido = ISSO! (sem pontos)', () => {
+  const { match } = newMatch();
   const item = match.nextRound();
   assert.ok(item);
   assert.equal(match.phase, PHASE.WATCH);
-  clock.now += 6000; // assistir não conta tempo
   match.startTry();
   assert.equal(match.phase, PHASE.TRY);
-  clock.now += 2000;
   const r = match.correct();
-  assert.equal(r.base, 100);
-  assert.equal(r.bonus, 50);
-  assert.equal(match.stats.score, 150);
+  assert.deepEqual(r, { ok: true, tries: 1, almost: 0 });
+  assert.equal(match.stats.signsCorrect, 1);
   assert.equal(match.phase, PHASE.DONE);
+  assert.equal(match.stats.score, undefined);
 });
 
-test('não deu: pode ver de novo e tentar de novo, sem perder pontos (o bônus soma as tentativas)', () => {
-  const { match, clock } = newMatch();
+test('QUASE: a câmera viu outro sinal, conta o "quase" e a criança continua tentando', () => {
+  const { match } = newMatch();
   match.nextRound();
+  match.almost(); // olhando o vídeo: não conta
+  assert.equal(match.round.almost, 0);
   match.startTry();
-  clock.now += 15000;
-  assert.equal(match.attemptElapsed, 15);
-  match.miss();
+  match.almost();
+  match.almost();
+  assert.equal(match.phase, PHASE.TRY, 'o "quase" não tira a vez');
+  assert.equal(match.round.almost, 2);
+  match.watchAgain();
   assert.equal(match.phase, PHASE.WATCH);
-  assert.equal(match.stats.score, 0);
-  clock.now += 8000; // revendo o sinal
   match.startTry();
-  // a 2ª tentativa começa com o tempo inteiro (antes começava esgotada: "3, 2, 1… QUASE!")
-  assert.equal(match.attemptElapsed, 0);
-  clock.now += 1000;
-  assert.equal(match.attemptElapsed, 1);
   const r = match.correct();
-  assert.equal(r.bonus, 5, '16 s de tentativa no total');
-  assert.equal(match.round.tries, 2);
+  assert.equal(r.tries, 2);
+  assert.equal(r.almost, 2);
+  assert.equal(match.stats.almost, 2);
 });
 
-test('pular: sem pontos e quebra a sequência; o fim dá o resumo com estrelas', () => {
+test('pular e o fim: "você fez X de 5", com cada vogal (certa ou pulada)', () => {
   const { match } = newMatch();
   let n = 0;
   for (let item = match.nextRound(); item; item = match.nextRound(), n++) {
@@ -93,13 +96,8 @@ test('pular: sem pontos e quebra a sequência; o fim dá o resumo com estrelas',
   const s = match.summary();
   assert.equal(s.signsCorrect, SIGN_GAME.rounds - 1);
   assert.equal(s.skipped, 1);
-  assert.equal(s.bestStreak, SIGN_GAME.rounds - 1);
-  assert.equal(s.stars, 2); // 4 de 5
   assert.equal(s.total, SIGN_GAME.rounds);
-});
-
-test('pontuação: faixas de rapidez e máximo por desafio', () => {
-  assert.deepEqual(stepPoints(2.9, SIGN_GAME.scoring.sign), { base: 100, bonus: 50, total: 150 });
-  assert.equal(stepPoints(7, SIGN_GAME.scoring.sign).bonus, 15);
-  assert.equal(maxRoundScore(SIGN_GAME.scoring), 150);
+  assert.deepEqual(s.results.map((r) => r.id), match.order);
+  assert.deepEqual(s.results.map((r) => r.ok), [true, true, true, true, false]);
+  assert.equal(s.stars, undefined);
 });
