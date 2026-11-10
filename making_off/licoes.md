@@ -23,3 +23,19 @@
    comprime (gzip) modelos, alvos e código, e o tamanho anunciado é o
    comprimido. Nunca reserve memória pelo `Content-Length`; e o servidor de
    teste precisa comprimir igual, senão o erro só aparece no celular. (Capítulo 2)
+9. **Modelo preso direto à pose do rastreio anda aos saltinhos.** O rastreio
+   atualiza 10 a 20 vezes por segundo, e a tela, 60. Ponha o modelo num grupo
+   que segue a pose a cada quadro (amortecimento curto). Calcule o "virar
+   para a câmera" na pose já suavizada, senão o tremor do rastreio aumenta.
+   (Capítulo 3)
+10. **Cada imagem a mais na procura deixa o reconhecimento mais lento.** Procure
+    só o que o app usa naquele momento. Arquive o resto. (Capítulo 3)
+11. **Em AR para crianças, o alvo valida, e a brincadeira não depende dele.**
+    Quando a câmera sai do alvo, leve o objeto para um palco fixo na tela, em
+    vez de congelar, piscar ou sumir. (Capítulo 3)
+12. **Aviso de "quase" não tapa botões.** Um teste automático que toca nos
+    botões acha esse tipo de problema; a faixa do Sinalize tapava PULAR por
+    quase três segundos. (Capítulo 3)
+13. **A imagem de instrução mostra o que a criança vai ver.** Se o material de
+    divulgação usa outro modelo, use o modelo do próprio app, fotografado por
+    script. (Capítulo 3)

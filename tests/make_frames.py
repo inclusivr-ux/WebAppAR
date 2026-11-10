@@ -100,7 +100,7 @@ CARD_VARIANTS = {
 def with_cartela(img):
     """A página impressa tem uma cartela de texto (pergaminho) sobre a
     ilustração: simula uma no alto, para conferir o reconhecimento das páginas
-    feitas a partir das ilustrações sem texto (Aia e Seu Zé)."""
+    feitas a partir das ilustrações sem texto (as da Aia e do Seu Zé, arquivadas na versão 2.2)."""
     from PIL import ImageDraw
     out = img.convert("RGB").copy()
     w, h = out.size

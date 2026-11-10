@@ -42,6 +42,11 @@ function audio() {
   return ctx;
 }
 
+/** O AudioContext do app (o mesmo dos efeitos e da música: ui/music.js). */
+export function audioContext() {
+  return audio();
+}
+
 /** Chamar dentro de um toque/clique para liberar o áudio (iOS). */
 export function unlockAudio() {
   audio();

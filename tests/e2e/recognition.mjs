@@ -22,7 +22,7 @@ const sets = (process.argv[2] ? [process.argv[2]] : ['paginas', 'cartas']).map((
   const manifest = JSON.parse(readFileSync(join(ROOT, 'inclusiapp/assets/targets', `${id}.json`), 'utf8'));
   return { id, mind, count: manifest.count };
 });
-// páginas da Aia e do Seu Zé (feitas das ilustrações sem texto): também com uma cartela de texto por cima
+// páginas feitas de ilustrações sem texto (as da Aia e do Seu Zé, arquivadas na 2.2): também com uma cartela de texto por cima
 const paginas = sets.find((s) => s.id === 'paginas');
 if (paginas) {
   const manifest = JSON.parse(readFileSync(join(ROOT, 'inclusiapp/assets/targets/paginas.json'), 'utf8'));

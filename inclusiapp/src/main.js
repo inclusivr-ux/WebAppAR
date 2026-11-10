@@ -17,6 +17,9 @@ import { ZooExperience } from './zoo/zooAR.js';
 import { SignGame } from './sign/signGame.js';
 import { setupSignIntro } from './sign/signIntro.js';
 import { toast } from './ui/notifications.js';
+import { setupMusic } from './ui/music.js';
+import { prefetchTargets } from './ar/targets.js';
+import { ZOO } from './zoo/zooConfig.js';
 
 const params = new URLSearchParams(location.search);
 const $ = (selector) => document.querySelector(selector);
@@ -110,6 +113,11 @@ const router = new Router({
   zoo: {
     screen: screens.zooIntro,
     enter: () => {
+      // as cartas e o reconhecimento já baixam enquanto a pessoa lê
+      if (!navigator.connection?.saveData) {
+        loadMindAR().catch(() => {});
+        prefetchTargets(ZOO.targets);
+      }
       screens.zooIntro.querySelector('[data-action="start-zoo"]').onclick = () => {
         permit = 'zoo/ar';
         router.go('zoo/ar');
@@ -168,6 +176,8 @@ async function boot() {
   if (elapsed < 700) await new Promise((r) => setTimeout(r, 700 - elapsed));
   await router.start();
   await loading.hide();
+  // a música entra suave no primeiro toque (se o arquivo estiver no app)
+  setupMusic();
 
   // deixa a biblioteca de AR pronta enquanto a pessoa escolhe no menu
   const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));

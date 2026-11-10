@@ -58,6 +58,10 @@
   <symbol id="i-sorriso" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M8 14.5c2 2.5 6 2.5 8 0"/><path d="M9 9.5v.6M15 9.5v.6"/></symbol>
   <symbol id="i-fome" viewBox="0 0 24 24"><path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0z"/><path d="M9 8c0-1.6 1-2.4 2-3.4M13 8c0-1.6 1-2.4 2-3.4"/></symbol>
   <symbol id="i-pagina" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/></symbol>
+  <symbol id="i-tela-cheia" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-tela-normal" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
+  <symbol id="i-musica" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-musica-off" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/><path d="M3 3l18 18"/></symbol>
   <symbol id="i-runa" viewBox="0 0 24 24"><rect x="5.5" y="3" width="13" height="18" rx="3"/><path d="M10 15.5V9a1.2 1.2 0 0 1 2.4 0v4M12.4 12.5V8a1.2 1.2 0 0 1 2.4 0v6.5"/></symbol>
 </svg>
 
@@ -79,6 +83,11 @@
   <!-- ========================================================== INÍCIO -->
   <section class="screen screen--claro screen--menu" data-screen="menu" aria-labelledby="menu-title" hidden>
     <div class="menu">
+      <!-- tela cheia (só onde o navegador deixa: o Safari do iPhone não deixa) e a música -->
+      <div class="menu__cantos">
+        <button type="button" class="sg-cartela sg-cartela--chip menu__canto" data-action="music" hidden aria-pressed="true"><svg class="ico" aria-hidden="true"><use href="#i-musica"/></svg> <span data-music-label>MÚSICA</span></button>
+        <button type="button" class="sg-cartela sg-cartela--chip menu__canto" data-action="fullscreen" hidden><svg class="ico" aria-hidden="true"><use href="#i-tela-cheia"/></svg> <span data-fullscreen-label>TELA CHEIA</span></button>
+      </div>
       <div class="menu__heroi">
         <!-- a cena do livro com todos no zoológico: o Seu Zé, a Maga Aia e os cinco animais -->
         <div class="menu__janela" aria-hidden="true">
@@ -126,58 +135,17 @@
         <p>Aponte seu celular para as páginas do livro e veja cada página <strong>ganhar vida!</strong></p>
       </div>
 
-      <figure class="intro__arte esquema" role="img" aria-label="Uma pessoa segura o celular a mais ou menos 30 centímetros do livro aberto em cima da mesa. O elefante aparece em cima da página. Dá para andar em volta da mesa.">
-        <!-- esquema desenhado por código (não é ilustração): a pessoa, o celular, o livro aberto na mesa e a distância -->
-        <svg viewBox="0 0 360 250" aria-hidden="true">
-          <defs>
-            <radialGradient id="esq-brilho"><stop offset="0" stop-color="#63cbc9" stop-opacity=".75"/><stop offset="1" stop-color="#63cbc9" stop-opacity="0"/></radialGradient>
-            <clipPath id="esq-retrato"><circle cx="268" cy="78" r="23"/></clipPath>
-            <marker id="esq-seta" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1l7 4-7 4z" fill="#42433a"/></marker>
-          </defs>
-          <!-- chão e o caminho em volta da mesa -->
-          <ellipse cx="226" cy="230" rx="128" ry="17" fill="#42433a" opacity=".08"/>
-          <path class="esquema__volta" d="M118 226 A 128 17 0 0 0 346 226" fill="none" stroke="#42433a" stroke-width="2.5" stroke-dasharray="7 6" marker-start="url(#esq-seta)" marker-end="url(#esq-seta)"/>
-          <!-- mesa (vista de cima e de lado) -->
-          <g stroke="#42433a" stroke-width="3" stroke-linejoin="round">
-            <path d="M139 176v58M303 176v58M336 134v74" fill="none"/>
-            <path d="M312 166l30-42v10l-30 42z" fill="#b77c44"/>
-            <path d="M126 166h186v10H126z" fill="#c98f52"/>
-            <path d="M156 124h186l-30 42H126z" fill="#e8bd7e"/>
-          </g>
-          <!-- livro aberto: capa, as duas páginas com a ilustração do elefante -->
-          <path d="M187 160l108 0l2-28l-90 0z" fill="#3e6b4a" stroke="#42433a" stroke-width="2.5" stroke-linejoin="round"/>
-          <clipPath id="esq-paginas"><path d="M191.5 157.6h85.5l16.5-23.1h-85.5z"/></clipPath>
-          <g clip-path="url(#esq-paginas)">
-            <image href="assets/img/paginas/pagina-ar2.webp" width="1" height="1" preserveAspectRatio="none" transform="matrix(85.5 0 -16.5 23.1 208 134.5)"/>
-          </g>
-          <path d="M191.5 157.6h85.5l16.5-23.1h-85.5zM234.3 157.6l16.5-23.1" fill="none" stroke="#42433a" stroke-width="2.5" stroke-linejoin="round"/>
-          <!-- o elefante em AR, saindo da página -->
-          <circle cx="268" cy="78" r="44" fill="url(#esq-brilho)"/>
-          <path class="esquema__magia" d="M246 140 C 250 118, 262 112, 266 102" fill="none" stroke="#63cbc9" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/>
-          <image href="assets/img/animais/elefante.webp" x="245" y="55" width="46" height="46" clip-path="url(#esq-retrato)"/>
-          <circle cx="268" cy="78" r="23" fill="none" stroke="#42433a" stroke-width="3"/>
-          <path class="esquema__estrela" d="M300 58l2.5 5.5 5.5 2.5-5.5 2.5-2.5 5.5-2.5-5.5-5.5-2.5 5.5-2.5z" fill="#63cbc9" stroke="#42433a" stroke-width="1.5"/>
-          <path class="esquema__estrela" d="M236 52l1.8 4 4 1.8-4 1.8-1.8 4-1.8-4-4-1.8 4-1.8z" fill="#f4b224" stroke="#42433a" stroke-width="1.5"/>
-          <!-- a pessoa com o celular -->
-          <g stroke="#42433a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M64 188l-9 46M68 188l9 46" fill="none" stroke-width="7"/>
-            <rect x="50" y="118" width="32" height="74" rx="14" fill="#63cbc9"/>
-            <path d="M56 132c-6 18-6 34-2 46" fill="none" stroke-width="6"/>
-            <path d="M78 130l26-12" fill="none" stroke-width="6"/>
-            <circle cx="66" cy="99" r="16" fill="#f3d9b8"/>
-            <path d="M51 96c2-12 12-17 20-15 7 1 11 6 11 13-6-4-14-5-31 2z" fill="#7a4b2a"/>
-            <g transform="rotate(-28 112 110)">
-              <rect x="104" y="96" width="16" height="28" rx="3.5" fill="#223d3e"/>
-              <rect x="107" y="100" width="10" height="19" rx="1.5" fill="#a6e4e0" stroke-width="1.5"/>
-            </g>
-          </g>
-          <!-- a distância -->
-          <path d="M122 112L232 146" fill="none" stroke="#42433a" stroke-width="2.5" stroke-dasharray="6 5" marker-start="url(#esq-seta)" marker-end="url(#esq-seta)"/>
-          <g class="esquema__medida">
-            <rect x="138" y="96" width="70" height="26" rx="13" fill="#ebf5b8" stroke="#42433a" stroke-width="2.5"/>
-            <text x="173" y="114" text-anchor="middle">± 30 cm</text>
-          </g>
+      <figure class="intro__arte salto" role="img" aria-label="O livro aberto e, ao lado, o celular a mais ou menos 30 centímetros da página. O elefante salta da página para a tela do celular.">
+        <!-- fotos do livro e do celular: site da InclusiVR; o elefante é o do próprio app, fotografado por tools/render-instrucoes.mjs -->
+        <img class="salto__livro" src="assets/img/instrucoes/livro-aberto.webp" alt="" width="760" height="412" decoding="async">
+        <span class="salto__brilho" aria-hidden="true"></span>
+        <img class="salto__celular" src="assets/img/instrucoes/celular.webp" alt="" width="360" height="726" decoding="async">
+        <img class="salto__animal" src="assets/img/instrucoes/elefante.webp" alt="" width="318" height="360" decoding="async">
+        <svg class="salto__distancia" viewBox="0 0 100 72" aria-hidden="true">
+          <defs><marker id="salto-seta" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse"><path d="M1 1l7 4-7 4z" fill="#42433a"/></marker></defs>
+          <path d="M71 13 C 63 16, 59 24, 56 33" fill="none" stroke="#42433a" stroke-width="1" stroke-dasharray="2.4 2" marker-start="url(#salto-seta)" marker-end="url(#salto-seta)"/>
         </svg>
+        <span class="salto__medida" aria-hidden="true">± 30 cm</span>
       </figure>
 
       <ol class="passos">
@@ -187,6 +155,7 @@
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-olho"/></svg><span>Aguarde o reconhecimento.</span></li>
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-cubo"/></svg><span>Veja o animal aparecer em Realidade Aumentada!</span></li>
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-toque"/></svg><span><strong>Toque no animal</strong> para fazer carinho.</span></li>
+        <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-mao"/></svg><span>Se a câmera sair da página, o animal <strong>continua na tela</strong> para brincar: gire com o dedo e aproxime com dois dedos.</span></li>
         <li class="passo"><svg class="ico passo__ico" aria-hidden="true"><use href="#i-mao"/></svg><span>O botão <strong>LIBRAS</strong> chama o <strong>intérprete de LIBRAS</strong>, que mostra o sinal e soletra o nome do animal.</span></li>
       </ol>
 

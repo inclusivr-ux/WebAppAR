@@ -50,13 +50,21 @@ button { font-family: inherit; }
 .acoes > [hidden] + * { grid-column: 1 / -1; }
 
 /* ---------------------------------------------------------------- início */
+/*
+ * A tela inicial cabe inteira na tela do aparelho, sem rolar (pedido da equipe, 10/11/2026):
+ * a janela em arco ocupa o espaço que sobra, e o resto encolhe com a altura da tela (dvh).
+ * A marca da InclusiVR fica sempre à vista, embaixo.
+ */
+.screen--menu { overflow: hidden; }
 .menu {
-  position: relative; max-width: 480px; min-height: 100%; margin: 0 auto; padding: calc(18px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  position: relative; box-sizing: border-box; max-width: 480px; height: 100%; margin: 0 auto;
+  padding: calc(clamp(8px, 1.8dvh, 18px) + var(--safe-top)) 16px calc(clamp(6px, 1.6dvh, 16px) + var(--safe-bottom));
+  display: flex; flex-direction: column; align-items: center; gap: clamp(7px, 1.5dvh, 14px);
 }
+.menu > * { flex: none; }
 /* a abertura: a cena do livro com todos no zoológico, numa janela em arco, e o logo por cima */
-.menu__heroi { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; }
-.menu__janela { position: relative; width: 100%; aspect-ratio: 1 / .74; border: 3px solid var(--signaria-contorno); border-radius: 50% 50% 22px 22px / 34% 34% 22px 22px;
+.menu__heroi { position: relative; width: 100%; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.menu__janela { position: relative; width: 100%; flex: 1 1 auto; min-height: 70px; max-height: 92vw; border: 3px solid var(--signaria-contorno); border-radius: 50% 50% 22px 22px / 34% 34% 22px 22px;
   overflow: hidden; background: var(--signaria-ceu); box-shadow: 0 6px 0 #0002, inset 0 0 0 5px #ffffff59; }
 .menu__janela > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 58%; }
 /* brilhinhos turquesa (a magia de Signária) */
@@ -66,8 +74,13 @@ button { font-family: inherit; }
 .menu__brilhos > i:nth-child(2) { right: 18%; top: 12%; width: 12px; height: 12px; animation-delay: -.8s; }
 .menu__brilhos > i:nth-child(3) { right: 9%; top: 40%; width: 10px; height: 10px; animation-delay: -1.6s; }
 .menu__brilhos > i:nth-child(4) { left: 8%; top: 46%; width: 11px; height: 11px; animation-delay: -2.1s; }
-.menu__logo-wrap { position: relative; z-index: 1; margin: -21% 0 0; }
-.menu__logo { display: block; width: min(290px, 74vw); height: auto; filter: drop-shadow(0 6px 10px #0004); }
+.menu__logo-wrap { flex: none; position: relative; z-index: 1; margin: calc(-0.3 * min(290px, 74vw, 30dvh)) 0 0; }
+.menu__logo { display: block; width: min(290px, 74vw, 30dvh); height: auto; filter: drop-shadow(0 6px 10px #0004); }
+/* os cantos de cima: MÚSICA e TELA CHEIA */
+.menu__cantos { position: absolute; z-index: 3; top: calc(clamp(8px, 1.8dvh, 18px) + var(--safe-top)); right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.menu__canto { min-height: 32px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; }
+.menu__canto .ico { width: 18px; height: 18px; }
+.menu__canto[aria-pressed="false"] { opacity: .78; }
 .menu__portas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; margin-top: 0; }
 .porta {
   position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 0; color: var(--signaria-contorno); text-decoration: none;
@@ -75,33 +88,23 @@ button { font-family: inherit; }
   box-shadow: 0 5px 0 #0003; transition: transform .08s; -webkit-tap-highlight-color: transparent;
 }
 .porta:active { transform: translateY(3px); box-shadow: 0 2px 0 #0003; }
-.porta__arte { display: block; aspect-ratio: 1 / 1; overflow: hidden; background: var(--signaria-ceu); }
+.porta__arte { display: block; height: clamp(62px, 17dvh, 210px); overflow: hidden; background: var(--signaria-ceu); }
 .porta__arte > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .porta__arte--cartas { position: relative; display: flex; align-items: center; justify-content: center; background: var(--signaria-noite); }
 .porta__arte--cartas > img { position: absolute; width: 44%; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 10px #0006; }
 .porta__arte--cartas > img:nth-child(1) { transform: translateX(-38%) rotate(-12deg); }
 .porta__arte--cartas > img:nth-child(2) { transform: translateY(-4%); z-index: 1; }
 .porta__arte--cartas > img:nth-child(3) { transform: translateX(38%) rotate(12deg); }
-.porta__rotulo { --sg-r: 0px; --sg-b: 0px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 8px; border-top: 3px solid var(--signaria-contorno);
-  font-size: 20px; font-weight: 900; letter-spacing: .06em; }
+.porta__rotulo { --sg-r: 0px; --sg-b: 0px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: clamp(7px, 1.4dvh, 12px) 8px; border-top: 3px solid var(--signaria-contorno);
+  font-size: clamp(17px, 2.5dvh, 20px); font-weight: 900; letter-spacing: .06em; }
 .porta__rotulo .ico { width: 28px; height: 28px; }
 .menu__links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 2px; }
-/* celulares baixos: a janela e os cartões ficam mais baixos para caber tudo sem rolar */
-@media (max-height: 740px) and (orientation: portrait) {
-  .menu { gap: 10px; padding-top: calc(10px + var(--safe-top)); }
-  .menu__janela { aspect-ratio: 1 / .6; }
-  .menu__janela > img { object-position: 50% 62%; }
-  .menu__logo { width: min(240px, 64vw); }
-  .porta__arte { aspect-ratio: 4 / 3; }
-  .porta__rotulo { padding: 9px 8px; font-size: 18px; }
-  .menu__assinatura img { width: 38px; }
-}
 /* "NÃO TEM O LIVRO?" numa linha só, em qualquer celular */
 .menu__links .sg-btn { gap: 6px; padding: 6px 6px; font-size: clamp(10.5px, 3.1vw, 13px); letter-spacing: .02em; white-space: nowrap; }
 .menu__links .sg-btn .ico { flex: none; width: 18px; height: 18px; }
 .menu__instalar { width: 100%; }
-.menu__assinatura { margin-top: auto; padding-top: 8px; }
-.menu__assinatura img { display: block; width: 46px; height: auto; opacity: .95; }
+.menu__assinatura { padding-top: 0; }
+.menu__assinatura img { display: block; width: auto; height: clamp(34px, 6.5dvh, 64px); opacity: .95; }
 
 /* ---------------------------------------------------------------- instruções / como jogar */
 .intro { max-width: 600px; margin: 0 auto; padding: 0 16px calc(24px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 14px; }
@@ -109,13 +112,33 @@ button { font-family: inherit; }
 .intro__titulo { margin: 0 0 4px; font-size: 30px; font-weight: 900; }
 .intro__arte { margin: 0; }
 .intro__arte img { display: block; width: 100%; height: auto; }
-/* esquema das instruções do livro (SVG no index.html) */
-.esquema { border: 3px solid var(--signaria-contorno); border-radius: 18px; background: linear-gradient(180deg, var(--signaria-ceu) 0%, var(--signaria-pagina) 78%); overflow: hidden; }
-.esquema svg { display: block; width: 100%; height: auto; }
-.esquema__medida text { font-family: var(--font-signaria); font-size: 14px; font-weight: 900; fill: var(--signaria-contorno); }
-.esquema__estrela { transform-box: fill-box; transform-origin: center; animation: pisca-estrela 2.4s ease-in-out infinite; }
-.esquema__estrela + .esquema__estrela { animation-delay: -1.2s; }
-.esquema__magia { animation: magia 1.4s linear infinite; }
+
+/* instruções do livro: o "salto" do site da InclusiVR (a foto do livro aberto, o celular e o
+   elefante do app saltando da página para o celular), com a distância de ± 30 cm. Sem pessoa. */
+.salto { position: relative; width: 100%; max-width: 440px; aspect-ratio: 100 / 72; margin-inline: auto; }
+.salto > img { position: absolute; display: block; height: auto; max-width: none; }
+.salto .salto__livro { left: -1%; bottom: 2%; width: 76%; z-index: 1; filter: drop-shadow(0 12px 14px rgba(0, 0, 0, .35)); }
+.salto__brilho { position: absolute; z-index: 2; left: 42%; top: 44%; width: 26%; aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(116, 230, 232, .9) 0, rgba(88, 196, 200, .45) 34%, rgba(88, 196, 200, 0) 68%); mix-blend-mode: screen; animation: salto-brilho 6s ease-out infinite; }
+.salto .salto__celular { right: 2%; bottom: 3%; width: 27%; z-index: 3; transform: rotate(8deg); filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .4)); }
+.salto .salto__animal { right: 3%; bottom: 17%; width: 24%; z-index: 4; transform-origin: 50% 85%;
+  filter: drop-shadow(0 0 10px rgba(49, 245, 255, .45)) drop-shadow(0 8px 10px rgba(0, 0, 0, .35)); animation: salto-animal 6s cubic-bezier(.2, .8, .2, 1) infinite; }
+.salto__distancia { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.salto__medida { position: absolute; z-index: 6; left: 50%; top: 2%; padding: 3px 12px; border: 2.5px solid var(--signaria-contorno); border-radius: 999px;
+  background: var(--signaria-pergaminho); font-family: var(--font-signaria); font-size: 15px; font-weight: 900; color: var(--signaria-contorno); white-space: nowrap; transform: translateX(-50%); }
+@keyframes salto-animal {
+  0%, 6% { opacity: 0; transform: translate(-128%, 26%) scale(.18); }
+  10% { opacity: 1; }
+  22% { transform: translate(-68%, -38%) scale(.72) rotate(-9deg); }
+  32% { transform: translate(0, 4%) scale(1.03) rotate(2deg); }
+  37% { transform: none; }
+  50% { transform: translateY(-5%); }
+  63% { transform: none; }
+  76% { transform: translateY(-5%); }
+  88% { opacity: 1; transform: none; }
+  96%, 100% { opacity: 0; transform: scale(.9); }
+}
+@keyframes salto-brilho { 0%, 3% { opacity: 0; transform: scale(.6); } 11% { opacity: 1; transform: scale(1.08); } 30% { opacity: .5; transform: scale(1); } 100% { opacity: .3; } }
 @keyframes pisca-estrela { 0%, 100% { transform: scale(.7); opacity: .6; } 50% { transform: scale(1.15); opacity: 1; } }
 @keyframes magia { to { stroke-dashoffset: -18; } }
 .intro__texto { font-size: 16px; }
@@ -395,6 +418,8 @@ button { font-family: inherit; }
 .sz__pedido.is-vez { --sg-fundo: var(--signaria-ambar); }
 .sz__pedido.is-certo { --sg-fundo: var(--signaria-ciano); }
 .sz__pedido.is-quase { --sg-fundo: var(--signaria-rosa); }
+.sz__pedido.is-dica { --sg-fundo: var(--signaria-ceu); }
+.sz__cam.is-quase .sz__cam-msg { background: var(--signaria-rosa); color: var(--signaria-contorno); }
 .sz__passo { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; font-weight: 900; letter-spacing: .05em; }
 .sz__passo .ico { width: 28px; height: 28px; }
 .sz__nome { margin: 2px 0 0; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
@@ -459,11 +484,16 @@ button { font-family: inherit; }
   .demo__rotulo { font-size: 12px; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .menu { max-width: 760px; display: grid; grid-template-columns: 1fr 1.4fr; grid-template-rows: auto auto 1fr; align-items: start; column-gap: 24px; }
-  .menu__heroi { grid-row: 1 / 4; align-self: center; }
+  .menu { max-width: 760px; display: grid; grid-template-columns: 1fr 1.4fr; grid-template-rows: repeat(3, auto); align-content: center; align-items: start; column-gap: 24px; }
+  .menu__heroi { grid-row: 1 / 4; align-self: center; justify-content: center; }
+  .menu__cantos { left: 12px; right: auto; align-items: flex-start; }
+  .menu__janela { flex: none; height: 62dvh; max-height: none; }
+  .menu__logo { width: min(220px, 26vw, 34dvh); }
+  .menu__logo-wrap { margin-top: calc(-0.3 * min(220px, 26vw, 34dvh)); }
   .menu__portas { margin-top: 0; }
-  .menu__portas .porta__arte { aspect-ratio: 16 / 9; }
-  .menu__assinatura { display: none; }
+  .menu__portas .porta__arte { height: clamp(56px, 26dvh, 160px); }
+  .menu__assinatura { justify-self: center; }
+  .menu__assinatura img { height: clamp(30px, 9dvh, 52px); }
   .alvo { top: calc(60px + var(--safe-top)); left: 12px; transform: none; width: min(46vw, 380px); }
   .libras__palco { height: 46vh; max-width: 300px; margin-left: 10px; }
   .libras { flex-direction: row; align-items: flex-end; }
@@ -473,7 +503,7 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .screen { transition: none; transform: none; }
   .ar-scan__moldura, .ar-scan__demo .ico, .dica-toque__dedo, .botao-libras, .demo__dedo, .demo__arte--mao .ico,
-  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .esquema__estrela, .esquema__magia, .menu__brilhos > i, .faixa { animation: none; }
+  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .salto__animal, .salto__brilho, .menu__brilhos > i, .faixa { animation: none; }
 }
 
 /* resumo: botões lado a lado sem quebrar em três linhas */

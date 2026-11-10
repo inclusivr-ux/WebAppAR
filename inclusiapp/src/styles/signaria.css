@@ -132,7 +132,7 @@
 .sg-peca > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sg-peca--acesa { box-shadow: 0 0 0 4px var(--signaria-ciano), 0 0 18px 2px var(--signaria-ciano); }
 
-/* retrato redondo (animais, Aia) */
+/* retrato redondo (animais) */
 .sg-retrato { display: block; flex: none; box-sizing: border-box; aspect-ratio: 1; border: 3px solid var(--signaria-contorno); border-radius: 50%;
   background: var(--signaria-ceu); object-fit: cover; }
 

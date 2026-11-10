@@ -141,6 +141,7 @@ export class SignGame {
     this.token = {};
     cancelAnimationFrame(this._raf);
     clearTimeout(this._feedbackTimer);
+    clearTimeout(this._flashTimer);
     this._stopCamera();
     this.libras?.dispose();
     this.libras = null;
@@ -290,7 +291,9 @@ export class SignGame {
     this._showButtons('watch');
     this._step('olhe', 'olho', `OLHE O SINAL DO <b>${item.letter}</b>`);
     this.el.videoPanel.classList.add('is-olhe');
-    this.el.camPanel.classList.remove('is-vez');
+    this.el.camPanel.classList.remove('is-vez', 'is-quase');
+    clearTimeout(this._flashTimer);
+    this._holdMsgUntil = 0;
     announce(`Olhe o sinal da letra ${item.letter}.`);
     await this._playClip(item);
     this.el.videoPanel.classList.remove('is-olhe');
@@ -318,7 +321,8 @@ export class SignGame {
         const r = this.recognizer.update(hands, now);
         this.el.hold.style.width = `${Math.round((r.progress || 0) * 100)}%`;
         this.el.camPanel.classList.toggle('sg-cam--confere', r.state === 'match');
-        if (r.state === 'nohand') this._camMsg('MOSTRE A MÃO');
+        if (now < (this._holdMsgUntil || 0)) { /* o QUASE! (ou a dica) fica um pouco na tela */ }
+        else if (r.state === 'nohand') this._camMsg('MOSTRE A MÃO');
         else if (r.state === 'match') this._camMsg('ISSO! CONTINUE...');
         else this._camMsg('OLHE A CARTA E TENTE');
         if (r.event === 'correct') {
@@ -359,19 +363,39 @@ export class SignGame {
     this._round();
   }
 
-  /** A câmera viu outro sinal por um tempo: QUASE! A criança continua tentando (nada se perde). */
+  /**
+   * A câmera viu outro sinal por um tempo: QUASE! A criança continua tentando
+   * (nada se perde). O aviso aparece na instrução e na câmera, sem tapar os
+   * botões VER DE NOVO e PULAR.
+   */
   _almost() {
     const { letter } = this.match.round.item;
     this.match.almost();
     sfx.wrong();
-    this._feedback('quase', 'olho', 'QUASE!', `Olhe de novo o sinal do ${letter} na carta e tente outra vez.`, SIGN_GAME.timing.almostMs);
-    announce(`Quase! Olhe de novo o sinal do ${letter}.`);
+    this._flash('quase', 'olho', `QUASE! OLHE DE NOVO O SINAL DO <b>${letter}</b> NA CARTA`, 'QUASE! TENTE DE NOVO', SIGN_GAME.timing.almostMs);
+    announce(`Quase! Olhe de novo o sinal do ${letter} na carta e tente outra vez.`);
   }
 
   /** Muito tempo sem acertar: uma dica de como a câmera vê melhor (sem pressa). */
   _tip() {
-    this._feedback('dica', 'ajuda', 'DICA', 'Mostre a mão inteira na câmera, com bastante luz. Se quiser, toque em VER DE NOVO.', 4200);
-    announce('Dica: mostre a mão inteira na câmera, com bastante luz.');
+    this._flash('dica', 'ajuda', 'DICA: A MÃO INTEIRA NA CÂMERA, COM BASTANTE LUZ', 'MÃO INTEIRA NA CÂMERA', 4500);
+    announce('Dica: mostre a mão inteira na câmera, com bastante luz. Se quiser, toque em ver de novo.');
+  }
+
+  /** Um aviso por um tempinho na instrução e na câmera; depois volta o "SUA VEZ!". */
+  _flash(kind, iconName, stepHtml, camText, ms) {
+    const { item } = this.match.round;
+    this._step(kind, iconName, stepHtml);
+    this.el.camPanel.classList.toggle('is-quase', kind === 'quase');
+    this._camMsg(camText);
+    this._holdMsgUntil = performance.now() + ms;
+    clearTimeout(this._flashTimer);
+    this._flashTimer = setTimeout(() => {
+      this.el.camPanel.classList.remove('is-quase');
+      if (this.match.phase === PHASE.TRY && this.match.round?.item === item) {
+        this._step('vez', 'mao', `SUA VEZ! FAÇA O SINAL DO <b>${item.letter}</b> PARA A CÂMERA`);
+      }
+    }, ms);
   }
 
   /** Ver o sinal de novo (a criança pode olhar quantas vezes quiser). */
@@ -423,6 +447,8 @@ export class SignGame {
     const box = this.el.stepBox;
     box.classList.toggle('is-vez', kind === 'vez');
     box.classList.toggle('is-certo', kind === 'certo');
+    box.classList.toggle('is-quase', kind === 'quase');
+    box.classList.toggle('is-dica', kind === 'dica');
     this.el.stepText.innerHTML = `${icon(iconName)} <span>${html}</span>`;
   }
 

@@ -5,32 +5,37 @@ crianças de 3 a 8 anos — muitas ainda sem saber ler. Roda no navegador do
 celular (Android e iPhone), sem instalar nada.
 
 - **LIVRO** — aponte o celular para uma página com AR: o animal (traço do Igor
-  Bucioli, em 3D) **salta do desenho**, fica feliz e **passeia pela página**.
-  Tocar nele é **carinho**. Se a página some da câmera, ele **espera um
-  instante** (uma falha curta passa despercebida) e depois **pisca, fica
-  transparente e pede "QUERO VOLTAR PARA MINHA PÁGINA!"**. O botão **LIBRAS**
-  chama o **intérprete de LIBRAS**: **SINAL DO ANIMAL** (repete quantas vezes quiser) e
-  **SOLETRAR O NOME** (cada letra destacada em sincronia, como karaokê). Nas
-  páginas sem animal em AR, a **Maga Aia** e o **Seu Zé** acenam, ficam
-  felizes, andam e respondem ao toque.
+  Bucioli, em 3D) **salta do desenho**, fica feliz e **passeia pela página**,
+  acompanhando-a com **movimento liso**. Tocar nele é **carinho**. A página é o
+  **validador**: se a câmera sai dela, o animal **desliza para o palco de
+  brincar**, no meio da tela, e a brincadeira continua (girar com um dedo,
+  aproximar com dois). A mesma página voltou: ele volta para ela. O botão
+  **LIBRAS** chama o **intérprete de LIBRAS**: **SINAL DO ANIMAL** (repete
+  quantas vezes quiser) e **SOLETRAR O NOME** (cada letra destacada em
+  sincronia, como karaokê).
 - **JOGOS**:
   - **Jogo de Cartas** — o jogo mostra o animal (ou a letra) e a criança acha,
     entre as cartas com a face de LIBRAS para cima, **o sinal que combina**.
     Embaralha **uma vez por partida** (com semente); errar não tira pontos.
-  - **Zoológico (em AR)** — o livro aberto na **página 22** (o zoológico cheio)
-    vira o chão; cada **carta** colocada em cima da página traz o seu animal,
-    e a carta do **sinal de uma vogal** traz a **letra** do português, em 3D.
-    Todos brincam juntos (o urso come o mel da abelha, o elefante joga água, a
-    onça brinca, a letra acende quando o seu animal chega). A Aia e o Seu Zé
-    vêm por botões; a **casinha** leva alguém para descansar.
+  - **Zoológico (em AR)** — cada **carta** mostrada para a câmera, em qualquer
+    posição, traz o seu animal para o zoológico (um palco no meio da tela), e a
+    carta do **sinal de uma vogal** traz a **letra** do português, em 3D. Todos
+    brincam juntos (o urso come o mel da abelha, o elefante joga água, a onça
+    brinca, a letra acende quando o seu animal chega); a **casinha** leva
+    alguém para descansar. Sem a página 22 desde a versão 2.2.
   - **Sinalize!** — o jogo mostra uma **vogal**; o intérprete faz o sinal
-    **duas vezes**, e a criança repete para a **câmera frontal**; reconhecido a
-    tempo = pontos. O jogo precisa da câmera e **não grava imagens**.
+    **duas vezes**, e a criança repete para a **câmera frontal**, com calma:
+    **sem pontos e sem tempo**, só "ISSO!" e "QUASE!". O jogo precisa da câmera
+    e **não grava imagens**.
+- **TELA CHEIA** e **MÚSICA** na tela inicial (a música é a trilha do sound
+  design; entra quando o arquivo estiver no app).
 
 Tudo no navegador: [MindAR](https://github.com/hiukim/mind-ar-js) (imagens),
-[Three.js](https://threejs.org/) r160 (3D), [three-vrm](https://github.com/pixiv/three-vrm)
-2.1 (Aia e Seu Zé) e [MediaPipe](https://ai.google.dev/edge/mediapipe) (mãos).
+[Three.js](https://threejs.org/) r160 (3D) e [MediaPipe](https://ai.google.dev/edge/mediapipe) (mãos).
 Visual: **Telas do Signária** do design system InclusiVR.
+
+> **Versão 2.2 (10/11/2026):** a Maga Aia e o Seu Zé em 3D foram **arquivados**
+> (voltam no futuro). O que saiu e como trazer de volta: **[docs/ARQUIVO.md](docs/ARQUIVO.md)**.
 
 > **Regra (10/11/2026, vale para todos os produtos):** o app nunca mostra o nome
 > de ninguém da equipe. Aparece a **função** ("o intérprete de LIBRAS"), que é o
@@ -41,9 +46,9 @@ Visual: **Telas do Signária** do design system InclusiVR.
 |---|---|---|---|
 | ![Início](docs/screenshots/inicio.jpg) | ![Instruções](docs/screenshots/livro-instrucoes.jpg) | ![Elefante](docs/screenshots/livro-elefante.jpg) | ![Soletrar](docs/screenshots/livro-libras-soletrar.jpg) |
 
-| Quero voltar! | Aia e Seu Zé | Jogo de Cartas | Zoológico | Sinalize! |
+| Palco de brincar (sem a página) | Jogo de Cartas | Zoológico (só cartas) | Sinalize!: sua vez | Sinalize!: fim |
 |---|---|---|---|---|
-| ![Quero voltar](docs/screenshots/livro-quero-voltar.jpg) | ![Aia e Seu Zé](docs/screenshots/livro-aia-seu-ze.jpg) | ![Cartas](docs/screenshots/cartas-acerto.jpg) | ![Zoológico](docs/screenshots/zoologico.jpg) | ![Sinalize](docs/screenshots/sinalize-acerto.jpg) |
+| ![Palco](docs/screenshots/livro-palco.jpg) | ![Cartas](docs/screenshots/cartas-acerto.jpg) | ![Zoológico](docs/screenshots/zoologico.jpg) | ![Sinalize](docs/screenshots/sinalize-vez.jpg) | ![Fim](docs/screenshots/sinalize-fim.jpg) |
 
 O que mudou na atualização de novembro de 2026, a análise feita antes e o que
 depende de material: **[docs/ATUALIZACAO-2026-11.md](docs/ATUALIZACAO-2026-11.md)**.
@@ -69,37 +74,39 @@ inclusiapp/
 ├── index.html                 telas (início, livro, jogos) + ícones de linha (SVG)
 ├── sw.js                      service worker (VERSION: aumente ao publicar mudanças grandes)
 ├── src/
-│   ├── config.js              ★ animais, páginas do livro, personagens, pares das cartas, AR
+│   ├── config.js              ★ animais, páginas do livro, palco de brincar, música, pares das cartas, AR
 │   ├── main.js · router.js    rotas: #/ #/livro #/livro/ar #/sala #/cartas #/cartas/jogar #/zoo #/zoo/ar #/sinalize #/sinalize/jogar
 │   ├── ar/
 │   │   ├── arSession.js       câmera + MindAR + Three.js (renderer único do app); busca focada e alvos ignorados
 │   │   ├── targets.js         alvos .mind comprimidos, com verificação
-│   │   ├── bookAR.js          o livro (um modo só): páginas → animais/personagens + LIBRAS
-│   │   ├── pageActor.js       a vida na página: saltar, passear, carinho, esperar, "quero voltar", ir para casa
+│   │   ├── bookAR.js          o livro: a página valida → o animal segue a página ou vai para o palco + LIBRAS
+│   │   ├── poseFollower.js    movimento liso (segue a página a cada quadro) e o palco de brincar (sem DOM — testado)
+│   │   ├── gestures.js        girar, aproximar e mover com os dedos (no palco); toque curto = carinho
+│   │   ├── debugHud.js        medidor da equipe (?debug=1): quadros e rastreio por segundo
+│   │   ├── pageActor.js       a vida na página: saltar, passear, carinho, ir para casa
 │   │   ├── pageWalker.js      o passeio dentro da página (sem DOM — testado)
 │   │   ├── modelManager.js    animais .glb (meshopt) e as animações gravadas
 │   │   └── videoChroma.js     vídeo do intérprete sem o fundo verde (trechos, com pausa no fim)
-│   ├── characters/characterModel.js   Aia e Seu Zé (VRM): olá, feliz, andar, preocupado; molas na escala certa
 │   ├── lib/download.js        downloads com progresso (barra "chegando...") e pré-carga
 │   ├── libras/
 │   │   ├── librasVideos.js    ★ tempos de cada letra e do sinal em cada vídeo
 │   │   └── librasPanel.js     o módulo do intérprete (SINAL / SOLETRAR em karaokê)
 │   ├── game/                  Jogo de Cartas (gameState.js = regras, random.js = semente)
 │   ├── zoo/                   Zoológico em AR (zooConfig.js ★ cartas e interações, zooState.js = regras,
-│   │                          zooAR.js = página 22 + cartas, letterModel.js = letras 3D)
+│   │                          zooAR.js = as cartas validam e trazem todos ao palco, letterModel.js = letras 3D)
 │   ├── sign/                  Sinalize! (signConfig.js ★, signRecognizers.js, handSigns.js...)
-│   ├── ui/                    menu, jogos, instruções, avisos, sons, faíscas
+│   ├── ui/                    menu, jogos, instruções, avisos, sons, música, tela cheia, faíscas
 │   └── styles/                tokens.css (design system) · signaria.css (componentes) · app.css (telas)
 ├── assets/
 │   ├── models/*.glb           os 5 animais (repositório inclusivr-animais)
-│   ├── personagens/*.vrm      Maga Aia (inclusivr-aia) e Seu Zé (inclusivr-personagens)
-│   ├── targets/               paginas.mind (9 páginas), cartas.mind (20 faces), zoologico.mind (página 22 + 20 faces)
+│   ├── targets/               paginas.mind (as 5 páginas da primeira versão), cartas.mind (20 faces: jogo e zoológico)
+│   ├── musica/                a trilha (musica.json diz qual arquivo toca)
 │   ├── zoo/letras.json        contorno das vogais 3D (tools/gerar-letras.py)
-│   ├── img/                   arte final do Igor e do design system, em WebP
+│   ├── img/                   arte final do Igor e do design system, em WebP (instrucoes/: fotos do site + o elefante do app)
 │   └── fonts/                 Fraunces Soft (substituta livre da Cooper; OFL)
-├── vendor/                    MindAR 1.2.5, Three.js r160 (+ meshopt, KTX2, SkeletonUtils), three-vrm 2.1.0, MediaPipe 1.0.1
+├── vendor/                    MindAR 1.2.5, Three.js r160 (+ meshopt, SkeletonUtils), MediaPipe 1.0.1
 └── cartas/ pag/ videos/ exemplo/ codes/      arquivos originais
-tools/                         servidor, alvos (compile-targets, montar-zoologico), imagens, letras 3D, medição dos vídeos de LIBRAS
+tools/                         servidor, alvos (compile-targets), imagens, foto do animal (render-instrucoes), letras 3D, medição dos vídeos de LIBRAS
 tests/                         testes de unidade, de reconhecimento e ponta a ponta
 ```
 
@@ -108,26 +115,31 @@ tests/                         testes de unidade, de reconhecimento e ponta a po
 - `ANIMALS`: cada animal com modelo, retrato (recorte da ilustração do Igor),
   as duas faces da sua carta (`picture` e `sign`), as animações e a letra.
 - `BOOK_PAGES`: **as páginas que têm AR** — alvo no `paginas.mind`, número da
-  página no livro, quem aparece e onde está desenhado (`home`, de onde ele
-  salta). Cada página é uma lista de "camadas"; a leitura da história pela Maga
-  Aia (plugin de LIBRAS) pode entrar depois como outra camada.
+  página no livro, o animal e onde ele está desenhado (`home`, de onde ele salta).
+- `STAGE`: o **palco de brincar** (a página invisível no meio da tela): inclinação,
+  tamanho, altura e a área do passeio.
+- `BOOK`: amortecimento do movimento (`smoothMs`), quando ir para o palco
+  (`stageAfterMs`) e a duração da viagem (`glideMs`).
+- `MUSIC`: volume e entrada da música (o arquivo é escolhido em `assets/musica/musica.json`).
 - `CARD_PAIRS`: os 10 pares do Jogo de Cartas (o que o jogo mostra → a face de
   LIBRAS que a criança precisa achar).
-- `BOOK`, `LIBRAS` (chroma key), `GAME` (pontuação), `AR` (rastreamento).
+- `LIBRAS` (chroma key), `GAME` (pontuação do Jogo de Cartas), `AR` (rastreamento).
 
-| Página do livro | Alvo | Quem aparece |
+| Página do livro | Alvo | Animal |
 |---|---|---|
-| 15 | 0 (`pag/Pagina1.png`) | Abelha |
-| 17 | 1 | Elefante (o da lagoa, com o reflexo turquesa) |
-| 19 | 2 | Iguana |
-| 21 | 3 | Onça |
-| 23 | 4 | Urso |
-| 10, 13, 24, 25 | 5 a 8 (`pag/Pagina6.jpg` a `Pagina9.jpg`) | Seu Zé e Maga Aia |
+| 13 | 0 (`pag/Pagina1.png`) | Abelha |
+| 15 | 1 | Elefante (o da lagoa, com o reflexo turquesa) |
+| 17 | 2 | Iguana |
+| 19 | 3 | Onça |
+| 21 | 4 | Urso |
+
+São as mesmas 5 páginas (e o mesmo arquivo `paginas.mind`) da primeira versão
+do app. As páginas da Aia e do Seu Zé foram arquivadas na 2.2 (`docs/ARQUIVO.md`).
 
 A **runa** (a página da esquerda, com textura) não tem AR: o reconhecimento é
 pelo desenho do animal, na página ao lado. As cartas recortadas têm AR só nos jogos.
 
-## 4. Os animais, a Aia e o Seu Zé
+## 4. Os animais
 
 - **Animais** (`inclusivr-animais`, aprovados em 29/10/2026): `.glb` leves
   (malha e animações com meshopt, textura WebP), material sem luz com a pintura
@@ -136,12 +148,16 @@ pelo desenho do animal, na página ao lado. As cartas recortadas têm AR só nos
   (urso). O app não troca o material; toca os clipes com `AnimationMixer`.
 - **No livro** (`pageActor.js`): salta do desenho (`feliz`), passeia sem sair
   da página e espia a beirada; toque = carinho (`feliz`), a cada 3 toques a
-  especial. Sem a página: fica parado onde estava, pisca, fica transparente e se
-  preocupa (`BOOK.lostGraceMs`). Se o arquivo ganhar um clipe `preocupado`, ele é
-  usado sozinho; até lá, o efeito é feito por código.
-- **Aia e Seu Zé** (VRM 1.0, três-vrm): as animações são feitas nos ossos do
-  esqueleto (`characterModel.js`): olá, feliz, andar, preocupado, piscar. A Aia
-  leve usa texturas KTX2 (Basis), lidas pelo `KTX2Loader` (só baixado quando ela aparece).
+  especial.
+- **Movimento liso** (`poseFollower.js`): o rastreio muda a pose da página só
+  10 a 20 vezes por segundo, e a tela é desenhada 60. O animal fica num grupo
+  que **segue** a página a cada quadro, com amortecimento curto
+  (`BOOK.smoothMs`). Assim ele não anda "aos saltinhos" nem treme quando vira
+  para a câmera.
+- **Palco de brincar**:
+  - sem a página, o grupo viaja (`BOOK.glideMs`) até uma página invisível no meio da tela (`STAGE`), e o animal continua passeando, sem sair da tela;
+  - um dedo gira, dois aproximam (`gestures.js`, do "Modo Interação" da primeira versão);
+  - duplo toque fora do animal volta ao início.
 
 Para trocar um modelo: copie o novo `.glb` para `assets/models/` com o mesmo
 nome (o contrato está no `docs/ENTREGA.md` do `inclusivr-animais`) e confira em
@@ -178,25 +194,23 @@ Reconhecimento medido com o detector real do MindAR em fotos sintéticas
 
 | Conjunto | Resultado |
 |---|---|
-| 9 páginas × 4 situações (de frente, inclinada, longe, escura) | **100% (36/36)**, 0 confusões |
-| 4 páginas da Aia e do Seu Zé com uma cartela de texto simulada por cima | **100% (8/8)** |
+| 5 páginas × 4 situações (de frente, inclinada, longe, escura) | **100%**, 0 confusões |
 | 20 faces das cartas | 98,8% (medição anterior) |
 
-As páginas 8, 11, 22 e 23 (números do livro impresso) foram feitas das
-**ilustrações do Igor sem as cartelas de texto**. Conferir com o livro
-impresso; o ideal é exportar as páginas da diagramação final (troque
-`pag/Pagina6.jpg`... e rode `npm run targets`). Os nomes dos arquivos de
-referência (`livro_p15`...) contam 2 páginas a mais que o livro impresso.
+Os nomes dos arquivos de referência (`livro_p15`...) contam 2 páginas a mais
+que o livro impresso.
 
-O **zoológico** usa `zoologico.mind`: a página 22 (alvo 0) e as 20 faces das
-cartas (carta N = alvo N), copiadas byte a byte dos outros dois arquivos
-(`pip install msgpack` e `python3 tools/montar-zoologico.py`, sempre que
-`paginas.mind` ou `cartas.mind` mudarem).
+O **zoológico** usa o mesmo `cartas.mind` do Jogo de Cartas (carta N = alvo
+N−1), e o mesmo reconhecimento (o celular prepara uma vez só).
 
-**Rastreamento no livro**: ao perder a página, o animal espera parado
-1,2 s antes de piscar (`BOOK.holdGraceMs`), e por 2 s o MindAR procura só
+**Rastreamento no livro**: os ajustes do filtro e das tolerâncias são os da
+primeira versão (`AR.book`). Ao perder a página, por 1,5 s o MindAR procura só
 aquela página (`BOOK.refocusMs`), o que reencontra mais rápido quem abaixa o
 celular para ver o animal de lado.
+
+**Medidor no celular**: abra com `?debug=1` (ex.: `…/inclusiapp/?debug=1`). No
+canto aparece "desenho X/s · rastreio Y/s · alvos": se o "desenho" cai, o
+aparelho está pesado; se só o "rastreio" cai, o gargalo é o reconhecimento.
 
 ## 7. Jogo de Cartas
 
@@ -212,18 +226,20 @@ criança precisa relacionar o animal ao seu sinal, não achar a mesma imagem.
 
 ## 8. Zoológico (em AR)
 
-Um jogo de realidade aumentada com o livro e as cartas (pedido de 10/11/2026).
+Um jogo de realidade aumentada com as cartas. Desde a versão 2.2, **sem a
+página 22**: com muitas cartas em cima, a página ficava tampada e o rastreio
+se perdia (teste da equipe, 10/11/2026).
 
-- Abra o livro na **página 22** (o zoológico cheio) e aponte o celular: a
-  página vira o chão do zoológico.
-- Coloque uma **carta** em cima da página: o animal (as duas faces da carta
-  valem) **salta da carta** e fica no zoológico. A carta do **sinal de uma
-  vogal** (ou a da letra) traz a **letra do português em 3D**, animada (pula,
-  gira), para a criança ver o par entre o sinal e a letra. Um de cada; até 12.
-- O MindAR acompanha a página e **uma** carta por vez. A carta que já trouxe
-  alguém deixa de ser procurada (`ARSession.ignoreTarget`), então dá para
-  deixar a carta na página e colocar a próxima.
-- **Carinho**: toque. **Aia e Seu Zé**: botões (ainda não têm carta).
+- Mostre uma **carta** para a câmera, **em qualquer posição** (girada, de lado,
+  de cabeça para baixo): a carta só **valida**. O animal (as duas faces da
+  carta valem) **salta do lugar da carta** para o zoológico, um "chão"
+  invisível no meio da tela (o mesmo palco do livro). A carta do **sinal de uma
+  vogal** (ou a da letra) traz a **letra do português em 3D**, animada.
+- Um de cada: no máximo **5 animais + 5 letras**. A carta usada sai da procura
+  (as duas faces), e o celular acha logo a próxima. Com os 10 no zoológico, o
+  reconhecimento das cartas **para** (o celular só desenha: 101 mil triângulos,
+  30 chamadas de desenho).
+- **Carinho**: toque. Um dedo gira o zoológico, dois aproximam.
   **Casinha** (no lugar da lixeira): leva alguém para descansar; a carta volta a valer.
 - **Necessidades** em balões com ícones, sem barras: o urso sente **fome de
   mel**; os outros **querem brincar**; depois aparecem **feliz** e **satisfeito**.
@@ -233,22 +249,27 @@ Um jogo de realidade aumentada com o livro e as cartas (pedido de 10/11/2026).
   encontros = os dois ficam felizes (pág. 22); de tempos em tempos um animal vai
   visitar a sua letra ou um amigo; **o animal perto da letra da sua inicial** →
   a letra acende em turquesa e ele faz a animação especial.
-- As letras ficam sempre viradas para quem segura o celular e reclinam como
-  uma placa quando vistas de cima (dá para LER).
+- As letras ficam sempre viradas para quem segura o celular.
+- Se no celular não ficar fluido, o caminho para arquivar está em `docs/ARQUIVO.md`.
 
 ## 9. Sinalize!
 
 ```text
 a vogal na tela (a letra + a carta do sinal) → OLHE: o intérprete faz o sinal 2 vezes
-→ 3, 2, 1 → SUA VEZ (câmera frontal) → reconhecido a tempo: ISSO! + pontos → próxima
-→ não deu em 15 s: QUASE! → TENTAR DE NOVO (vê o sinal de novo, com mais 15 s) ou PRÓXIMO
+→ "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
+→ reconhecido: "ISSO! VOCÊ FEZ O A!" → próxima
+→ outra vogal na câmera: "QUASE! OLHE DE NOVO O SINAL DO A NA CARTA" (e continua tentando)
+fim: "VOCÊ FEZ 4 DE 5 SINAIS", com cada vogal
 ```
+
+**Sem pontos e sem tempo** desde a versão 2.2 (pedido da equipe): o relógio
+passava a ideia de fazer rápido, e o reconhecimento funciona melhor com calma.
+Sem contagem 3-2-1, sem tempo limite, sem recordes. Depois de 12 s sem
+acertar, aparece **uma** dica (a mão inteira na câmera, com luz); nada se perde.
 
 - **Só as 5 vogais** (configurações de mão paradas, que a câmera reconhece bem).
   Os sinais dos animais têm movimento e saíram do jogo (10/11/2026); as regras
   provisórias deles estão no histórico do git (commit `9ceda81`), para o Signária IA.
-- Cada tentativa tem os seus 15 s (antes, a 2ª tentativa começava com o tempo
-  esgotado: "3, 2, 1… QUASE!"). O bônus de rapidez soma as tentativas.
 - O jogo **precisa da câmera** (não há ACERTEI/ERREI, que davam para trapacear).
   Sem câmera, explica o que fazer e diz que **não gravamos imagens**.
 - A tela ocupa a altura do aparelho: vídeo e câmera dividem o espaço e os
@@ -269,10 +290,17 @@ a vogal na tela (a letra + a carta do sinal) → OLHE: o intérprete faz o sinal
   runas são a arte do Igor. Os textos continuam lá para quem lê e para os adultos.
 - Leitores de tela (anúncios), foco visível, alvos de toque grandes, "reduzir
   movimento" respeitado, retorno visual de todo som.
-- **Abertura**: a cena do livro com todos no zoológico (o Seu Zé, a Maga Aia e
-  os cinco animais), numa janela em arco, com o logo por cima.
-- **Instruções do livro**: um esquema desenhado por código (não é ilustração):
-  a pessoa com o celular a ± 30 cm do livro aberto na mesa, andando em volta.
+- **Abertura**: a cena do livro com todos no zoológico (a ilustração do Igor),
+  numa janela em arco, com o logo por cima. A tela inicial **cabe inteira** em
+  qualquer celular, sem rolar: a janela usa o espaço que sobra, e a marca da
+  InclusiVR fica sempre à vista. **TELA CHEIA** nos cantos (só onde o navegador
+  deixa: o Safari do iPhone não deixa) e **MÚSICA** (quando houver o arquivo).
+- **Instruções do livro**: a foto do livro aberto e o celular (do site da
+  InclusiVR), com o elefante **do app** saltando da página para o celular
+  (`tools/render-instrucoes.mjs` fotografa o `.glb`), e "± 30 cm". Sem pessoa.
+- **Música**: a trilha do sound design, em laço e baixinha
+  (`src/ui/music.js`). Para ligar ou trocar: ponha o MP3 em `assets/musica/`
+  (nome sem acento nem espaço) e escreva o nome em `assets/musica/musica.json`.
 - **Sons**: provisórios, gerados na hora (kalimba, madeira e um brilho), no
   lugar dos bipes genéricos da primeira versão. Quando o sound design (Luigi)
   entregar os arquivos, é só pôr em `assets/sons/` e listar em `ARQUIVOS`
@@ -286,25 +314,36 @@ Ao publicar mudanças grandes, aumente `VERSION` em `inclusiapp/sw.js`.
 ## 12. Testes
 
 ```bash
-npm test                         # 92 testes de unidade
-python3 tests/e2e/make_zoo_frames.py   # fotos sintéticas do zoológico (página 22 + cartas)
+npm test                         # 96 testes de unidade
+python3 tests/e2e/make_zoo_frames.py   # fotos sintéticas do zoológico (cartas em várias posições)
 python3 tests/make_frames.py     # (opcional) fotos sintéticas das páginas e cartas
 node tests/e2e/recognition.mjs   # reconhecimento real das páginas e cartas
-npm run test:e2e                 # ponta a ponta no Chromium (telas, livro, personagens, cartas, zoo, sinalize, erros, paisagem)
+npm run test:e2e                 # ponta a ponta no Chromium (telas, livro, cartas, zoo, sinalize, erros, paisagem)
 npm run test:e2e -- livro        # só uma parte
 ```
 
 Os testes ponta a ponta usam uma **câmera falsa** (`tests/e2e/fakeCamera.js`):
 o caminho real (câmera → MindAR/MediaPipe → 3D → LIBRAS) roda no navegador.
-Verificam, entre outros: nenhum nome da equipe no app; o intérprete não aparece
-sozinho; o karaokê destaca a letra certa; o animal passeia dentro da página,
-espera numa falha curta e pede para voltar sem ela; a Aia e o Seu Zé na página
-11, com as molas no espaço deles e os olhos que não somem; a face do desenho
-não vale no Jogo de Cartas; o zoológico em AR (a carta traz o animal no lugar
-dela, a carta do sinal traz a letra, a casinha); o Sinalize só com vogais,
-sem rolar em 360×640 e sem câmera = aviso; câmera desligada ao sair; mensagens
-de câmera negada/ocupada/inexistente; sem rolagem lateral em paisagem, tablet
-e computador. Os testes de unidade conferem o reconhecedor com as medidas reais
+Verificam, entre outros:
+- nenhum nome da equipe no app, e nenhuma menção à Aia ou ao Seu Zé;
+- o início cabe sem rolar em 6 tamanhos; TELA CHEIA; a música (com um tom de teste);
+- as fotos das instruções; o intérprete não aparece sozinho; o karaokê destaca a letra certa;
+- no livro:
+  - o animal segue a página pelo grupo liso;
+  - sem a página, ele vai para o palco e continua lá (carinho e giro com o dedo);
+  - a página volta e ele volta;
+  - outra página: ele se despede;
+- a face do desenho não vale no Jogo de Cartas;
+- o zoológico só com cartas:
+  - de cabeça para baixo, de lado e duas juntas;
+  - os 10 juntos, com o reconhecimento parado, e a casinha;
+- o Sinalize:
+  - sem placar nem tempo, com "QUASE!" numa vogal errada sem tapar os botões;
+  - "ISSO!" na certa e "VOCÊ FEZ 1 DE 5";
+  - sem rolar em 360×640, e sem câmera = aviso;
+- câmera desligada ao sair;
+- mensagens de câmera negada, ocupada ou inexistente;
+- sem rolagem lateral em paisagem, tablet e computador. Os testes de unidade conferem o reconhecedor com as medidas reais
 dos vídeos do intérprete (`tests/fixtures/libras/medidas.json.gz`).
 
 `CHROMIUM_PATH=/caminho/do/chrome` usa um Chromium já instalado.
@@ -317,10 +356,10 @@ que o celular (`SEM_GZIP=1` desliga).
 
 - Android (Chrome) e iPhone/iPad (Safari, iOS 15+); computador com webcam.
 - Sem CDN: bibliotecas, fontes e modelos ficam no próprio site.
-- Tudo sob demanda: animais (95–427 KB cada) e, em seguida, Aia e Seu Zé
-  (≈ 4 MB cada) baixam em segundo plano quando o livro abre (sem "economia de
-  dados"), com barra de progresso se a página aparecer antes; o reconhecimento
-  de mãos (≈ 19 MB) só no Sinalize. O service worker guarda tudo.
+- Tudo sob demanda: os animais (95–427 KB cada) baixam em segundo plano quando
+  o livro abre (sem "economia de dados"), com barra de progresso se a página
+  aparecer antes; o reconhecimento de mãos (≈ 19 MB) só no Sinalize. O service
+  worker guarda tudo.
 - Um único contexto WebGL para o livro, os jogos e o vídeo do intérprete.
 
 ## 14. Problemas comuns
@@ -331,15 +370,17 @@ que o celular (`SEM_GZIP=1` desliga).
 | Página não reconhecida | é uma das páginas com AR? (veja a tela de instruções) ~30 cm, página inteira, boa luz |
 | Apontei para a runa e nada | a runa sozinha não tem AR: aponte para o desenho do animal ao lado |
 | Sinal não reconhecido no Sinalize | lugar iluminado, a mão inteira na tela; use **VER DE NOVO** ou **PULAR** |
-| Zoológico: a carta não traz ninguém | a página 22 precisa estar na câmera; a carta inteira em cima da página, com luz |
+| Zoológico: a carta não traz ninguém | a carta inteira na câmera, com luz, a uns 20 cm; uma de cada vez |
+| O animal "trava" ou some no livro | abra com `?debug=1` e veja o medidor; boa luz ajuda o rastreio. Sem a página, ele fica no palco (é o esperado) |
+| Não aparece o botão TELA CHEIA | o navegador não deixa (Safari do iPhone): use "Adicionar à Tela de Início" |
 | Letra do karaokê fora do tempo | ajuste os números em `src/libras/librasVideos.js` |
 
 ## 15. Créditos e licenças
 
-- Ilustrações, cartas, vídeos, animais 3D, Maga Aia e Seu Zé: InclusiVR —
-  ilustrador: Igor Bucioli; intérprete de LIBRAS: Fauston Zandoná; diagramação do livro: Nina Nunes.
+- Ilustrações, cartas, vídeos, animais 3D e fotos do livro: InclusiVR —
+  ilustrador: Igor Bucioli; intérprete de LIBRAS: Fauston Zandoná; diagramação
+  do livro: Nina Nunes; sound design (a trilha): Luigi.
 - [MindAR](https://github.com/hiukim/mind-ar-js) 1.2.5 — MIT · [Three.js](https://threejs.org/) r160 — MIT ·
-  [three-vrm](https://github.com/pixiv/three-vrm) 2.1.0 — MIT · Basis Universal (transcodificador) — Apache-2.0 ·
   [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe) 1.0.1 — Apache-2.0.
 - Fonte [Fraunces](https://github.com/undercasetype/Fraunces) (Fraunces Soft) — SIL Open Font License.
 - Só nos testes: mão 3D "generic-hand" do WebXR Input Profiles — MIT.
