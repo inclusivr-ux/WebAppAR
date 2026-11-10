@@ -121,7 +121,7 @@ export function scoreVowels(features) {
     bent,
     1 - Math.max(ext.index, ext.middle) * ramp(F.index.pip, 25, 10), // indicador e médio não podem estar retos
     ramp(mean([F.index.mcp, F.middle.mcp]), 72, 52),
-    // o polegar cruza a palma por baixo das pontas; no E do Fauston (vídeos do app)
+    // o polegar cruza a palma por baixo das pontas; no E do intérprete (vídeos do app)
     // ele fica mais alto e menos cruzado que na mão 3D de teste: os dois valem
     Math.max(Math.min(ramp(T.across, 0.2, 0.45), ramp(T.height, 1.2, 1.0)),
       Math.min(ramp(T.across, -0.2, 0.05), ramp(T.height, 0.98, 1.08), ramp(T.height, 1.42, 1.32),
@@ -138,7 +138,7 @@ export function scoreVowels(features) {
     curved,
     ramp(F.index.height, 0.88, 1.03), // a ponta do indicador fica no alto (não é mão fechada)
     ramp(T.toIndexTip, 0.6, 0.38),
-    ramp(T.height, 0.55, 0.7), // no O do Fauston o polegar fica mais baixo que na mão 3D
+    ramp(T.height, 0.55, 0.7), // no O do intérprete o polegar fica mais baixo que na mão 3D
     ramp(T.across, 0.5, 0.3),
     1 - ext.pinky * 0.8,
   );

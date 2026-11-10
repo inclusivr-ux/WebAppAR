@@ -1,5 +1,5 @@
 /**
- * Animais 3D (traço do Igor, repositório inclusivr-animais): carregamento sob
+ * Animais 3D (traço do ilustrador, repositório inclusivr-animais): carregamento sob
  * demanda, cache e animações gravadas no próprio arquivo.
  *
  * O contrato dos .glb (docs/ENTREGA.md do inclusivr-animais):
@@ -17,15 +17,17 @@
  * próprios, para o "sumir aos poucos" de um não afetar os outros.
  */
 import * as THREE from '../lib/three.js';
+import { download } from '../lib/download.js';
 
 const loader = new THREE.GLTFLoader();
 loader.setMeshoptDecoder(THREE.MeshoptDecoder);
 const gltfCache = new Map();
 
-/** Carrega (uma única vez) um .glb. */
+/** Carrega (uma única vez) um .glb; o download tem progresso (lib/download.js). */
 export function loadGLTF(url) {
   if (!gltfCache.has(url)) {
-    gltfCache.set(url, loader.loadAsync(url).catch((err) => {
+    const dir = url.slice(0, url.lastIndexOf('/') + 1);
+    gltfCache.set(url, download(url).then((buffer) => loader.parseAsync(buffer, dir)).catch((err) => {
       gltfCache.delete(url);
       throw err;
     }));
@@ -33,9 +35,9 @@ export function loadGLTF(url) {
   return gltfCache.get(url);
 }
 
-/** Baixa o .glb em segundo plano (sem criar a instância). */
+/** Baixa o .glb em segundo plano (sem montar o modelo). */
 export function prefetchModel(url) {
-  loadGLTF(url).catch(() => {});
+  return download(url).catch(() => {});
 }
 
 let shadowTexture = null;

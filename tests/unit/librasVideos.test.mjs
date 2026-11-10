@@ -31,11 +31,13 @@ test('karaokê: a letra da vez em cada instante', () => {
   assert.equal(letterAt(spell, 9), 3);
 });
 
-test('as vogais sozinhas são a primeira letra de cada animal (A de ABELHA...)', () => {
+test('as vogais sozinhas são a primeira letra de cada animal (A de ABELHA...), sem a letra seguinte', () => {
   for (const [letter, clip] of Object.entries(VOWEL_CLIPS)) {
     const v = LIBRAS_VIDEOS[clip.video];
     assert.equal(v.word[0], letter);
-    assert.equal(clip.start, v.spell[0].start);
+    // começa com a mão chegando e termina ainda na vogal (antes da passagem para a próxima letra)
+    assert.ok(clip.start <= v.spell[0].start + 0.2 && clip.end < v.spell[0].end, `${letter}: ${clip.start}–${clip.end}`);
+    assert.ok(clip.hold > 0, 'para um pouco na vogal');
   }
   const seg = segmentOf(LIBRAS_VIDEOS.abelha, 'spell');
   assert.deepEqual(seg, { start: 0.4, end: 5.25 });

@@ -9,6 +9,8 @@ design system "InclusiVR".
                  cada arquivo é o id do asset; veja DS abaixo)
   --animais      clone do repositório inclusivr-animais (com o LFS baixado)
   --personagens  clone do repositório inclusivr-personagens (com o LFS baixado)
+  --so GRUPOS    só alguns grupos, separados por vírgula: ds, retratos,
+                 paginas, abertura (o padrão é tudo; sem --ds, pula o grupo ds)
 
 Saída em inclusiapp/assets/img/. Nada é desenhado aqui: só recortes e
 reduções das ilustrações originais (o traço do Igor manda na aparência).
@@ -52,12 +54,20 @@ RETRATOS = {
     'urso': ('Urso/00_referencias/igor/2025-11_livro_p24_urso_zoo.jpg', (30, 60, 350, 380)),
 }
 
-# páginas sem animal em AR em que a Aia e o Seu Zé aparecem (ilustrações do Igor)
+# retrato do Seu Zé (botão "chamar" do zoológico): o rosto na ilustração do portão (pág. 8)
+RETRATO_SEUZE = ('SeuZe/00_referencias/igor/2025-11_livro_p10_portao_do_zoo_seu_ze.jpg', (100, 40, 500, 440))
+
+# abertura do app: a cena do livro com TODOS no zoológico (Seu Zé, Aia e os 5 animais, pág. 22)
+ABERTURA = 'Elefante/00_referencias/igor/2025-11_livro_p24_zoologico_pagina.jpg'
+
+# páginas sem animal em AR em que a Aia e o Seu Zé aparecem (ilustrações do Igor).
+# O nome da miniatura usa o número impresso no livro; o nome da referência
+# (p10, p13...) segue a numeração do arquivo da diagramação, 2 a mais.
 PAGINAS_PERSONAGENS = {
-    'pagina10': '2025-11_livro_p10_portao_do_zoo.jpg',
-    'pagina13': '2025-11_livro_p13_runas_nas_maos.jpg',
-    'pagina24': '2025-11_livro_p24_volta_ao_zoo.jpg',
-    'pagina25': '2025-11_livro_p25_devolve_as_runas.jpg',
+    'pagina8': '2025-11_livro_p10_portao_do_zoo.jpg',
+    'pagina11': '2025-11_livro_p13_runas_nas_maos.jpg',
+    'pagina22': '2025-11_livro_p24_volta_ao_zoo.jpg',
+    'pagina23': '2025-11_livro_p25_devolve_as_runas.jpg',
 }
 
 
@@ -82,11 +92,25 @@ def redondo(im, size=256):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--ds', required=True)
+    ap.add_argument('--ds')
     ap.add_argument('--animais', required=True)
     ap.add_argument('--personagens', required=True)
+    ap.add_argument('--so', default='ds,retratos,paginas,abertura')
     a = ap.parse_args()
+    grupos = set(a.so.split(','))
+    Image.MAX_IMAGE_PIXELS = None
+    if 'ds' in grupos and a.ds:
+        design_system(a)
+    if 'retratos' in grupos:
+        retratos(a)
+    if 'paginas' in grupos:
+        paginas(a)
+    if 'abertura' in grupos:
+        im = Image.open(os.path.join(a.animais, ABERTURA)).convert('RGB')
+        webp(im, f'{OUT}/abertura-zoologico.webp', (960, 960), 76)
 
+
+def design_system(a):
     src = {}
     for path in glob.glob(os.path.join(a.ds, '*')):
         key = os.path.splitext(os.path.basename(path))[0]
@@ -96,25 +120,28 @@ def main():
     if falta:
         raise SystemExit(f'faltam no --ds: {falta}')
 
-    Image.MAX_IMAGE_PIXELS = None
     webp(Image.open(src['fundo-claro']).convert('RGB'), f'{OUT}/fundo-claro.webp', (720, 1500), 70)
     webp(Image.open(src['fundo-floresta-esmaecida']).convert('RGB'), f'{OUT}/fundo-largo.webp', (1600, 800), 70)
-    webp(Image.open(src['fundo-floresta']).convert('RGB'), f'{OUT}/fundo-zoo.webp', (1600, 800), 74)
     webp(Image.open(src['cena-zoologico']).convert('RGB'), f'{OUT}/cena-zoologico.webp', (1200, 600), 74)
     webp(Image.open(src['logo-livro']), f'{OUT}/logo-livro.webp', (640, 460), 86)
     webp(Image.open(src['inclusivr']), f'{OUT}/inclusivr.webp', (160, 224), 88)
-    webp(Image.open(src['celular-moldura']), f'{OUT}/celular-moldura.webp', (320, 645), 88)
     webp(Image.open(src['aia-rosto']).convert('RGB'), f'{OUT}/aia-rosto.webp', (256, 256), 80)
-    for v in 'aeiou':
-        webp(Image.open(src[f'runa-{v}']), f'{OUT}/runas/runa-{v}.webp', (240, 348), 84)
-        webp(Image.open(src[f'acesa-{v}']).convert('RGB'), f'{OUT}/runas/acesa-{v}.webp', (240, 348), 80)
+    # a runa A acesa ilustra o Sinalize! na sala de jogos
+    webp(Image.open(src['acesa-a']).convert('RGB'), f'{OUT}/runas/acesa-a.webp', (240, 348), 80)
 
+
+def retratos(a):
     for animal, (rel, box) in RETRATOS.items():
         im = Image.open(os.path.join(a.animais, rel)).convert('RGBA')
         bg = Image.new('RGBA', im.size, (230, 240, 220, 255))
         bg.alpha_composite(im)
         webp(redondo(bg.crop(box)), f'{OUT}/animais/{animal}.webp', None, 84)
+    rel, box = RETRATO_SEUZE
+    im = Image.open(os.path.join(a.personagens, rel)).convert('RGB').crop(box)
+    webp(im, f'{OUT}/seuze-rosto.webp', (256, 256), 80)
 
+
+def paginas(a):
     for nome, arq in PAGINAS_PERSONAGENS.items():
         im = Image.open(os.path.join(a.personagens, 'SeuZe/00_referencias/igor', arq)).convert('RGB')
         webp(im, f'{OUT}/paginas/{nome}.webp', (420, 420), 78)

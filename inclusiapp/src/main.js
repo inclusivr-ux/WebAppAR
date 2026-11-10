@@ -3,7 +3,7 @@
  *
  *   INÍCIO ─┬─ LIVRO ── instruções ── câmera (páginas → animais, Aia e Seu Zé + LIBRAS)
  *           └─ JOGOS ─┬─ JOGO DE CARTAS ── como jogar ── câmera (ache o sinal do par)
- *                     ├─ ZOOLÓGICO (caixa de areia com os animais e as runas)
+ *                     ├─ ZOOLÓGICO ── como brincar ── câmera (página 22 + cartas → animais e letras)
  *                     └─ SINALIZE! ── como jogar ── câmera frontal (veja o sinal e faça igual)
  */
 import { Router } from './router.js';
@@ -13,7 +13,7 @@ import { loadMindAR } from './ar/arSession.js';
 import { setupMenu } from './ui/menu.js';
 import { setupBookIntro, setupGameIntro } from './ui/instructions.js';
 import { setupSala } from './ui/sala.js';
-import { ZooGame } from './zoo/zooGame.js';
+import { ZooExperience } from './zoo/zooAR.js';
 import { SignGame } from './sign/signGame.js';
 import { setupSignIntro } from './sign/signIntro.js';
 import { toast } from './ui/notifications.js';
@@ -27,6 +27,7 @@ const screens = {
   gameIntro: $('[data-screen="game-intro"]'),
   gameAR: $('[data-screen="game-ar"]'),
   sala: $('[data-screen="sala"]'),
+  zooIntro: $('[data-screen="zoo-intro"]'),
   zoo: $('[data-screen="zoo"]'),
   signIntro: $('[data-screen="sign-intro"]'),
   signGame: $('[data-screen="sign-game"]'),
@@ -61,7 +62,7 @@ function withTimeout(promise, ms) {
 /* ---------------------------------------------------------------- telas */
 const book = new BookExperience(screens.bookAR);
 const game = new GameExperience(screens.gameAR);
-const zoo = new ZooGame(screens.zoo);
+const zoo = new ZooExperience(screens.zoo);
 const sign = new SignGame(screens.signGame);
 let permit = null; // rota com câmera liberada por um toque em "Começar"
 let resumeGame = false;
@@ -107,9 +108,22 @@ const router = new Router({
     },
   },
   zoo: {
+    screen: screens.zooIntro,
+    enter: () => {
+      screens.zooIntro.querySelector('[data-action="start-zoo"]').onclick = () => {
+        permit = 'zoo/ar';
+        router.go('zoo/ar');
+      };
+    },
+  },
+  'zoo/ar': {
     screen: screens.zoo,
+    guard: () => (permit === 'zoo/ar' ? null : 'zoo'),
     enter: () => zoo.enter(),
-    leave: () => zoo.leave(),
+    leave: () => {
+      permit = null;
+      return zoo.leave();
+    },
   },
   sinalize: {
     screen: screens.signIntro,
@@ -133,8 +147,8 @@ const router = new Router({
   // endereços antigos (links salvos, atalhos na tela inicial)
   jogo: { screen: screens.gameIntro, guard: () => 'cartas' },
   'jogo/jogar': { screen: screens.gameIntro, guard: () => 'cartas' },
-  bichinho: { screen: screens.zoo, guard: () => 'zoo' },
-  'bichinho/jogar': { screen: screens.zoo, guard: () => 'zoo' },
+  bichinho: { screen: screens.zooIntro, guard: () => 'zoo' },
+  'bichinho/jogar': { screen: screens.zooIntro, guard: () => 'zoo' },
 });
 
 /* ---------------------------------------------------------------- início */

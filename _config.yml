@@ -11,6 +11,7 @@ exclude:
   - tests
   - tools
   - docs
+  - making_off
   - node_modules
   - test-results
   - README.md

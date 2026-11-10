@@ -267,7 +267,7 @@ export class ARSession {
       const controller = new MINDAR.Controller({
         inputWidth: w,
         inputHeight: h,
-        maxTrack: 1,
+        maxTrack: this.tuning.maxTrack || 1,
         filterMinCF: this.tuning.filterMinCF,
         filterBeta: this.tuning.filterBeta,
         warmupTolerance: this.tuning.warmupTolerance,
@@ -276,7 +276,12 @@ export class ARSession {
       const buffer = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
         ? bytes.buffer : bytes.slice().buffer;
       const { dimensions } = controller.addImageTargetsFromBuffer(buffer);
-      entry = { controller, width: w, height: h, bytes, dimensions, warmed: false, processing: false, onDone: null };
+      // alvos que não devem mais ser procurados (ver ignoreTarget): o MindAR só
+      // tem um "alvo de interesse", então a lista de procura é filtrada aqui
+      const ignored = new Set();
+      const detectAndMatch = controller._detectAndMatch.bind(controller);
+      controller._detectAndMatch = (input, indexes) => detectAndMatch(input, indexes.filter((i) => !ignored.has(i)));
+      entry = { controller, width: w, height: h, bytes, dimensions, ignored, warmed: false, processing: false, onDone: null };
       entry.idle = () => (entry.processing ? new Promise((resolve) => {
         entry.onDone = resolve;
         setTimeout(resolve, 2000);
@@ -319,6 +324,63 @@ export class ARSession {
     return this.anchors.map((a, i) => (a?.visible ? i : -1)).filter((i) => i >= 0);
   }
 
+  /**
+   * Procura SÓ a imagem `targetIndex` por `ms` milissegundos (−1 = todas).
+   *
+   * Logo depois de perder uma página, quem segura o celular quase sempre está
+   * tentando voltar para ela (abaixou o celular para ver o animal de lado).
+   * Procurar só essa página faz cada tentativa de reencontrar ficar várias
+   * vezes mais rápida (com 9 páginas, cada tentativa compara a imagem com
+   * todas). Depois do prazo, volta a procurar todas (a criança virou a página).
+   */
+  focusTarget(targetIndex, ms = 2000) {
+    const c = this.controller;
+    clearTimeout(this._focusTimer);
+    if (!c) return;
+    c.interestedTargetIndex = targetIndex;
+    if (targetIndex !== -1) {
+      this._focusTimer = setTimeout(() => {
+        if (this.controller === c && c.interestedTargetIndex === targetIndex) c.interestedTargetIndex = -1;
+      }, ms);
+    }
+  }
+
+  /**
+   * Para de procurar a imagem `targetIndex` (on = true) ou volta a procurar.
+   * Se ela estiver sendo acompanhada, deixa de ser (como se tivesse sumido).
+   *
+   * No zoológico, a carta que já trouxe um animal fica em cima da página: se o
+   * MindAR continuasse acompanhando essa carta, nunca acharia a próxima (ele
+   * acompanha no máximo a página e uma carta).
+   */
+  ignoreTarget(targetIndex, on = true) {
+    const entry = this.entry;
+    if (!entry) return;
+    if (!on) {
+      entry.ignored.delete(targetIndex);
+      return;
+    }
+    entry.ignored.add(targetIndex);
+    const state = entry.controller.trackingStates?.[targetIndex];
+    if (state) {
+      state.isTracking = false;
+      state.showing = false;
+      state.trackCount = 0;
+      state.trackMiss = 0;
+    }
+    const a = this.anchors[targetIndex];
+    if (a?.visible) {
+      a.visible = false;
+      a.group.visible = false;
+      this.onTargetLost?.(targetIndex);
+    }
+  }
+
+  /** Volta a procurar todas as imagens. */
+  clearIgnored() {
+    this.entry?.ignored.clear();
+  }
+
   /** Proporção altura/largura da imagem-alvo. */
   aspect(targetIndex) {
     const d = this.dimensions[targetIndex];
@@ -336,6 +398,7 @@ export class ARSession {
     }
     if (data.type !== 'updateMatrix' || !this.tracking) return;
     const { targetIndex, worldMatrix } = data;
+    if (worldMatrix && this.entry?.ignored.has(targetIndex)) return; // já foi usada (ignoreTarget)
     this.anchor(targetIndex);
     const a = this.anchors[targetIndex];
     if (worldMatrix) {
@@ -476,6 +539,8 @@ export class ARSession {
   /** Desliga tudo e devolve a tela ao estado inicial. */
   async stop() {
     this._stopped = true;
+    this.focusTarget(-1);
+    this.clearIgnored();
     const renderer = sharedRenderer;
     window.removeEventListener('resize', this._onResize);
     window.removeEventListener('orientationchange', this._onResize);

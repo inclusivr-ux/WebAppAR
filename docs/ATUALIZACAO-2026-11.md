@@ -122,3 +122,52 @@ contagem de animais do Sinalize, os modelos antigos e o conversor de Unity
 | Igor / equipe | Arte final das consoantes, se o zoológico ganhar o alfabeto inteiro (hoje: as 5 runas das vogais) |
 | Equipe | Confirmar o nome **Sinalize!** (antes "Sinalize e Conte") |
 | Futuro | Leitura da história pela Maga Aia (plugin de LIBRAS): entra como mais uma "camada" de `BOOK_PAGES`, sem mudar o resto |
+
+## 7. Correções de 10/11/2026 (documento "correções do AR")
+
+A equipe testou no celular e mandou 20 pedidos. Todos foram atendidos; o que
+depende do aparelho ou de outra pessoa está marcado.
+
+| Pedido | O que foi feito | Onde |
+|---|---|---|
+| Imagem das instruções: um esquema real, com a distância | Esquema desenhado por código: a pessoa segura o celular a ± 30 cm do livro **aberto na mesa**, o elefante sai da página, e uma seta mostra que dá para andar em volta. Novo passo no texto: "deixe o livro aberto em cima de uma mesa" | `index.html` (SVG), `app.css` (`.esquema`) |
+| Nunca citar nomes da equipe no app | "Fauston" virou "intérprete de LIBRAS" em todos os textos, avisos e descrições (e nos comentários do código publicado). Teste automático confere que nenhum nome aparece | todo o app; regra no README |
+| Números das páginas 2 a mais | Animais: 13, 15, 17, 19, 21. Aia e Seu Zé: 8, 11, 22, 23 (os arquivos de referência contam 2 a mais) | `config.js` |
+| Aia e Seu Zé demoravam até 15 s, sem barra | Pré-carga em segundo plano assim que o livro abre (animais primeiro); os dois baixam ao mesmo tempo; barra "SEU ZÉ E MAGA AIA ESTÃO CHEGANDO..." com a porcentagem | `lib/download.js`, `bookAR.js` |
+| Vestido da Aia quebrado, Seu Zé sem pupilas | A física (molas do VRM) rodava na escala do AR (≈1000×): agora roda no espaço da personagem, com as colisões na escala certa. Os olhos (e as sobrancelhas) sumiam depois de a página sair e voltar: o "sumir aos poucos" agora devolve cada material ao estado original. (O olho do Seu Zé é o oval verde do livro, sem pupila: decisão de 28/10 na ficha dele) | `characters/characterModel.js` |
+| Tracking pior ao inclinar; a abelha "flickava" | Falha curta não pisca mais (o animal espera 1,2 s parado antes de se preocupar); por 2 s depois de perder a página, o MindAR procura só ela (com 9 páginas, cada tentativa ficava quase 2× mais lenta); a abelha voa mais baixo | `pageActor.js`, `arSession.js`, `config.js` |
+| Vídeo do intérprete escuro, com fundo, cobrindo a mão | O "palco" tinha uma sombra escura **por cima** do vídeo: saiu. O vídeo ficou maior e termina acima do painel | `app.css` (`.libras__palco`) |
+| Trocar os efeitos sonoros | Sons provisórios novos (kalimba, madeira, brilho), no lugar dos bipes genéricos. O app já aceita os arquivos do sound design | `ui/sound.js` |
+| Iguana e abelha pequenas; todos maiores | Abelha 0,16 → 0,27; iguana 0,26 → 0,40; elefante, onça e urso ≈ 0,35 da largura da página | `config.js` |
+| "Não tem o livro?" em uma linha | Texto sem quebra, tamanho que se ajusta à tela | `app.css` |
+| Abertura mais bonita, com o Seu Zé e os animais (desenho, não 3D) | A cena do livro com todos no zoológico numa janela em arco, o logo por cima, brilhos turquesa; cabe sem rolar em 360×640 | `index.html`, `app.css`, `assets/img/abertura-zoologico.webp` |
+| Carta do elefante esticada nas regras | Proporção certa da carta | `app.css` |
+| Zoológico tem que ser AR, com o livro e as cartas | Refeito: página 22 + cartas em cima → o animal salta da carta; carta do sinal da vogal → a **letra** do português em 3D, animada; todos juntos, com as interações da história; Aia e Seu Zé por botões | `zoo/zooAR.js`, `zoo/letterModel.js`, `zoo/zooState.js`, `zoologico.mind` |
+| Não falar em "lixeira" | A **casinha**: o animal dá tchau e vai descansar | `zoo/zooAR.js` |
+| Resumo do Sinalize pouco descritivo ("A carta") | VEJA A VOGAL · OLHE O INTÉRPRETE · FAÇA NA CÂMERA · GANHE PONTOS, e o texto de baixo explica que é uma vogal | `index.html` |
+| Sem ACERTEI/ERREI; sem câmera, o jogo não funciona | Botões retirados; sem câmera, aviso "ESTE JOGO PRECISA DA CÂMERA" com o que fazer. "Não gravamos suas imagens em nenhum momento" na tela de regras e no aviso | `sign/signGame.js`, `index.html` |
+| Tela do Sinalize deve caber no aparelho | O jogo ocupa a altura da tela: vídeo e câmera dividem o espaço, botões sempre à vista (testado em 360×640) | `app.css` |
+| Urso e abelha: "3, 2, 1… QUASE!" sem dar tempo | Era o cronômetro: a 2ª tentativa começava com o tempo esgotado. Agora cada tentativa tem os seus 15 s | `sign/signState.js` |
+| Letras mal cortadas (o U com o R junto) | Cada vogal começa com a mão chegando e termina ainda na vogal (medido quadro a quadro); o vídeo para um pouco na vogal | `libras/librasVideos.js`, `ar/videoChroma.js` |
+| Tirar os sinais dos animais do Sinalize | Só as 5 vogais | `sign/signConfig.js`, `sign/signRecognizers.js` |
+
+**Medido nesta rodada:** 88 testes de unidade; testes ponta a ponta com a
+câmera falsa (livro, personagens, cartas, zoológico em AR, Sinalize em 360×640,
+erros, paisagem); os seis sons novos gravados "offline" e medidos (nenhum mudo,
+nenhum estoura).
+
+**O que só o aparelho de verdade confirma (pedido de teste à equipe):**
+1. O tracking ao abaixar o celular e a abelha sem tremer (no computador não dá
+   para medir a câmera de um celular).
+2. O zoológico com o livro e as cartas de verdade: tamanho das cartas, luz,
+   quantas cartas o celular aguenta em cima da página.
+3. O vestido da Aia se mexendo com a física e o tempo de carregamento numa
+   internet de celular.
+
+**Pendências para outras pessoas:**
+
+| Quem | O quê |
+|---|---|
+| Sound design (Luigi) | Os sons finais: acerto, quase, tique, aparece, pular, festa. Basta pôr os arquivos em `assets/sons/` e listar em `src/ui/sound.js` (`ARQUIVOS`) |
+| Intérprete de LIBRAS | Conferir os tempos das vogais e das letras (`src/libras/librasVideos.js`). Se houver vídeos só das vogais, eles podem entrar no lugar dos trechos |
+| Equipe | Cartas para a Maga Aia e o Seu Zé (hoje eles vêm por botão no zoológico) |

@@ -1,7 +1,7 @@
 /**
  * JOGO DE CARTAS — ache o sinal!
  *
- *   o jogo mostra o animal (ilustração do Igor) ou a letra
+ *   o jogo mostra o animal (ilustração do livro) ou a letra
  *   → a criança procura, entre as cartas com a face de LIBRAS para cima,
  *     o sinal que combina e mostra para a câmera
  *   → acertou: "ISSO!" + pontos → próximo desafio (sem embaralhar de novo)

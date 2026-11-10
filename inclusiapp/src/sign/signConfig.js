@@ -1,40 +1,40 @@
 /**
  * SINALIZE! — configuração (Jogo 3 da sala de jogos).
  *
- *   o jogo sorteia uma letra ou um animal (ordem fixa por partida, com semente)
- *   → mostra a carta → o Fauston faz o sinal DUAS vezes (OLHE)
+ *   o jogo sorteia uma VOGAL (ordem fixa por partida, com semente)
+ *   → mostra a letra e a carta do sinal → o intérprete faz o sinal DUAS vezes
  *   → 3, 2, 1… SUA VEZ: a criança faz o sinal para a câmera (frontal)
  *   → a câmera reconheceu dentro do tempo: ISSO! + pontos → próximo
  *
- * Sem escanear carta, sem contar animais, sem desenhar a mão na tela.
+ * Só as vogais: são configurações de mão paradas, que a câmera reconhece bem
+ * (cerca de 90% nos testes da equipe). Os sinais dos animais têm movimento e
+ * saíram do jogo (decisão de 10/11/2026); as regras provisórias deles estão no
+ * histórico do git (commit 9ceda81), para o Signária IA.
+ *
+ * O jogo precisa da câmera (como os outros jogos). A imagem é analisada no
+ * aparelho e nunca é gravada nem enviada.
  * Mude este arquivo para alterar o jogo sem mexer no resto do código.
  */
 import { LIBRAS_VIDEOS, VOWEL_CLIPS } from '../libras/librasVideos.js';
 
 export const SIGN_GAME = {
   /**
-   * O que pode ser sorteado. `card` = a face da carta com o sinal (cartaN.png).
-   * As letras usam o trecho da soletração do Fauston (A de ABELHA...); os
-   * animais, o trecho do sinal feito duas vezes (src/libras/librasVideos.js).
+   * O que pode ser sorteado: `card` = a face da carta com o sinal da vogal,
+   * `letterCard` = a face com a letra (cartaN.png).
    */
   items: [
-    { kind: 'letra', id: 'A', letter: 'A', card: 11, label: 'LETRA A' },
-    { kind: 'letra', id: 'E', letter: 'E', card: 12, label: 'LETRA E' },
-    { kind: 'letra', id: 'I', letter: 'I', card: 13, label: 'LETRA I' },
-    { kind: 'letra', id: 'O', letter: 'O', card: 14, label: 'LETRA O' },
-    { kind: 'letra', id: 'U', letter: 'U', card: 15, label: 'LETRA U' },
-    { kind: 'animal', id: 'abelha', animal: 'abelha', card: 6, label: 'ABELHA' },
-    { kind: 'animal', id: 'elefante', animal: 'elefante', card: 7, label: 'ELEFANTE' },
-    { kind: 'animal', id: 'iguana', animal: 'iguana', card: 8, label: 'IGUANA' },
-    { kind: 'animal', id: 'onca', animal: 'onca', card: 9, label: 'ONÇA' },
-    { kind: 'animal', id: 'urso', animal: 'urso', card: 10, label: 'URSO' },
+    { kind: 'letra', id: 'A', letter: 'A', card: 11, letterCard: 16, label: 'LETRA A' },
+    { kind: 'letra', id: 'E', letter: 'E', card: 12, letterCard: 17, label: 'LETRA E' },
+    { kind: 'letra', id: 'I', letter: 'I', card: 13, letterCard: 18, label: 'LETRA I' },
+    { kind: 'letra', id: 'O', letter: 'O', card: 14, letterCard: 19, label: 'LETRA O' },
+    { kind: 'letra', id: 'U', letter: 'U', card: 15, letterCard: 20, label: 'LETRA U' },
   ],
 
   /** desafios por partida (no máximo a quantidade de itens) */
-  rounds: 10,
+  rounds: 5,
 
-  /** a letra (trecho curto) é mostrada duas vezes; o trecho do animal já tem o sinal duas vezes */
-  watch: { letterTimes: 2, animalTimes: 1 },
+  /** o intérprete faz a vogal duas vezes (e para um pouco na vogal, ver VOWEL_CLIPS.hold) */
+  watch: { letterTimes: 2 },
 
   /**
    * PONTUAÇÃO: sinal reconhecido = `points` + bônus de rapidez (contado do
@@ -60,7 +60,7 @@ export const SIGN_GAME = {
 
   timing: {
     countdown: 3, // 3, 2, 1… antes da vez da criança
-    tryFor: 15, // segundos para fazer o sinal (depois: QUASE! e as opções)
+    tryFor: 15, // segundos de CADA tentativa para fazer o sinal (depois: QUASE! e as opções)
     nextMs: 1700, // depois do ISSO!, até o próximo desafio
   },
 
@@ -93,13 +93,8 @@ export const SIGN_GAME = {
 
 export const itemById = (id) => SIGN_GAME.items.find((i) => i.id === id) || null;
 
-/** O trecho do vídeo do Fauston de cada desafio: { src, start, end, repeat }. */
+/** O trecho do vídeo do intérprete de cada desafio: { src, start, end, repeat, hold }. */
 export function clipFor(item) {
-  if (item.kind === 'letra') {
-    const c = VOWEL_CLIPS[item.letter];
-    return { src: LIBRAS_VIDEOS[c.video].src, start: c.start, end: c.end, repeat: SIGN_GAME.watch.letterTimes };
-  }
-  const v = LIBRAS_VIDEOS[item.animal];
-  const seg = v.signTwice || v.sign;
-  return { src: v.src, start: seg.start, end: seg.end, repeat: SIGN_GAME.watch.animalTimes };
+  const c = VOWEL_CLIPS[item.letter];
+  return { src: LIBRAS_VIDEOS[c.video].src, start: c.start, end: c.end, hold: c.hold || 0, repeat: SIGN_GAME.watch.letterTimes };
 }

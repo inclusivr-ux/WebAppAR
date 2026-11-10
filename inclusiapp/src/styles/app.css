@@ -1,7 +1,7 @@
 /*
  * Telas do app (layout). Cores e componentes: tokens.css e signaria.css.
  * Padrão: Telas do Signária (design system InclusiVR) — fundo claro com a
- * floresta esmaecida do Igor, plaquinhas de pergaminho, ação âmbar embaixo,
+ * floresta esmaecida do ilustrador, plaquinhas de pergaminho, ação âmbar embaixo,
  * ciano para acerto, rosa para dica. Sem emoji: ícones de linha (#i-*).
  */
 *, *::before, *::after { box-sizing: border-box; }
@@ -54,10 +54,21 @@ button { font-family: inherit; }
   position: relative; max-width: 480px; min-height: 100%; margin: 0 auto; padding: calc(18px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
   display: flex; flex-direction: column; align-items: center; gap: 14px;
 }
-.menu__logo-wrap { margin: 0; }
-.menu__logo { display: block; width: min(300px, 74vw); height: auto; filter: drop-shadow(0 6px 10px #0002); }
-.menu__aia { position: absolute; right: -12px; top: 150px; width: 112px; height: auto; pointer-events: none; filter: drop-shadow(0 6px 8px #0003); }
-.menu__portas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; margin-top: 64px; }
+/* a abertura: a cena do livro com todos no zoológico, numa janela em arco, e o logo por cima */
+.menu__heroi { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.menu__janela { position: relative; width: 100%; aspect-ratio: 1 / .74; border: 3px solid var(--signaria-contorno); border-radius: 50% 50% 22px 22px / 34% 34% 22px 22px;
+  overflow: hidden; background: var(--signaria-ceu); box-shadow: 0 6px 0 #0002, inset 0 0 0 5px #ffffff59; }
+.menu__janela > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 58%; }
+/* brilhinhos turquesa (a magia de Signária) */
+.menu__brilhos > i { position: absolute; width: 16px; height: 16px; background: var(--signaria-ciano); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  filter: drop-shadow(0 0 4px #fff); animation: pisca-estrela 2.6s ease-in-out infinite; }
+.menu__brilhos > i:nth-child(1) { left: 16%; top: 18%; }
+.menu__brilhos > i:nth-child(2) { right: 18%; top: 12%; width: 12px; height: 12px; animation-delay: -.8s; }
+.menu__brilhos > i:nth-child(3) { right: 9%; top: 40%; width: 10px; height: 10px; animation-delay: -1.6s; }
+.menu__brilhos > i:nth-child(4) { left: 8%; top: 46%; width: 11px; height: 11px; animation-delay: -2.1s; }
+.menu__logo-wrap { position: relative; z-index: 1; margin: -21% 0 0; }
+.menu__logo { display: block; width: min(290px, 74vw); height: auto; filter: drop-shadow(0 6px 10px #0004); }
+.menu__portas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; margin-top: 0; }
 .porta {
   position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 0; color: var(--signaria-contorno); text-decoration: none;
   border: 3px solid var(--signaria-contorno); border-radius: 18px; background: var(--signaria-pergaminho); overflow: hidden;
@@ -74,8 +85,20 @@ button { font-family: inherit; }
 .porta__rotulo { --sg-r: 0px; --sg-b: 0px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 8px; border-top: 3px solid var(--signaria-contorno);
   font-size: 20px; font-weight: 900; letter-spacing: .06em; }
 .porta__rotulo .ico { width: 28px; height: 28px; }
-.menu__links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 6px; }
-.menu__links .sg-btn { font-size: 12.5px; padding: 6px 8px; }
+.menu__links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 2px; }
+/* celulares baixos: a janela e os cartões ficam mais baixos para caber tudo sem rolar */
+@media (max-height: 740px) and (orientation: portrait) {
+  .menu { gap: 10px; padding-top: calc(10px + var(--safe-top)); }
+  .menu__janela { aspect-ratio: 1 / .6; }
+  .menu__janela > img { object-position: 50% 62%; }
+  .menu__logo { width: min(240px, 64vw); }
+  .porta__arte { aspect-ratio: 4 / 3; }
+  .porta__rotulo { padding: 9px 8px; font-size: 18px; }
+  .menu__assinatura img { width: 38px; }
+}
+/* "NÃO TEM O LIVRO?" numa linha só, em qualquer celular */
+.menu__links .sg-btn { gap: 6px; padding: 6px 6px; font-size: clamp(10.5px, 3.1vw, 13px); letter-spacing: .02em; white-space: nowrap; }
+.menu__links .sg-btn .ico { flex: none; width: 18px; height: 18px; }
 .menu__instalar { width: 100%; }
 .menu__assinatura { margin-top: auto; padding-top: 8px; }
 .menu__assinatura img { display: block; width: 46px; height: auto; opacity: .95; }
@@ -86,6 +109,15 @@ button { font-family: inherit; }
 .intro__titulo { margin: 0 0 4px; font-size: 30px; font-weight: 900; }
 .intro__arte { margin: 0; }
 .intro__arte img { display: block; width: 100%; height: auto; }
+/* esquema das instruções do livro (SVG no index.html) */
+.esquema { border: 3px solid var(--signaria-contorno); border-radius: 18px; background: linear-gradient(180deg, var(--signaria-ceu) 0%, var(--signaria-pagina) 78%); overflow: hidden; }
+.esquema svg { display: block; width: 100%; height: auto; }
+.esquema__medida text { font-family: var(--font-signaria); font-size: 14px; font-weight: 900; fill: var(--signaria-contorno); }
+.esquema__estrela { transform-box: fill-box; transform-origin: center; animation: pisca-estrela 2.4s ease-in-out infinite; }
+.esquema__estrela + .esquema__estrela { animation-delay: -1.2s; }
+.esquema__magia { animation: magia 1.4s linear infinite; }
+@keyframes pisca-estrela { 0%, 100% { transform: scale(.7); opacity: .6; } 50% { transform: scale(1.15); opacity: 1; } }
+@keyframes magia { to { stroke-dashoffset: -18; } }
 .intro__texto { font-size: 16px; }
 .intro__dica { font-size: 15px; }
 .intro__dica-cartas { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
@@ -138,7 +170,7 @@ button { font-family: inherit; }
 .demo__dedo { position: absolute; bottom: -6px; left: 50%; width: 30px; height: 30px; margin-left: -6px; color: var(--signaria-contorno); fill: var(--signaria-pergaminho); animation: dedo 1.6s ease-in-out infinite; }
 .demo__arte--celular { gap: 2px; }
 .demo__arte--celular .ico { width: 52px; height: 52px; }
-.demo__arte--celular img { width: 34px; animation: balanca 2s ease-in-out infinite; }
+.demo__arte--celular img { width: 40px; height: auto; aspect-ratio: 2 / 3; object-fit: contain; animation: balanca 2s ease-in-out infinite; }
 .demo__arte--ok .ico, .demo__arte--video .ico, .demo__arte--mao .ico { width: 62px; height: 62px; padding: 10px; border: 3px solid var(--signaria-contorno); border-radius: 50%; }
 .demo__arte--ok .ico { background: var(--signaria-ciano); stroke-width: 3; }
 .demo__arte--video .ico { background: var(--signaria-video); color: var(--signaria-pergaminho); }
@@ -208,7 +240,9 @@ button { font-family: inherit; }
 .ar-scan__texto strong { display: block; font-size: 15px; letter-spacing: .04em; }
 .ar-scan__texto span { display: block; margin-top: 2px; font-weight: 600; }
 
-.carregando { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); }
+.carregando { position: absolute; left: 50%; top: 42%; z-index: 4; transform: translateX(-50%); width: min(300px, 82vw); padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.carregando__texto { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 900; letter-spacing: .04em; }
+.carregando .sg-barra > i { transition: width .2s; }
 .giro { display: inline-block; width: 18px; height: 18px; border: 3px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: gira .8s linear infinite; }
 .giro--grande { width: 36px; height: 36px; border-width: 4px; }
 @keyframes gira { to { transform: rotate(360deg); } }
@@ -230,10 +264,11 @@ button { font-family: inherit; }
 .botao-libras:active { transform: translateY(3px); box-shadow: 0 2px 0 #0005; }
 @keyframes chama { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.08); } 90% { transform: scale(.97); } }
 
-/* módulo de LIBRAS (o vídeo do Fauston é desenhado no palco, por cima da câmera) */
+/* módulo de LIBRAS (o vídeo do intérprete é desenhado no palco, por cima da câmera) */
 .libras { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; flex-direction: column; padding: 0 10px calc(10px + var(--safe-bottom)); pointer-events: none; }
-.libras__palco { height: min(34vh, 300px); margin: 0 auto; width: 100%; max-width: 420px; border-radius: 16px 16px 0 0;
-  background: radial-gradient(ellipse at 50% 100%, #22383acc 0%, #22383a66 60%, #0000 75%); }
+/* o palco é só um espaço reservado: o vídeo é desenhado por baixo (no 3D), então
+   nada pode ficar por cima dele (nem sombra, nem fundo) para não cobrir as mãos */
+.libras__palco { height: min(38vh, 320px); margin: 0 auto 8px; width: 100%; max-width: 440px; }
 .libras__painel { pointer-events: auto; max-width: 520px; width: 100%; margin: 0 auto; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
 .libras__topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .libras__status { margin: 0; font-size: 14px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
@@ -308,34 +343,28 @@ button { font-family: inherit; }
 .resumo__numeros dd { margin: 0; font-size: 24px; font-weight: 900; }
 .resumo .acoes { width: 100%; }
 
-/* ---------------------------------------------------------------- zoológico */
-.screen--zoo { overflow: hidden; background: var(--signaria-ceu) url("../../assets/img/fundo-zoo.webp") center 30% / cover; }
-.zoo__cena { position: absolute; inset: 0; touch-action: none; }
-.zoo__cena canvas { display: block; width: 100% !important; height: 100% !important; }
-.zoo__ui { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
-.zoo__ui a, .zoo__ui button, .zoo__ui [role="dialog"] { pointer-events: auto; }
-.zoo__ui .ar-topo h1 { flex: 1; text-align: center; justify-content: center; }
-.zoo__bandeja {
-  position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 6px; align-items: center;
-  padding: 8px 8px calc(8px + var(--safe-bottom)); background: linear-gradient(#0000, #162a2c99 40%);
-}
-.zoo__grupo { display: flex; gap: 8px; justify-content: center; flex-wrap: nowrap; }
-.zoo__item { position: relative; flex: none; width: 60px; height: 60px; padding: 0; border: 3px solid var(--signaria-contorno); border-radius: 50%; background: var(--signaria-ceu); cursor: pointer;
-  overflow: visible; box-shadow: 0 4px 0 #0005; transition: transform .1s; touch-action: manipulation; }
-.zoo__item img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.zoo__item:active { transform: translateY(3px) scale(.95); box-shadow: 0 1px 0 #0005; }
-.zoo__item:disabled { filter: grayscale(1) opacity(.55); }
-.zoo__item--runa { width: 44px; height: 62px; border-radius: 8px; background: var(--signaria-runa-pedra); }
-.zoo__item--runa img { border-radius: 5px; }
-.zoo__conta { position: absolute; right: -6px; top: -6px; min-width: 22px; height: 22px; padding: 0 5px; border: 2px solid var(--signaria-contorno); border-radius: 11px; background: var(--signaria-ambar);
-  font-size: 12px; font-weight: 900; line-height: 18px; text-align: center; color: var(--signaria-contorno); }
-.zoo__lixeira { position: absolute; left: 50%; top: calc(74px + var(--safe-top)); transform: translateX(-50%) scale(.85); display: flex; align-items: center; justify-content: center;
-  width: 74px; height: 74px; border: 3px dashed var(--signaria-contorno); border-radius: 50%; background: var(--signaria-rosa-claro); opacity: 0; transition: opacity .2s, transform .2s; }
-.zoo__lixeira .ico { width: 38px; height: 38px; }
-.zoo__lixeira.is-visivel { opacity: 1; transform: translateX(-50%) scale(1); }
-.zoo__lixeira.is-ativa { background: var(--signaria-rosa); border-style: solid; transform: translateX(-50%) scale(1.15); }
-.zoo__vazio { position: absolute; left: 50%; bottom: calc(160px + var(--safe-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 900; white-space: nowrap; }
-.zoo__vazio .ico { width: 28px; height: 28px; animation: toca 1.1s ease-in-out infinite; }
+/* ---------------------------------------------------------------- zoológico em AR */
+.screen--ar [data-action="zoo-help"] { margin-left: auto; }
+.screen--ar .ar-topo h1 { white-space: nowrap; }
+.zoo-dica { position: absolute; left: 50%; top: calc(70px + var(--safe-top)); z-index: 4; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+  max-width: calc(100% - 24px); font-size: 13px; font-weight: 900; letter-spacing: .03em; text-align: center; }
+.zoo-dica .ico { flex: none; width: 26px; height: 26px; animation: balanca 1.6s ease-in-out infinite; }
+.zoo-rodape { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 10px calc(12px + var(--safe-bottom)); pointer-events: none; }
+.zoo-rodape > * { pointer-events: auto; }
+.zoo-presentes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 520px; padding: 6px 8px; border-radius: 16px; background: color-mix(in srgb, var(--signaria-noite) 55%, transparent); }
+.zoo-presentes[hidden] { display: none; }
+.zoo-presente { position: relative; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; padding: 0; border: 0; background: none; cursor: pointer; }
+.zoo-presente .sg-retrato { width: 46px; height: 46px; }
+.zoo-presente__letra { --tam: 38px; }
+.zoo-presente__casa { position: absolute; right: -6px; bottom: -6px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border: 2.5px solid var(--signaria-contorno); border-radius: 50%; background: var(--signaria-pergaminho); }
+.zoo-presente__casa .ico { width: 16px; height: 16px; }
+.zoo-presente:active { transform: scale(.92); }
+.zoo-chamar { display: flex; gap: 10px; }
+.zoo-chamar__btn { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 4px 14px 4px 6px; font-size: 14px; font-weight: 900; cursor: pointer; }
+.zoo-chamar__btn .sg-retrato { width: 40px; height: 40px; }
+.zoo-chamar__btn.is-presente { --sg-fundo: var(--signaria-ciano); }
+.zoo-chamar__btn:active { transform: translateY(2px); }
 .zoo__balao { position: absolute; left: 0; top: 0; z-index: 2; display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; margin: -52px 0 0 -23px;
   border: 3px solid var(--signaria-contorno); border-radius: 50%; background: var(--marca-branco); pointer-events: none; transition: opacity .3s; }
 .zoo__balao::after { content: ""; position: absolute; bottom: -9px; left: 50%; width: 12px; height: 12px; margin-left: -6px; background: var(--marca-branco); border-right: 3px solid var(--signaria-contorno); border-bottom: 3px solid var(--signaria-contorno); transform: rotate(45deg); }
@@ -345,7 +374,7 @@ button { font-family: inherit; }
 .zoo__balao--feliz { background: var(--signaria-rosa-claro); }
 .zoo__balao--satisfeito { background: var(--signaria-ciano-claro); }
 .zoo__balao--feliz::after { background: var(--signaria-rosa-claro); } .zoo__balao--fome::after { background: var(--signaria-pergaminho); } .zoo__balao--brincar::after { background: var(--signaria-ceu); } .zoo__balao--satisfeito::after { background: var(--signaria-ciano-claro); }
-.zoo__ajuda { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 18px; background: #162a2cc0; }
+.zoo__ajuda { position: absolute; inset: 0; z-index: 5; pointer-events: auto; display: flex; align-items: center; justify-content: center; padding: 18px; background: #162a2cc0; }
 .zoo__ajuda-card { width: min(400px, 100%); display: flex; flex-direction: column; gap: 14px; }
 .zoo__dicas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
 .zoo__dicas li { display: flex; align-items: center; gap: 10px; }
@@ -353,25 +382,29 @@ button { font-family: inherit; }
 .zoo__dica-ico .ico { width: 26px; height: 26px; }
 
 /* ---------------------------------------------------------------- Sinalize */
-.screen--sinalize { overflow-x: hidden; }
-.sz { max-width: 920px; min-height: 100%; margin: 0 auto; padding: 0 12px calc(14px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 10px; }
-.sz__alvo { display: flex; align-items: center; gap: 10px; }
-.sz__carta { flex: none; width: 74px; height: auto; border-radius: 9px; box-shadow: 0 3px 0 #0004; }
-.sz__carta.is-retrato { width: 74px; height: 74px; border: 3px solid var(--signaria-contorno); border-radius: 50%; background: var(--signaria-ceu); object-fit: cover; }
-.sz__pedido { flex: 1; padding: 10px 12px; }
+/* a tela do jogo ocupa exatamente a altura do aparelho, sem rolar: vídeo e
+   câmera dividem o espaço que sobra e os botões ficam sempre à vista */
+.screen--sinalize { overflow: hidden; }
+.sz { box-sizing: border-box; max-width: 920px; height: 100%; margin: 0 auto; padding: 0 12px calc(10px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 8px; }
+.sz > .topo { flex: none; }
+.sz__alvo { flex: none; display: flex; align-items: center; gap: 10px; }
+.sz__par { flex: none; display: flex; align-items: center; gap: 6px; }
+.sz__letra { --tam: clamp(46px, 8.5vh, 66px); }
+.sz__carta { flex: none; width: clamp(40px, 7.5vh, 58px); height: auto; border-radius: 8px; box-shadow: 0 3px 0 #0004; }
+.sz__pedido { flex: 1; min-width: 0; padding: 8px 10px; }
 .sz__pedido.is-vez { --sg-fundo: var(--signaria-ambar); }
 .sz__pedido.is-certo { --sg-fundo: var(--signaria-ciano); }
 .sz__pedido.is-quase { --sg-fundo: var(--signaria-rosa); }
 .sz__passo { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; font-weight: 900; letter-spacing: .05em; }
-.sz__passo .ico { width: 30px; height: 30px; }
+.sz__passo .ico { width: 28px; height: 28px; }
 .sz__nome { margin: 2px 0 0; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
-.sz__paineis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media (max-width: 559px) and (orientation: portrait) { .sz__paineis { grid-template-columns: 1fr; } }
-.sz__video { aspect-ratio: 4 / 3; background: linear-gradient(180deg, #cdeef8 0%, #e4f2dc 72%, #d3e6c0 100%); }
+.sz__paineis { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 8px; }
+@media (max-width: 559px) and (orientation: portrait) { .sz__paineis { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); } }
+.sz__video, .sz__cam { min-height: 0; height: 100%; }
+.sz__video { background: linear-gradient(180deg, #cdeef8 0%, #e4f2dc 72%, #d3e6c0 100%); }
 .sz__video-palco { position: absolute; inset: 0; }
 .sz__video-palco canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
 .sz__video.is-olhe { box-shadow: 0 0 0 4px var(--signaria-ambar); }
-.sz__cam { aspect-ratio: 4 / 3; }
 .sz__cam-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .sz__cam-video.is-espelho { transform: scaleX(-1); }
 .sz__cam-msg { position: absolute; left: 8px; right: 8px; bottom: 34px; z-index: 2; padding: 6px 10px; border-radius: 10px; text-align: center;
@@ -386,7 +419,22 @@ button { font-family: inherit; }
 .sz__contagem { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; font-size: 96px; font-weight: 900; color: var(--signaria-ambar);
   -webkit-text-stroke: 3px var(--signaria-contorno); text-shadow: 0 6px 0 #0005; }
 .sz__contagem.is-pulso { animation: surge .5s ease-out both; }
-.sz__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sz__acoes { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* demonstração do zoológico: a página 22 e a carta pousando nela */
+.demo__arte--pagina, .demo__arte--pousar { position: relative; }
+.demo__arte--pagina img, .demo__arte--pousar > img:first-child { width: 72px; height: 72px; border: 3px solid var(--signaria-contorno); border-radius: 10px; object-fit: cover; }
+.demo__arte--pagina .sg-selo { position: absolute; right: 2px; top: 2px; }
+.demo__carta-cai { position: absolute; left: 50%; top: 50%; width: 30px !important; height: auto !important; margin: -28px 0 0 -15px; border-radius: 4px; box-shadow: 0 3px 4px #0006; animation: pousa 2.2s ease-in-out infinite; }
+@keyframes pousa { 0% { transform: translateY(-34px) rotate(-12deg); opacity: 0; } 30% { opacity: 1; } 55%, 100% { transform: none; opacity: 1; } }
+
+/* a letra do português, grande, num ladrilho de pergaminho (par com a carta do sinal) */
+.sg-letra-grande { --tam: 56px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: var(--tam); height: calc(var(--tam) * 1.12);
+  border: 3px solid var(--signaria-contorno); border-radius: 12px; background: var(--signaria-pergaminho); color: var(--signaria-contorno);
+  font-family: var(--font-signaria); font-size: calc(var(--tam) * .72); font-weight: 900; line-height: 1; box-shadow: 0 3px 0 #0004; }
+.demo__arte--par { gap: 4px; }
+.demo__arte--par .sg-letra-grande { --tam: 40px; }
+.demo__arte--par img { width: 36px; height: auto; }
 
 /* ---------------------------------------------------------------- avisos (toast) */
 .toasts { position: fixed; left: 50%; top: calc(10px + var(--safe-top)); z-index: 60; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; width: min(92vw, 420px); pointer-events: none; }
@@ -404,14 +452,12 @@ button { font-family: inherit; }
 /* ---------------------------------------------------------------- telas largas */
 @media (min-width: 700px) {
   .menu { max-width: 640px; }
-  .menu__aia { width: 150px; right: -40px; top: 120px; }
   .menu__portas { gap: 22px; }
   .demo__rotulo { font-size: 12px; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
   .menu { max-width: 760px; display: grid; grid-template-columns: 1fr 1.4fr; grid-template-rows: auto auto 1fr; align-items: start; column-gap: 24px; }
-  .menu__logo-wrap { grid-row: 1 / 3; align-self: center; }
-  .menu__aia { display: none; }
+  .menu__heroi { grid-row: 1 / 4; align-self: center; }
   .menu__portas { margin-top: 0; }
   .menu__portas .porta__arte { aspect-ratio: 16 / 9; }
   .menu__assinatura { display: none; }
@@ -424,7 +470,7 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .screen { transition: none; transform: none; }
   .ar-scan__moldura, .ar-scan__demo .ico, .dica-toque__dedo, .botao-libras, .balao, .demo__dedo, .demo__arte--mao .ico,
-  .demo__arte--celular img, .embaralhar__monte > i, .zoo__vazio .ico, .faixa { animation: none; }
+  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .demo__carta-cai, .esquema__estrela, .esquema__magia, .menu__brilhos > i, .faixa { animation: none; }
 }
 
 /* resumo: botões lado a lado sem quebrar em três linhas */

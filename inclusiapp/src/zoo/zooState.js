@@ -1,14 +1,21 @@
 /**
- * Regras do zoológico (sem DOM e sem Three.js — testadas em Node).
+ * Regras do zoológico em AR (sem DOM e sem Three.js — testadas em Node).
  *
- * Guarda os elementos (animais e runas), as necessidades de cada animal e
- * decide quando dois elementos "se encontram". A cena 3D (zooScene.js) move
- * os modelos e toca as animações; aqui só se decide O QUE acontece.
+ * Guarda quem está no zoológico (animais, letras, a Aia e o Seu Zé), as
+ * necessidades de cada animal e decide quando dois "se encontram". A cena
+ * em AR (zooAR.js) move os modelos sobre a página e toca as animações; aqui
+ * só se decide O QUE acontece.
  *
- * Coordenadas no chão: x (esquerda/direita) e y (perto/longe), em unidades
- * da cena. Cada `tick(dt)` devolve a lista de eventos do quadro.
+ * Coordenadas: as da página (x de −0,5 a +0,5; y com + para cima), as
+ * mesmas do livro (ar/pageWalker.js). Cada `tick(dt)` devolve os eventos:
+ *   need       um animal quer algo (balão)
+ *   mood       feliz / satisfeito / calmo / quer (balão)
+ *   meet       dois animais se encontraram (a regra diz o que cada um faz)
+ *   letter     a letra acendeu: o seu animal chegou perto
+ *   letter-off a letra apagou (dá para repetir a brincadeira)
+ *   visit      um animal resolveu ir até alguém (a sua letra ou um amigo)
  */
-import { ZOO, NEEDS, INTERACTIONS } from './zooConfig.js';
+import { ZOO, NEEDS, INTERACTIONS, LETTER_OF } from './zooConfig.js';
 
 let nextId = 1;
 
@@ -22,11 +29,10 @@ export class ZooState {
     this.items = new Map();
     this.pairCooldowns = new Map(); // "idA|idB" → segundos restantes
     this.time = 0;
-    const { halfWidth: w, halfDepth: d } = config.ground;
-    this.bounds = { minX: -w, maxX: w, minY: -d, maxY: d };
+    this.bounds = { minX: -0.42, maxX: 0.42, minY: -0.42, maxY: 0.42 };
   }
 
-  /** A área do chão que aparece na tela (a cena calcula conforme o formato da tela). */
+  /** A área da página onde todos andam (a cena calcula com a margem). */
   setBounds(bounds) {
     this.bounds = bounds;
     for (const it of this.items.values()) this.move(it.id, it.x, it.y);
@@ -35,20 +41,33 @@ export class ZooState {
   get count() { return this.items.size; }
   get full() { return this.items.size >= this.config.maxItems; }
 
-  /** Coloca um animal ('urso') ou uma runa ('A'). Devolve o elemento, ou null se não couber. */
+  /** Quem já está no zoológico ('animal', 'urso') — um de cada. */
+  find(kind, type) {
+    for (const it of this.items.values()) if (it.kind === kind && it.type === type) return it;
+    return null;
+  }
+
+  /**
+   * Coloca um animal ('urso'), uma letra ('A') ou um personagem ('aia').
+   * Devolve o elemento, ou null se não couber ou se ele já estiver lá.
+   */
   add(kind, type, pos = null) {
-    if (this.full) return null;
+    if (this.full || this.find(kind, type)) return null;
     const b = this.bounds;
-    const p = pos || { x: b.minX + (0.1 + this.random() * 0.8) * (b.maxX - b.minX), y: b.minY + (0.15 + this.random() * 0.7) * (b.maxY - b.minY) };
+    const p = pos || { x: b.minX + (0.15 + this.random() * 0.7) * (b.maxX - b.minX), y: b.minY + (0.15 + this.random() * 0.7) * (b.maxY - b.minY) };
+    const animal = kind === 'animal';
     const item = {
-      id: nextId++, kind, type, x: p.x, y: p.y,
-      state: kind === 'animal' ? 'calmo' : 'apagada', // animal: calmo | quer | feliz | satisfeito · runa: apagada | acesa
+      id: nextId++, kind, type, x: 0, y: 0,
+      // animal: calmo | quer | feliz | satisfeito · letra: apagada | acesa · personagem: calmo
+      state: kind === 'letra' ? 'apagada' : 'calmo',
       need: null,
-      needIn: kind === 'animal' ? this._needDelay(0.4) : Infinity,
+      needIn: animal ? this._delay(this.config.needEvery, 0.4) : Infinity,
+      visitIn: animal ? this._delay(this.config.visitEvery, 0.5) : Infinity,
       moodLeft: 0,
       busy: 0, // segundos ocupado numa interação
     };
     this.items.set(item.id, item);
+    this.move(item.id, p.x, p.y);
     return item;
   }
 
@@ -68,15 +87,14 @@ export class ZooState {
     it.y = Math.max(b.minY, Math.min(b.maxY, y));
   }
 
-  _needDelay(scale = 1) {
-    const [a, b] = this.config.needEvery;
+  _delay([a, b], scale = 1) {
     return (a + this.random() * (b - a)) * scale;
   }
 
   /** A criança fez carinho: o animal fica feliz (e o "quer brincar" passa). */
   caress(id) {
     const it = this.items.get(id);
-    if (!it || it.kind !== 'animal') return null;
+    if (!it || it.kind !== 'animal') return [];
     const events = [];
     if (it.need === 'brincar') this._satisfy(it, events);
     else this._mood(it, 'feliz', 3, events);
@@ -91,11 +109,10 @@ export class ZooState {
 
   _satisfy(it, events) {
     it.need = null;
-    it.needIn = this._needDelay();
+    it.needIn = this._delay(this.config.needEvery);
     this._mood(it, it.type === 'urso' ? 'satisfeito' : 'feliz', 4, events);
   }
 
-  /** Avança o tempo. Eventos: need (quer algo), mood (feliz/satisfeito/calmo), meet (encontro), rune (runa acendeu). */
   tick(dt) {
     this.time += dt;
     const events = [];
@@ -103,8 +120,9 @@ export class ZooState {
       if (v - dt <= 0) this.pairCooldowns.delete(k);
       else this.pairCooldowns.set(k, v - dt);
     }
-    const animals = [...this.items.values()].filter((i) => i.kind === 'animal');
-    const runes = [...this.items.values()].filter((i) => i.kind === 'runa');
+    const all = [...this.items.values()];
+    const animals = all.filter((i) => i.kind === 'animal');
+    const letters = all.filter((i) => i.kind === 'letra');
 
     for (const it of animals) {
       if (it.busy > 0) it.busy = Math.max(0, it.busy - dt);
@@ -123,31 +141,40 @@ export class ZooState {
           events.push({ type: 'need', id: it.id, need: it.need });
         }
       }
+      // de vez em quando vai visitar alguém (a sua letra primeiro, se estiver apagada)
+      it.visitIn -= dt;
+      if (it.visitIn <= 0 && !it.busy) {
+        it.visitIn = this._delay(this.config.visitEvery);
+        const letter = letters.find((l) => l.type === LETTER_OF[it.type] && l.state === 'apagada' && !l.waitAway);
+        const friends = animals.filter((a) => a !== it);
+        const to = letter && (this.random() < 0.6 || !friends.length) ? letter
+          : friends.length ? friends[Math.floor(this.random() * friends.length)] : null;
+        if (to && dist(it, to) > this.config.meetDistance) events.push({ type: 'visit', id: it.id, to: to.id });
+      }
     }
 
-    // runa + o seu animal: a runa acende
-    for (const r of runes) {
-      if (r.state === 'acesa') {
-        // a runa brilha um tempo e depois "dorme" de novo (dá para repetir a brincadeira)
-        r.litLeft -= dt;
-        if (r.litLeft <= 0) {
-          r.state = 'apagada';
-          r.waitAway = true; // só acende de novo quando o animal sair e voltar
-          events.push({ type: 'rune-off', id: r.id });
+    // a letra + o seu animal: a letra acende (como as runas do livro)
+    for (const l of letters) {
+      if (l.state === 'acesa') {
+        l.litLeft -= dt;
+        if (l.litLeft <= 0) {
+          l.state = 'apagada';
+          l.waitAway = true; // só acende de novo quando o animal sair e voltar
+          events.push({ type: 'letter-off', id: l.id });
         }
         continue;
       }
-      const near = animals.filter((a) => this._letterOf(a.type) === r.type && dist(a, r) < this.config.meetDistance);
-      if (r.waitAway) {
-        if (!near.length) r.waitAway = false;
+      const near = animals.filter((a) => LETTER_OF[a.type] === l.type && dist(a, l) < this.config.meetDistance);
+      if (l.waitAway) {
+        if (!near.length) l.waitAway = false;
         continue;
       }
       const friend = near.find((a) => !a.busy);
       if (friend) {
-        r.state = 'acesa';
-        r.litLeft = this.config.runeLit ?? 25;
+        l.state = 'acesa';
+        l.litLeft = this.config.letterLit;
         friend.busy = 4;
-        events.push({ type: 'rune', id: r.id, animal: friend.id, letter: r.type });
+        events.push({ type: 'letter', id: l.id, animal: friend.id, letter: l.type });
         this._satisfy(friend, events);
       }
     }
@@ -182,10 +209,6 @@ export class ZooState {
     return events;
   }
 
-  _letterOf(type) {
-    return { abelha: 'A', elefante: 'E', iguana: 'I', onca: 'O', urso: 'U' }[type] || null;
-  }
-
   /** A primeira regra que combina, nos dois sentidos (a regra decide quem é "a"). */
   _rule(p, q) {
     for (const rule of INTERACTIONS) {
@@ -193,10 +216,5 @@ export class ZooState {
       if (match(rule.a, q.type) && match(rule.b, p.type)) return { rule, a: q, b: p };
     }
     return null;
-  }
-
-  /** Para salvar no aparelho (só o que está no chão). */
-  toJSON() {
-    return [...this.items.values()].map(({ kind, type, x, y, state }) => ({ kind, type, x: +x.toFixed(3), y: +y.toFixed(3), state }));
   }
 }
