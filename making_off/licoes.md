@@ -19,3 +19,7 @@
    frente do intérprete esconde as mãos. (Capítulo 1)
 7. **Nenhum nome da equipe nos aplicativos**: a função ("intérprete de LIBRAS")
    é o que importa para quem usa. Vale para todos os produtos. (Capítulo 1)
+8. **Teste como o site de verdade entrega os arquivos.** O GitHub Pages
+   comprime (gzip) modelos, alvos e código, e o tamanho anunciado é o
+   comprimido. Nunca reserve memória pelo `Content-Length`; e o servidor de
+   teste precisa comprimir igual, senão o erro só aparece no celular. (Capítulo 2)

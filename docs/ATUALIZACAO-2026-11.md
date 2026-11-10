@@ -171,3 +171,23 @@ nenhum estoura).
 | Sound design (Luigi) | Os sons finais: acerto, quase, tique, aparece, pular, festa. Basta pôr os arquivos em `assets/sons/` e listar em `src/ui/sound.js` (`ARQUIVOS`) |
 | Intérprete de LIBRAS | Conferir os tempos das vogais e das letras (`src/libras/librasVideos.js`). Se houver vídeos só das vogais, eles podem entrar no lugar dos trechos |
 | Equipe | Cartas para a Maga Aia e o Seu Zé (hoje eles vêm por botão no zoológico) |
+
+### 7.1 Versão 2.1.1 — o erro que só aparecia no site (10/11/2026)
+
+No teste em dois celulares, a página era reconhecida (o botão LIBRAS
+aparecia), mas o animal não vinha: "Não foi possível carregar esta página
+agora". Não era o rastreamento. O baixador novo da 2.1.0 (o da barra de
+progresso, `src/lib/download.js`) reservava o tamanho que o servidor
+informava. O GitHub Pages entrega os modelos **comprimidos** (gzip): a abelha
+é informada com 65.786 bytes e chega com 97.020. O baixador desistia, em todos
+os celulares, com todos os animais e personagens. Os testes não pegaram porque
+o servidor de teste não comprimia.
+
+- Correção: o baixador junta os pedaços sem limite; o tamanho informado só
+  estima a barra (que para em 97% até o fim de verdade).
+- Para não voltar: o servidor de teste (`tools/serve.mjs`) agora comprime como
+  o GitHub Pages (.glb, .vrm, .mind, .json, .wasm, código), e há 4 testes de
+  unidade com a resposta do jeito que o GitHub manda (`tests/unit/download.test.mjs`).
+- Medido: o teste do livro, com o código antigo e o servidor comprimindo, falha
+  igual ao celular; com a correção, 92 testes de unidade e 83 verificações
+  ponta a ponta passam.
