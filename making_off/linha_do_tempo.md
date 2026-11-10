@@ -221,6 +221,15 @@ veio depois:
 
 **Números.** 96 testes de unidade e 115 verificações ponta a ponta, todas
 passando (112 antes da música; as 3 novas conferem a trilha de verdade e o
-botão que some sem ela). O teste no celular de verdade ficou como pedido à equipe, com um
-medidor novo: abrir o app com `?debug=1` mostra quantas vezes por segundo a
-tela é desenhada e o rastreio roda.
+botão que some sem ela). O teste no celular de verdade ficou como pedido à
+equipe, com um medidor novo: abrir o app com `?debug=1` mostra quantas vezes
+por segundo a tela é desenhada e o rastreio roda.
+
+**No ar.** O Luciano pediu o link para testar e deu o OK para publicar. A 2.2
+entrou no `main` pelo PR #5 e chegou ao site em cerca de um minuto. O Claude
+conferiu o site ao vivo, num navegador sem janela:
+- a versão é a 2.2.0;
+- a música abre (5 min 55 s);
+- as instruções mostram o elefante do Igor;
+- os 5 animais e os 2 arquivos de reconhecimento baixam;
+- o arquivo da Aia não existe mais no site.
