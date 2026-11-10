@@ -73,3 +73,23 @@ seis sons foram medidos sem alto-falante (nenhum mudo, nenhum estoura). O
 Sinalize cabe numa tela de 360×640 sem rolar. O que só o celular confirma
 (tracking ao inclinar, as cartas reais na página) ficou como pedido de teste à
 equipe.
+
+## Capítulo 2. O erro que só aparecia no site (segunda, 10/11/2026)
+
+**O que aconteceu.** Com a versão 2.1 no ar, a equipe testou em dois celulares
+diferentes. A página do livro era reconhecida, o botão LIBRAS aparecia, mas a
+abelha não vinha. No alto da tela: "Não foi possível carregar esta página
+agora. Verifique a internet e aponte de novo." A equipe chamou de erro de
+rastreio.
+
+**Como se achou a causa.** O Claude perguntou ao próprio site como ele
+entregava o arquivo da abelha. A resposta veio comprimida: 65.786 bytes
+anunciados, 97.020 bytes de verdade depois de descomprimir. O baixador novo
+(feito para mostrar a barra de progresso da Aia e do Seu Zé) reservava só o
+tamanho anunciado e desistia quando o arquivo passava disso. Nos testes do
+Claude nada aparecia porque o servidor de teste não comprimia.
+
+**O que resolveu.** O baixador passou a juntar os pedaços sem limite, usando o
+tamanho anunciado só para a barra. E o servidor de teste aprendeu a comprimir
+como o GitHub: com o código antigo, o teste do livro passou a falhar do mesmo
+jeito que o celular; com o novo, passa. Versão 2.1.1.

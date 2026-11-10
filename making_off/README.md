@@ -14,3 +14,4 @@ Esta pasta não vai para o site publicado (`_config.yml`).
 ## Capítulos
 
 1. O teste no celular e as 20 correções (segunda, 10/11/2026)
+2. O erro que só aparecia no site (segunda, 10/11/2026)

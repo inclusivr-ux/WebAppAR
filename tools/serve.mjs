@@ -12,7 +12,8 @@
  * Pages (veja o README) ou use um túnel HTTPS apontando para esta porta.
  */
 import { createServer } from 'node:http';
-import { createReadStream, statSync } from 'node:fs';
+import { createReadStream, readFileSync, statSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,7 +48,21 @@ const MIME = {
  * @param {{prefix: string, dir: string}[]} [opts.overlays]  (testes) arquivos que
  *        não existirem em `prefix` são procurados em `dir`
  */
-export function startServer({ port = 8080, root, overlays = [] } = {}) {
+/**
+ * Como o GitHub Pages: estes tipos vão comprimidos (gzip) quando o navegador
+ * aceita, e o Content-Length é o tamanho COMPRIMIDO. Imagens, vídeos e .gz não.
+ * (Sem isso, o erro da versão 2.1.0 — o modelo 3D maior que o Content-Length —
+ * não aparecia nos testes.) Desligue com SEM_GZIP=1.
+ */
+const GZIP = new Set(['.html', '.js', '.mjs', '.css', '.json', '.webmanifest', '.svg', '.txt', '.glb', '.vrm', '.mind', '.wasm', '.task']);
+const gzCache = new Map();
+function gzipped(path, stat) {
+  const key = `${path}:${stat.mtimeMs}`;
+  if (!gzCache.has(key)) gzCache.set(key, gzipSync(readFileSync(path), { level: 6 }));
+  return gzCache.get(key);
+}
+
+export function startServer({ port = 8080, root, overlays = [], gzip = !process.env.SEM_GZIP } = {}) {
   const base = resolve(root || join(fileURLToPath(import.meta.url), '..', '..'));
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -96,6 +111,12 @@ export function startServer({ port = 8080, root, overlays = [] } = {}) {
       res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${stat.size}`, 'Content-Length': end - start + 1 });
       if (req.method === 'HEAD') res.end();
       else createReadStream(path, { start, end }).pipe(res);
+      return;
+    }
+    if (gzip && GZIP.has(extname(path).toLowerCase()) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+      const body = gzipped(path, stat);
+      res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding', 'Content-Length': body.length });
+      res.end(req.method === 'HEAD' ? undefined : body);
       return;
     }
     res.writeHead(200, { ...headers, 'Content-Length': stat.size });

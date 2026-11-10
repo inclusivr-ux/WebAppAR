@@ -286,7 +286,7 @@ Ao publicar mudanças grandes, aumente `VERSION` em `inclusiapp/sw.js`.
 ## 12. Testes
 
 ```bash
-npm test                         # 88 testes de unidade
+npm test                         # 92 testes de unidade
 python3 tests/e2e/make_zoo_frames.py   # fotos sintéticas do zoológico (página 22 + cartas)
 python3 tests/make_frames.py     # (opcional) fotos sintéticas das páginas e cartas
 node tests/e2e/recognition.mjs   # reconhecimento real das páginas e cartas
@@ -308,6 +308,10 @@ e computador. Os testes de unidade conferem o reconhecedor com as medidas reais
 dos vídeos do intérprete (`tests/fixtures/libras/medidas.json.gz`).
 
 `CHROMIUM_PATH=/caminho/do/chrome` usa um Chromium já instalado.
+
+O servidor de teste (`tools/serve.mjs`) comprime os arquivos como o GitHub
+Pages (gzip, com o `Content-Length` comprimido), para os testes verem o mesmo
+que o celular (`SEM_GZIP=1` desliga).
 
 ## 13. Compatibilidade e desempenho
 

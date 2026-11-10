@@ -16,6 +16,12 @@ function notify() {
   for (const fn of listeners) fn();
 }
 
+/**
+ * Quanto o arquivo cresce ao descomprimir (gzip do GitHub Pages), para a barra
+ * de progresso: medido nos modelos do app (abelha 1,47×, Aia 1,39×).
+ */
+const GZIP_RATIO = 1.45;
+
 export function download(url) {
   let entry = entries.get(url);
   if (entry) return entry.promise;
@@ -23,25 +29,37 @@ export function download(url) {
   entry.promise = (async () => {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-    entry.total = Number(res.headers.get('content-length')) || 0;
-    if (!res.body?.getReader || !entry.total) {
+    // ATENÇÃO: com compressão (o GitHub Pages manda .glb, .vrm, .mind e .json
+    // em gzip), o Content-Length é o tamanho COMPRIMIDO, e o que chega aqui já
+    // vem descomprimido (maior). Ele só serve para estimar a barra; os pedaços
+    // são juntados sem limite de tamanho. (Na versão 2.1.0 o download reservava
+    // o tamanho comprimido e falhava: "Não foi possível carregar esta página".)
+    const length = Number(res.headers.get('content-length')) || 0;
+    const encoding = (res.headers.get('content-encoding') || 'identity').toLowerCase();
+    entry.total = encoding === 'identity' ? length : Math.round(length * GZIP_RATIO);
+    if (!res.body?.getReader) {
       const buffer = await res.arrayBuffer();
-      entry.loaded = entry.total = buffer.byteLength;
+      entry.loaded = buffer.byteLength;
       return buffer;
     }
     const reader = res.body.getReader();
-    const bytes = new Uint8Array(entry.total);
-    let offset = 0;
+    const chunks = [];
+    let received = 0;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      if (offset + value.length > bytes.length) throw new Error(`${url}: tamanho inesperado`);
-      bytes.set(value, offset);
-      offset += value.length;
-      entry.loaded = offset;
+      chunks.push(value);
+      received += value.length;
+      entry.loaded = received;
       notify();
     }
-    return offset === bytes.length ? bytes.buffer : bytes.slice(0, offset).buffer;
+    const bytes = new Uint8Array(received);
+    let offset = 0;
+    for (const c of chunks) {
+      bytes.set(c, offset);
+      offset += c.length;
+    }
+    return bytes.buffer;
   })().then((buffer) => {
     entry.done = true;
     entry.loaded = entry.total = buffer.byteLength;
@@ -67,7 +85,8 @@ export function progressOf(urls) {
       loaded += 1;
       total += 1;
     } else if (e?.total) {
-      loaded += e.loaded / e.total;
+      // a estimativa (com gzip) pode errar: a barra para em 97% até o fim de verdade
+      loaded += Math.min(0.97, e.loaded / e.total);
       total += 1;
     } else {
       unknown += 1;
