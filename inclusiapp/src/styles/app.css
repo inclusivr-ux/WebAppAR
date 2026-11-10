@@ -113,21 +113,32 @@ button { font-family: inherit; }
 .intro__arte { margin: 0; }
 .intro__arte img { display: block; width: 100%; height: auto; }
 
-/* instruções do livro: a montagem do site da InclusiVR (versão de 04/11): a foto do livro aberto,
-   o celular com o app e o elefante em 3D que mexe a orelha e a tromba (WebP animado), com "± 30 cm".
-   Sem pessoa desenhada. As regras .ele-anim são as mesmas do site. */
-.livro-ele { position: relative; width: 100%; max-width: 460px; margin: 18px auto 0; }
-.intro__arte .livro-ele__base { display: block; width: 100%; height: auto; }
-.ele-anim { position: relative; display: block; aspect-ratio: var(--ar); }
-.intro__arte .ele-anim img { position: absolute; display: block; max-width: none; height: auto; }
-.intro__arte .ele-anim__corpo { inset: 0; width: 100%; height: 100%; }
-.intro__arte .ele-anim__tromba, .intro__arte .ele-anim__quieta { left: var(--tx); top: var(--ty); width: var(--tw); }
-.ele-anim__quieta { visibility: hidden; }
-.livro-ele__animal { position: absolute; left: 41.67%; top: 52.13%; width: 37.32%; filter: drop-shadow(0 8px 10px rgba(16, 4, 72, .25)); }
-.livro-ele__distancia { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.livro-ele__medida { position: absolute; z-index: 3; left: 72%; top: -4%; padding: 3px 12px; border: 2.5px solid var(--signaria-contorno); border-radius: 999px;
+/* instruções do livro: o "salto" do site da InclusiVR (a foto do livro aberto, o celular e o
+   elefante do app saltando da página para o celular), com a distância de ± 30 cm. Sem pessoa. */
+.salto { position: relative; width: 100%; max-width: 440px; aspect-ratio: 100 / 72; margin-inline: auto; }
+.salto > img { position: absolute; display: block; height: auto; max-width: none; }
+.salto .salto__livro { left: -1%; bottom: 2%; width: 76%; z-index: 1; filter: drop-shadow(0 12px 14px rgba(0, 0, 0, .35)); }
+.salto__brilho { position: absolute; z-index: 2; left: 42%; top: 44%; width: 26%; aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(116, 230, 232, .9) 0, rgba(88, 196, 200, .45) 34%, rgba(88, 196, 200, 0) 68%); mix-blend-mode: screen; animation: salto-brilho 6s ease-out infinite; }
+.salto .salto__celular { right: 2%; bottom: 3%; width: 27%; z-index: 3; transform: rotate(8deg); filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .4)); }
+.salto .salto__animal { right: 3%; bottom: 17%; width: 24%; z-index: 4; transform-origin: 50% 85%;
+  filter: drop-shadow(0 0 10px rgba(49, 245, 255, .45)) drop-shadow(0 8px 10px rgba(0, 0, 0, .35)); animation: salto-animal 6s cubic-bezier(.2, .8, .2, 1) infinite; }
+.salto__distancia { position: absolute; inset: 0; z-index: 5; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.salto__medida { position: absolute; z-index: 6; left: 50%; top: 2%; padding: 3px 12px; border: 2.5px solid var(--signaria-contorno); border-radius: 999px;
   background: var(--signaria-pergaminho); font-family: var(--font-signaria); font-size: 15px; font-weight: 900; color: var(--signaria-contorno); white-space: nowrap; transform: translateX(-50%); }
-@media (prefers-reduced-motion: reduce) { .ele-anim__tromba { display: none; } .ele-anim__quieta { visibility: visible; } }
+@keyframes salto-animal {
+  0%, 6% { opacity: 0; transform: translate(-128%, 26%) scale(.18); }
+  10% { opacity: 1; }
+  22% { transform: translate(-68%, -38%) scale(.72) rotate(-9deg); }
+  32% { transform: translate(0, 4%) scale(1.03) rotate(2deg); }
+  37% { transform: none; }
+  50% { transform: translateY(-5%); }
+  63% { transform: none; }
+  76% { transform: translateY(-5%); }
+  88% { opacity: 1; transform: none; }
+  96%, 100% { opacity: 0; transform: scale(.9); }
+}
+@keyframes salto-brilho { 0%, 3% { opacity: 0; transform: scale(.6); } 11% { opacity: 1; transform: scale(1.08); } 30% { opacity: .5; transform: scale(1); } 100% { opacity: .3; } }
 @keyframes pisca-estrela { 0%, 100% { transform: scale(.7); opacity: .6; } 50% { transform: scale(1.15); opacity: 1; } }
 @keyframes magia { to { stroke-dashoffset: -18; } }
 .intro__texto { font-size: 16px; }
@@ -492,7 +503,7 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .screen { transition: none; transform: none; }
   .ar-scan__moldura, .ar-scan__demo .ico, .dica-toque__dedo, .botao-libras, .demo__dedo, .demo__arte--mao .ico,
-  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .menu__brilhos > i, .faixa { animation: none; }
+  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .salto__animal, .salto__brilho, .menu__brilhos > i, .faixa { animation: none; }
 }
 
 /* resumo: botões lado a lado sem quebrar em três linhas */

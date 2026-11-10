@@ -75,7 +75,16 @@ async function testScreens() {
   });
   check('início: "NÃO TEM O LIVRO?" numa linha só', linhas.cabe && linhas.alto < 52, JSON.stringify(linhas));
   check('início: botão TELA CHEIA (o Chrome deixa)', await page.isVisible('[data-action="fullscreen"]'));
-  check('início: sem o arquivo da música, o botão MÚSICA não aparece', await page.isHidden('[data-action="music"]'));
+  await page.waitForSelector('[data-action="music"]', { state: 'visible', timeout: 5000 }).catch(() => {});
+  check('início: a trilha está no app e o botão MÚSICA aparece', await page.isVisible('[data-action="music"]'));
+  const trilha = await page.evaluate(async () => {
+    const { arquivo } = await (await fetch('assets/musica/musica.json')).json();
+    const audio = new Audio(`assets/musica/${arquivo}`);
+    audio.preload = 'metadata';
+    await new Promise((ok, falha) => { audio.onloadedmetadata = ok; audio.onerror = falha; setTimeout(falha, 8000); }).catch(() => {});
+    return { arquivo, segundos: Math.round(audio.duration || 0) };
+  });
+  check('início: a trilha é um MP3 que toca (oogway-morrendo.mp3, 5 min 55 s)', /^[a-z0-9-]+\.mp3$/.test(trilha.arquivo) && trilha.segundos > 300, JSON.stringify(trilha));
   await shot(page, 'menu');
   await page.locator('[data-action="fullscreen"]').click();
   await page.waitForFunction(() => !!document.fullscreenElement && document.querySelector('[data-fullscreen-label]').textContent.includes('SAIR'), null, { timeout: 5000 }).catch(() => {});
@@ -86,16 +95,14 @@ async function testScreens() {
 
   await go(page, 'livro', 'book-intro');
   check('instruções: o texto de sempre ("Aponte o celular...", "30 cm")', (await page.textContent('.passos')).includes('30 cm de distância'));
-  await page.waitForFunction(() => [...document.querySelectorAll('.livro-ele img')].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 10000 }).catch(() => {});
-  const montagem = await page.evaluate(() => ({
-    fotos: [...document.querySelectorAll('.livro-ele img')].map((i) => i.getAttribute('src').split('/').pop()).join(','),
-    carregadas: [...document.querySelectorAll('.livro-ele img')].every((i) => i.complete && i.naturalWidth > 0),
-    medida: document.querySelector('.livro-ele__medida')?.textContent,
+  const salto = await page.evaluate(() => ({
+    fotos: [...document.querySelectorAll('.salto img')].map((i) => i.getAttribute('src').split('/').pop()).join(','),
+    carregadas: [...document.querySelectorAll('.salto img')].every((i) => i.complete && i.naturalWidth > 0),
+    medida: document.querySelector('.salto__medida')?.textContent,
     pessoa: !!document.querySelector('.esquema'),
   }));
-  check('instruções: a montagem do site (livro aberto, celular e o elefante que mexe a tromba), sem pessoa desenhada',
-    montagem.fotos === 'livro-app-elefante.webp,elefante-corpo.webp,elefante-tromba-quieta.webp,elefante-tromba.webp' &&
-    montagem.carregadas && montagem.medida.includes('30 cm') && !montagem.pessoa, JSON.stringify(montagem));
+  check('instruções: fotos do livro aberto e do celular, e o elefante do app saltando (sem pessoa desenhada)', salto.fotos === 'livro-aberto.webp,celular.webp,elefante.webp' &&
+    salto.carregadas && salto.medida.includes('30 cm') && !salto.pessoa, JSON.stringify(salto));
   check('instruções: o palco de brincar está explicado', (await page.textContent('.passos')).includes('continua na tela'));
   const pages = await page.locator('[data-pages] .paginas__item').count();
   check('instruções: só as 5 páginas dos animais (a Aia e o Seu Zé foram arquivados)', pages === 5, `${pages}`);
@@ -170,6 +177,15 @@ async function testScreens() {
   check('música: e liga de novo', await tocando());
   noErrors(m, 'música');
   await m.context().close();
+
+  // sem arquivo de música (musica.json vazio), o botão some e nada quebra
+  const s = await newPage();
+  await s.route('**/assets/musica/musica.json', (r) => r.fulfill({ contentType: 'application/json', body: '{}' }));
+  await go(s, '', 'menu');
+  await s.waitForTimeout(600);
+  check('música: sem o arquivo, o botão MÚSICA não aparece', await s.isHidden('[data-action="music"]'));
+  noErrors(s, 'música (sem arquivo)');
+  await s.context().close();
 }
 
 /* ================================================================ livro */

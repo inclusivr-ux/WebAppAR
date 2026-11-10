@@ -150,16 +150,18 @@ export const BOOK = {
 };
 
 /**
- * MÚSICA: a trilha do sound design da InclusiVR ("oogway morto"), em laço e
- * baixinha (ui/music.js). Para ligar ou trocar: ponha o MP3 em
- * assets/musica/ (nome sem acento nem espaço) e escreva o nome do arquivo em
+ * MÚSICA: a trilha do sound design da InclusiVR ("oogway morrendo"), em laço
+ * e baixinha (ui/music.js). Para trocar: ponha o MP3 em assets/musica/ (nome
+ * sem acento nem espaço) e escreva o nome do arquivo em
  * assets/musica/musica.json ("arquivo"). Sem arquivo, o botão MÚSICA não aparece.
- *   volume   0 … 1 (fica por baixo dos efeitos e não atrapalha)
+ *   volume   0 … 1. A trilha foi medida em −22 LUFS (o começo, mais calmo,
+ *            em −29); com 0,45 ela fica perto de −29 LUFS: um fundo, por
+ *            baixo dos efeitos, que ainda se ouve no alto-falante do celular
  *   fadeIn   segundos para entrar suave
  */
 export const MUSIC = {
   list: 'assets/musica/musica.json',
-  volume: 0.22,
+  volume: 0.45,
   fadeIn: 2.5,
 };
 

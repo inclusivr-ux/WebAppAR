@@ -1,6 +1,6 @@
 /**
- * MÚSICA do app: a trilha do sound design da InclusiVR (o arquivo
- * "oogway morto"), pedido da equipe em 10/11/2026.
+ * MÚSICA do app: a trilha do sound design da InclusiVR ("oogway morrendo",
+ * em assets/musica/), pedido da equipe em 10/11/2026.
  *
  *   - toca em laço, baixinho, e entra suave depois do primeiro toque na tela
  *     (os navegadores não deixam tocar som antes disso);

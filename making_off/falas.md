@@ -33,6 +33,12 @@ foi escrito, só com acentos corrigidos):
 - "O tempo passa a impressão de que tem que fazer rápido, e isso vai
   ativamente contra o bom funcionamento do media pipe. Apenas certo e errado
   está ótimo, e informar para fazer claramente." (10/11/2026)
-- "O site que eu digo é a versão update, que estamos fazendo no artefato. A
-  versão da Maria, mas com plugin. Você sabe disso. Não é a versão que estava
-  ao vivo." (10/11/2026, ao ver a primeira imagem das instruções)
+
+Do Luciano, na conversa com o Claude, 10/11/2026:
+
+- "Rapaz, o site que eu digo é a versão update, que estamos fazendo no
+  artefato. A versão da Maria, mas com plugin. Você sabe disso. Não é a versão
+  que estava ao vivo." (ao ver a primeira imagem das instruções)
+- "Não precisa mexer mais nesse elefante, o que tinha lá já tava legal." "O
+  elefante do Igor é melhor que esse do site." (ao ver a montagem da versão de
+  04/11, com o elefante cinza do site)

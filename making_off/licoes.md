@@ -38,8 +38,13 @@
     quase três segundos. (Capítulo 3)
 13. **A imagem de instrução mostra o que a criança vai ver.** Se o material de
     divulgação usa outro modelo, use o modelo do próprio app, fotografado por
-    script. (Capítulo 3)
-14. **"O site" tem várias versões: confirme qual antes de copiar material.**
-    A publicada, a de teste do plugin e a que está em atualização no artefato
-    têm imagens diferentes. Na dúvida, a referência é a versão em atualização.
-    (Capítulo 3)
+    script. O Luciano confirmou ao comparar as duas imagens: "O elefante do
+    Igor é melhor que esse do site." (Capítulo 3)
+14. **"O site" tem várias versões: pergunte qual antes de copiar material.** A
+    publicada, a de teste do plugin e a que está em atualização no artefato têm
+    imagens diferentes. Ao trocar, guarde a anterior (o git guarda): às vezes
+    ela era a melhor. (Capítulo 3)
+15. **Meça o volume da faixa antes de fixar o volume do app.** Uma trilha calma
+    pede mais ganho que uma faixa comum. O `ebur128` do ffmpeg dá o número em
+    LUFS em segundos; o volume escolhido antes de existir a faixa deixaria o
+    começo dela quase mudo. (Capítulo 3)

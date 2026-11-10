@@ -135,20 +135,17 @@
         <p>Aponte seu celular para as páginas do livro e veja cada página <strong>ganhar vida!</strong></p>
       </div>
 
-      <figure class="intro__arte livro-ele" role="img" aria-label="O livro aberto e, ao lado, um celular com o app, a mais ou menos 30 centímetros da página. Um elefante em 3D sai da página, mexe a orelha e enrola e desenrola a tromba.">
-        <!-- a montagem do site da InclusiVR (versão de 04/11): a foto do livro aberto, o celular com o app e o elefante que mexe a tromba -->
-        <img class="livro-ele__base" src="assets/img/instrucoes/livro-app-elefante.webp" alt="" width="760" height="518" decoding="async">
-        <span class="ele-anim livro-ele__animal" aria-hidden="true" style="--ar:515/430;--tx:0%;--ty:23.72%;--tw:76.31%">
-          <img class="ele-anim__corpo" src="assets/img/instrucoes/elefante-corpo.webp" alt="" width="515" height="430" decoding="async">
-          <img class="ele-anim__quieta" src="assets/img/instrucoes/elefante-tromba-quieta.webp" alt="" width="393" height="218" decoding="async">
-          <img class="ele-anim__tromba" src="assets/img/instrucoes/elefante-tromba.webp" alt="" width="393" height="218" decoding="async">
-        </span>
-        <svg class="livro-ele__distancia" viewBox="0 0 100 68" aria-hidden="true">
-          <defs><marker id="ele-seta" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse"><path d="M1 1l7 4-7 4z" fill="#42433a"/></marker></defs>
-          <path d="M81 17 C 79 8, 68 7, 63 15" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" opacity=".9"/>
-          <path d="M81 17 C 79 8, 68 7, 63 15" fill="none" stroke="#42433a" stroke-width="1.2" stroke-dasharray="2.4 2" marker-start="url(#ele-seta)" marker-end="url(#ele-seta)"/>
+      <figure class="intro__arte salto" role="img" aria-label="O livro aberto e, ao lado, o celular a mais ou menos 30 centímetros da página. O elefante salta da página para a tela do celular.">
+        <!-- fotos do livro e do celular: site da InclusiVR; o elefante é o do próprio app, fotografado por tools/render-instrucoes.mjs -->
+        <img class="salto__livro" src="assets/img/instrucoes/livro-aberto.webp" alt="" width="760" height="412" decoding="async">
+        <span class="salto__brilho" aria-hidden="true"></span>
+        <img class="salto__celular" src="assets/img/instrucoes/celular.webp" alt="" width="360" height="726" decoding="async">
+        <img class="salto__animal" src="assets/img/instrucoes/elefante.webp" alt="" width="318" height="360" decoding="async">
+        <svg class="salto__distancia" viewBox="0 0 100 72" aria-hidden="true">
+          <defs><marker id="salto-seta" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse"><path d="M1 1l7 4-7 4z" fill="#42433a"/></marker></defs>
+          <path d="M71 13 C 63 16, 59 24, 56 33" fill="none" stroke="#42433a" stroke-width="1" stroke-dasharray="2.4 2" marker-start="url(#salto-seta)" marker-end="url(#salto-seta)"/>
         </svg>
-        <span class="livro-ele__medida" aria-hidden="true">± 30 cm</span>
+        <span class="salto__medida" aria-hidden="true">± 30 cm</span>
       </figure>
 
       <ol class="passos">

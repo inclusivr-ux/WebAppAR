@@ -136,8 +136,18 @@ idênticos, byte a byte, e os ajustes do filtro também. O que tinha mudado:
 4. O animal ficava preso à pose do rastreio, que muda 10 a 20 vezes por
    segundo. A tela é desenhada 60 vezes: ele andava "aos saltinhos".
 
-Os vídeos do Drive (47 e 94 MB) não abriram nas ferramentas do Claude. O
-diagnóstico veio da descrição da equipe e do código.
+Os vídeos do Drive (47 e 94 MB) não abriram de primeira nas ferramentas do
+Claude, e o diagnóstico veio da descrição da equipe e do código. Depois, pelo
+link de download direto do Drive, o Claude baixou os dois e olhou quadro a
+quadro. Eles confirmaram o diagnóstico:
+- no livro, com o celular e a página parados, o elefante dava pulinhos de 2 a
+  6 pixels e às vezes ficava parado uns 0,2 segundo antes de pular de novo;
+- no zoológico, as cartas cobriam a página 22, e o app dizia "NÃO ENCONTREI A
+  PÁGINA 22".
+
+Os vídeos estão na pasta de testes do Drive:
+`Screen_Recording_20261110_115316_Brave.mp4` e
+`Screen_Recording_20261110_115555_Brave.mp4`.
 
 **O que resolveu.**
 - O arquivo de 5 páginas do JLeo voltou.
@@ -175,26 +185,42 @@ faixa do "QUASE!" ficava por cima dos botões durante quase três segundos. O
 aviso passou para a instrução e para a câmera (imagem `03_05`).
 
 **As instruções sem a pessoa.** "Ser humano ali está um pouco feio, não combina
-com o estilo da InclusiVR."
-- Na primeira tentativa, o Claude pegou as fotos da versão de teste do site com
-  o plugin (de 19/10) e trocou o elefante cinza do site pelo elefante do
-  próprio app.
-- O Luciano corrigiu: "o site que eu digo é a versão update, que estamos
-  fazendo no artefato". É a versão de 04/11.
-- A imagem final é a montagem dessa versão, como está lá: a foto do livro
-  aberto, o celular com o app e o elefante em 3D que mexe a orelha e enrola a
-  tromba. Por cima, só o "± 30 cm" (imagem `03_02`).
+com o estilo da InclusiVR." A imagem teve duas versões, e a primeira ficou.
+1. Na primeira, a foto do livro aberto e o celular vieram do site com o plugin
+   de LIBRAS, junto com a animação do "salto". O elefante do site era um
+   elefante cinza genérico, diferente do que a criança vê no app. O Claude
+   fotografou o elefante do próprio app, feito do traço do Igor, jogando água
+   com a tromba (`tools/render-instrucoes.mjs`).
+2. O Luciano lembrou que "o site" é a versão em atualização no artefato, de
+   04/11. A primeira tinha vindo da versão de teste do plugin, de 19/10. O
+   Claude trocou a imagem pela montagem da versão de 04/11, como está lá, com
+   o elefante cinza mexendo a orelha e a tromba. E avisou: aquele elefante não
+   é o do Igor.
+3. O Luciano comparou as duas: "O elefante do Igor é melhor que esse do site."
+   A primeira voltou inteira, com a troca desfeita pelo git (imagens `03_02` e
+   `03_06`).
 
 **Tela inicial e tela cheia.**
 - A tela inicial passou a ocupar a altura exata do aparelho. Foi conferida sem
   rolar em seis tamanhos de celular e tablet, mais paisagem (imagem `03_03`).
 - O botão TELA CHEIA aparece onde o navegador deixa (o Safari do iPhone não deixa).
 
-**A música.** Está pronta e espera o arquivo "oogway morto". Ele está no PC do
-Luciano, e nenhuma pasta desse PC estava ligada à sessão do Claude. Com um tom
-de teste no lugar, a música entra no primeiro toque e o botão liga e desliga.
+**A música.** O código ficou pronto antes do arquivo. Com um tom de teste no
+lugar, a música entra no primeiro toque e o botão liga e desliga. O arquivo
+veio depois:
+- O primeiro link do Drive pedia login, porque a música não estava aberta como
+  a pasta dos vídeos. O Luciano a pôs na mesma pasta, e o download funcionou.
+- O original, "oogoway morrendo", é um WAV de quase 6 minutos e 63 MB: pesado
+  demais para um celular.
+- O Claude fez um MP3 de 4,3 MB (96 kbps) e tirou os 4,6 segundos de silêncio
+  do fim, para o laço não ter um buraco.
+- Mediu o volume: −22 LUFS no todo e −29 no começo, que é calmo. Com o volume
+  escolhido antes de existir a faixa (0,22), o começo tocaria perto de −42
+  LUFS, quase nada num alto-falante de celular. O volume do app passou para
+  0,45.
 
-**Números.** 96 testes de unidade e 112 verificações ponta a ponta, todas
-passando. O teste no celular de verdade ficou como pedido à equipe, com um
+**Números.** 96 testes de unidade e 115 verificações ponta a ponta, todas
+passando (112 antes da música; as 3 novas conferem a trilha de verdade e o
+botão que some sem ela). O teste no celular de verdade ficou como pedido à equipe, com um
 medidor novo: abrir o app com `?debug=1` mostra quantas vezes por segundo a
 tela é desenhada e o rastreio roda.
