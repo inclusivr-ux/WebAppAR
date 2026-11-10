@@ -5,9 +5,11 @@
  *   passear  anda dentro da página, descansa, espia a beirada e volta
  *   tocar    para, vira para quem tocou e fica feliz (carinho); a cada
  *            3 toques faz a animação especial (o jato d'água, a crista...)
- *   perder   a página sumiu da câmera: ele fica parado onde estava, pisca,
- *            fica transparente aos poucos, se preocupa e pede para voltar.
- *            Se a página voltar a tempo, ele se anima; senão, some.
+ *   perder   a página sumiu da câmera: primeiro ele só espera, parado onde
+ *            estava (uma falha curta do rastreamento passa sem ninguém notar);
+ *            se a página não volta, ele pisca, fica transparente aos poucos,
+ *            se preocupa e pede para voltar. Se a página voltar a tempo, ele
+ *            se anima; senão, some.
  *
  * Funciona com AnimalModel (modelManager.js) e CharacterModel
  * (characters/characterModel.js), que têm a mesma interface.
@@ -20,8 +22,7 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const STAND = new THREE.Quaternion().setFromAxisAngle(X_AXIS, Math.PI / 2);
 const _q = new THREE.Quaternion();
 const _lean = new THREE.Quaternion();
-const LEAN_START = THREE.MathUtils.degToRad(40);
-const LEAN_MAX = THREE.MathUtils.degToRad(38);
+const _tilt = new THREE.Quaternion();
 const _v = new THREE.Vector3();
 const _m = new THREE.Matrix4();
 
@@ -36,14 +37,27 @@ export class PageActor {
    * @param {number} opts.aspect            altura ÷ largura da página
    * @param {object} opts.place             { home: [x, y], size, lift } (config.js)
    * @param {number} opts.lostGrace         segundos até sumir sem a página
+   * @param {number} [opts.holdGrace]       segundos esperando, sem piscar, antes de se preocupar
    * @param {number} [opts.margin]
+   * @param {boolean} [opts.faceCamera]     sempre de frente para quem segura o celular (as letras)
+   * @param {string} [opts.lostText]        o que ele pede quando a página some
+   * @param {number[]} [opts.lean]          [a partir de, no máximo] (graus): visto de cima, inclina
+   *                                        para quem olha (as letras, como uma placa, inclinam mais)
    */
-  constructor({ model, anchor, scene, aspect, place, lostGrace = 4.5, margin = 0.07, speed, character = false }) {
+  constructor({
+    model, anchor, scene, aspect, place, lostGrace = 4.5, holdGrace = 1.2, margin = 0.07, speed,
+    character = false, faceCamera = false, lostText = 'QUERO VOLTAR PARA MINHA PÁGINA!', lean = [40, 38],
+  }) {
     this.model = model;
     this.anchor = anchor;
     this.scene = scene;
     this.place = place;
     this.lostGrace = lostGrace;
+    this.holdGrace = holdGrace;
+    this.faceCamera = faceCamera;
+    this.lostText = lostText;
+    this.leanStart = THREE.MathUtils.degToRad(lean[0]);
+    this.leanMax = THREE.MathUtils.degToRad(lean[1]);
     this.character = character;
     this.size = place.size;
     this.lift = place.lift || 0;
@@ -86,6 +100,13 @@ export class PageActor {
   /* ------------------------------------------------------------ ciclo */
   /** A página apareceu: salta do desenho (ou volta, se estava perdido). */
   found() {
+    if (this.state === 'leaving') return; // indo para casa
+    if (this.state === 'holding') {
+      // a página voltou rápido: segue a vida, sem festa (ninguém viu a falha)
+      this._backToAnchor();
+      this.state = 'living';
+      return;
+    }
     if (this.state === 'lost') {
       this._backToAnchor();
       this.state = 'living';
@@ -106,9 +127,10 @@ export class PageActor {
     this.model.setOpacity(1);
     this.model.setLocomotion('idle', 0);
     this.container.visible = true;
+    this.model.resetPhysics?.(); // cabelo e roupa em repouso ao saltar da página
   }
 
-  /** A página sumiu da câmera. */
+  /** A página sumiu da câmera: espera parado no último lugar (ver holdGrace). */
   lost() {
     if (this.state !== 'living' && this.state !== 'entering') return;
     // fica no último lugar em que a página foi vista
@@ -120,11 +142,29 @@ export class PageActor {
     ghost.add(this.container);
     this.ghost = ghost;
     if (this.state === 'entering') this._finishEntering();
+    this.state = 'holding';
+    this.holdT = 0;
+    this.model.setLocomotion('idle');
+  }
+
+  /** A página não voltou: pisca, some aos poucos e pede para voltar. */
+  _startWorrying() {
     this.state = 'lost';
     this.lostT = 0;
-    this.model.setLocomotion('idle');
     if (this.model.has('worried')) this.model.playOnce('worried');
-    this.onSay?.('QUERO VOLTAR PARA MINHA PÁGINA!');
+    this.onSay?.(this.lostText);
+  }
+
+  /** Vai para casa (sai da página): dá tchau, dá um pulinho e some. */
+  leave() {
+    if (this.state === 'gone' || this.state === 'leaving') return Promise.resolve();
+    this._backToAnchor();
+    this.onSay?.(null);
+    this.state = 'leaving';
+    this.leaveT = 0;
+    this.model.setLocomotion('idle');
+    this.model.playOnce(this.character ? 'ola' : 'happy');
+    return new Promise((resolve) => { this._onLeft = resolve; });
   }
 
   /** Some de vez (ex.: outra página apareceu). */
@@ -194,6 +234,32 @@ export class PageActor {
       } else if (this.faceTarget != null) {
         this.heading = turnToward(this.heading, this.faceTarget, 4 * dt);
       }
+      if (this.faceCamera) {
+        // a letra anda e pula, mas fica sempre virada para quem lê (direção própria,
+        // separada da direção do passeio)
+        const cam = this.cameraInPage();
+        const [x, y] = this.wander.pos;
+        // com a câmera bem em cima, a direção fica indefinida: de frente para quem lê (borda de baixo)
+        const target = Math.hypot(cam.x - x, cam.y - y) < 0.25 ? 0 : headingTo(this.wander.pos, [cam.x, cam.y]);
+        this.faceHeading = turnToward(this.faceHeading ?? target, target, 6 * dt);
+      }
+    } else if (this.state === 'holding') {
+      this.holdT += dt;
+      if (this.holdT >= this.holdGrace) this._startWorrying();
+    } else if (this.state === 'leaving') {
+      this.leaveT += dt;
+      // tchau (0,9 s) e depois encolhe com um pulinho
+      const k = Math.min(1, Math.max(0, (this.leaveT - 0.9) / 0.5));
+      this.container.scale.setScalar(this.size * Math.max(0.001, 1 - k * k * (3 - 2 * k)));
+      m.body.position.y = Math.sin(k * Math.PI) * 0.4;
+      if (k >= 1) {
+        this.container.visible = false;
+        this.state = 'gone';
+        m.body.position.y = 0;
+        this._onLeft?.();
+        this._onLeft = null;
+        return;
+      }
     } else if (this.state === 'lost') {
       this.lostT += dt;
       const k = Math.min(1, this.lostT / this.lostGrace);
@@ -218,8 +284,15 @@ export class PageActor {
     if (this.lift) z = this.lift * (this.state === 'entering' ? Math.min(1, this.enterT / 0.75) : 1);
     this.container.position.set(x, y, z);
     this._updateLean(dt);
-    _q.setFromAxisAngle(Y_AXIS, this.heading);
-    this.container.quaternion.copy(_lean).multiply(STAND).multiply(_q);
+    if (this.faceCamera && this.faceHeading != null) {
+      // placa: virada para a câmera e reclinada para trás (a face sobe para quem olha de cima)
+      _q.setFromAxisAngle(Y_AXIS, this.faceHeading);
+      _tilt.setFromAxisAngle(X_AXIS, -(this.leanAngle || 0));
+      this.container.quaternion.copy(STAND).multiply(_q).multiply(_tilt);
+    } else {
+      _q.setFromAxisAngle(Y_AXIS, this.heading);
+      this.container.quaternion.copy(_lean).multiply(STAND).multiply(_q);
+    }
     m.update(dt);
   }
 
@@ -229,11 +302,11 @@ export class PageActor {
    * das costas. Em ângulos normais de leitura ele fica em pé na página.
    */
   _updateLean(dt) {
-    if (this.state === 'lost') return; // parado onde estava
+    if (this.state === 'lost' || this.state === 'holding') return; // parado onde estava
     const cam = this.cameraInPage();
     const horizontal = Math.hypot(cam.x - this.wander.pos[0], cam.y - this.wander.pos[1]);
     const elevation = Math.atan2(cam.z, horizontal); // 90° = bem de cima
-    const target = THREE.MathUtils.clamp((elevation - LEAN_START) * 0.8, 0, LEAN_MAX);
+    const target = THREE.MathUtils.clamp((elevation - this.leanStart) * 0.8, 0, this.leanMax);
     this.leanAngle = THREE.MathUtils.damp(this.leanAngle || 0, target, 4, dt);
     // inclina para a borda de baixo da página (o lado de quem lê e segura o celular)
     _lean.setFromAxisAngle(X_AXIS, this.leanAngle);

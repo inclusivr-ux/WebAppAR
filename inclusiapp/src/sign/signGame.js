@@ -1,16 +1,17 @@
 /**
  * SINALIZE! — a tela do jogo.
  *
- *   carta na tela → OLHE: o Fauston faz o sinal duas vezes
- *   → 3, 2, 1 → SUA VEZ: a criança faz o sinal para a câmera (frontal)
+ *   a vogal na tela (a letra e a carta do sinal) → OLHE: o intérprete faz o
+ *   sinal duas vezes → 3, 2, 1 → SUA VEZ: a criança faz o sinal para a câmera
  *   → a câmera reconheceu: ISSO! + pontos → próximo desafio (ordem fixa)
- *   → o tempo acabou: QUASE! → TENTAR DE NOVO (vê o sinal de novo) ou PRÓXIMO
+ *   → o tempo da tentativa acabou: QUASE! → TENTAR DE NOVO ou PRÓXIMO
  *
- * A câmera nunca é obrigatória: SEM CÂMERA troca para ERREI · ACERTEI.
- * Nada de esqueleto da mão nem termos técnicos na tela; a imagem da câmera é
- * analisada no aparelho e não é gravada.
+ * O jogo precisa da câmera, como os outros jogos (não há botões "acertei" e
+ * "errei", que dariam para trapacear). Nada de esqueleto da mão nem termos
+ * técnicos na tela; a imagem da câmera é analisada no aparelho e nunca é
+ * gravada nem enviada.
  *
- * O vídeo do Fauston (sem o fundo verde) é desenhado no painel com o mesmo
+ * O vídeo do intérprete (sem o fundo verde) é desenhado no painel com o mesmo
  * renderer WebGL do app; a câmera é um <video> comum, espelhado na frontal.
  */
 import * as THREE from '../lib/three.js';
@@ -51,23 +52,23 @@ export class SignGame {
       hold: q('[data-hold]'),
       countdown: q('[data-countdown]'),
       actions: q('[data-sz-actions]'),
-      self: q('[data-sz-self]'),
       retry: q('[data-sz-retry]'),
+      letter: q('[data-letter]'),
+      noCamera: q('[data-no-camera]'),
+      noCameraText: q('[data-no-camera-text]'),
       feedback: q('[data-feedback]'),
       summary: q('[data-summary]'),
       status: q('[data-status]'),
       statusText: q('[data-status-text]'),
       statusBar: q('[data-status-bar]'),
     };
-    const on = (sel, fn) => q(sel).addEventListener('click', fn);
+    const on = (sel, fn) => screen.querySelectorAll(sel).forEach((b) => b.addEventListener('click', fn));
     on('[data-action="watch-again"]', () => this.watchAgain());
-    on('[data-action="no-camera"]', () => this.setSelfMode(!this.selfMode));
-    on('[data-action="self-right"]', () => this._selfAnswer(true));
-    on('[data-action="self-wrong"]', () => this._selfAnswer(false));
     on('[data-action="try-again"]', () => this.watchAgain());
     on('[data-action="skip-round"]', () => this.skipRound());
     on('[data-action="flip-camera"]', () => this.flipCamera());
     on('[data-action="replay"]', () => this.newMatch());
+    on('[data-action="retry-camera"]', () => this.restart());
     this.el.sound.addEventListener('click', () => {
       setSound(!isSoundOn());
       this._renderSound();
@@ -86,32 +87,55 @@ export class SignGame {
     this._renderSound();
     this.el.summary.hidden = true;
     this.el.feedback.hidden = true;
+    this.el.noCamera.hidden = true;
     this._showButtons('watch');
-    this.selfMode = false;
-    this.el.camPanel.hidden = false;
-    this._renderCameraButton();
     this.match = new SignMatch(SIGN_GAME);
     this._startVideoPanel();
 
     this.el.status.hidden = false;
     this.el.statusText.textContent = 'Preparando o jogo...';
+    this.el.statusBar.style.width = '0%';
     // o reconhecimento de mãos baixa enquanto a câmera abre
-    const trackerReady = this.selfMode ? Promise.resolve(null) : this.tracker.load((p) => {
+    const trackerReady = this.tracker.load((p) => {
       this.el.statusBar.style.width = `${Math.round(p * 100)}%`;
     }).catch((err) => {
       console.warn('[sinalize] reconhecimento indisponível', err);
       return 'erro';
     });
-    if (!this.selfMode) await this._openCamera();
+    const camera = await this._openCamera();
     if (!this._alive(token)) return;
-    const loaded = await Promise.race([trackerReady, sleep(20000).then(() => 'demorou')]);
+    if (camera !== 'ok') {
+      this.el.status.hidden = true;
+      this._noCamera(camera);
+      return;
+    }
+    const loaded = await Promise.race([trackerReady, sleep(30000).then(() => 'demorou')]);
     if (!this._alive(token)) return;
     this.el.status.hidden = true;
-    if (!this.selfMode && (loaded === 'erro' || loaded === 'demorou' || !this.stream)) {
-      toast('A câmera não está disponível agora. Jogue com os botões ERREI e ACERTEI.', { type: 'info', duration: 5000 });
-      this.setSelfMode(true);
+    if (loaded === 'erro' || loaded === 'demorou') {
+      this._noCamera('tracker');
+      return;
     }
     this.newMatch();
+  }
+
+  async restart() {
+    await this.leave();
+    if (!this.screen.hidden) await this.enter();
+  }
+
+  /** O jogo não funciona sem a câmera: explica e oferece tentar de novo. */
+  _noCamera(reason) {
+    this._stopCamera();
+    const text = {
+      denied: 'A câmera foi bloqueada. Toque no cadeado ao lado do endereço do site, permita a câmera e tente de novo.',
+      busy: 'A câmera está sendo usada por outro aplicativo. Feche o outro aplicativo e tente de novo.',
+      notfound: 'Não encontramos uma câmera neste aparelho.',
+      tracker: 'Não foi possível preparar o jogo agora. Verifique a internet e tente de novo.',
+    }[reason] || 'Toque em <strong>Permitir</strong> quando o navegador perguntar.';
+    this.el.noCameraText.innerHTML = text;
+    this.el.noCamera.hidden = false;
+    announce('Este jogo precisa da câmera.');
   }
 
   async leave() {
@@ -129,6 +153,7 @@ export class SignGame {
     }
     window.removeEventListener('resize', this._onResize);
     this.el.status.hidden = true;
+    this._resizeObserver?.disconnect();
     clearToasts();
   }
 
@@ -137,9 +162,11 @@ export class SignGame {
   }
 
   /* ------------------------------------------------------------ câmera */
+  /** Abre a câmera. Devolve 'ok', 'denied', 'busy', 'notfound' ou 'erro'. */
   async _openCamera() {
     this._stopCamera();
     const { width, height } = SIGN_GAME.camera;
+    if (!navigator.mediaDevices?.getUserMedia) return 'notfound';
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
@@ -149,11 +176,15 @@ export class SignGame {
       console.warn('[sinalize] câmera', err);
       this.stream = null;
       this.el.camPanel.classList.add('is-desligada');
-      return;
+      const name = err?.name || '';
+      if (['NotAllowedError', 'PermissionDeniedError', 'SecurityError'].includes(name)) return 'denied';
+      if (['NotReadableError', 'TrackStartError', 'AbortError'].includes(name)) return 'busy';
+      if (['NotFoundError', 'DevicesNotFoundError', 'OverconstrainedError'].includes(name)) return 'notfound';
+      return 'erro';
     }
     if (!this.active) {
       this._stopCamera();
-      return;
+      return 'erro';
     }
     const video = this.el.cam;
     video.srcObject = this.stream;
@@ -162,6 +193,7 @@ export class SignGame {
     video.classList.toggle('is-espelho', this.facing === 'user');
     await video.play().catch(() => {});
     this.el.camPanel.classList.remove('is-desligada');
+    return 'ok';
   }
 
   _stopCamera() {
@@ -171,33 +203,17 @@ export class SignGame {
   }
 
   async flipCamera() {
+    const before = this.facing;
     this.facing = this.facing === 'user' ? 'environment' : 'user';
-    if (!this.selfMode) await this._openCamera();
-  }
-
-  /** Sem câmera: a criança (ou o adulto) confirma com ERREI · ACERTEI. O mesmo botão volta para a câmera. */
-  async setSelfMode(on) {
-    this.selfMode = on;
-    this._renderCameraButton();
-    if (on) {
-      cancelAnimationFrame(this._raf);
-      this._stopCamera();
-      this.el.camPanel.hidden = true;
-      if (this.match?.phase === PHASE.TRY) this._showButtons('self');
-      return;
+    if (await this._openCamera() !== 'ok') {
+      // sem a outra câmera: volta para a que funcionava
+      this.facing = before;
+      if (await this._openCamera() !== 'ok') this._noCamera('erro');
+      else toast('Este aparelho só tem uma câmera disponível.', { type: 'info' });
     }
-    this.el.camPanel.hidden = false;
-    await this._openCamera();
-    this.tracker.load().catch(() => {});
-    if (this.match?.phase === PHASE.TRY) this.watchAgain();
   }
 
-  _renderCameraButton() {
-    const b = this.screen.querySelector('[data-action="no-camera"]');
-    b.innerHTML = `${icon('camera')} ${this.selfMode ? 'COM CÂMERA' : 'SEM CÂMERA'}`;
-  }
-
-  /* ------------------------------------------------------------ vídeo do Fauston */
+  /* ------------------------------------------------------------ vídeo do intérprete */
   _startVideoPanel() {
     const renderer = getRenderer();
     this.el.videoStage.appendChild(renderer.domElement);
@@ -210,6 +226,11 @@ export class SignGame {
     this.hud.scene.add(this.libras.mesh);
     this._onResize = () => this._layoutVideo();
     window.addEventListener('resize', this._onResize);
+    // o painel muda de tamanho com a tela (o jogo ocupa a altura do aparelho)
+    if (typeof ResizeObserver === 'function') {
+      this._resizeObserver = new ResizeObserver(this._onResize);
+      this._resizeObserver.observe(this.el.videoStage);
+    }
     this._layoutVideo();
     const clock = new THREE.Clock();
     renderer.setAnimationLoop(() => {
@@ -237,7 +258,7 @@ export class SignGame {
     const clip = clipFor(item);
     this.libras.setSource(clip.src);
     this.libras.setEnabled(true);
-    return this.libras.playSegment(clip.start, clip.end, { repeat: clip.repeat });
+    return this.libras.playSegment(clip.start, clip.end, { repeat: clip.repeat, hold: clip.hold });
   }
 
   /* ------------------------------------------------------------ partida */
@@ -280,13 +301,9 @@ export class SignGame {
     this._step('vez', 'mao', 'SUA VEZ!');
     announce('Sua vez! Faça o sinal.');
     sfx.reveal();
-    if (this.selfMode) {
-      this._showButtons('self');
-      return;
-    }
     this._showButtons('watch');
     this.recognizer = createRecognizer(item, SIGN_GAME.recognition);
-    this._camMsg(item.kind === 'animal' ? 'FAÇA O SINAL' : 'MOSTRE A MÃO');
+    this._camMsg('MOSTRE A MÃO');
     this._loop(token);
   }
 
@@ -307,14 +324,14 @@ export class SignGame {
 
   _loop(token) {
     const tick = () => {
-      if (!this._alive(token) || this.match.phase !== PHASE.TRY || this.selfMode) return;
+      if (!this._alive(token) || this.match.phase !== PHASE.TRY) return;
       const now = performance.now();
       const hands = this.tracker.ready ? this.tracker.detect(this.el.cam, now) : null;
       if (hands) {
         const r = this.recognizer.update(hands, now);
         this.el.hold.style.width = `${Math.round((r.progress || 0) * 100)}%`;
         this.el.camPanel.classList.toggle('sg-cam--confere', r.state === 'match');
-        if (r.state === 'nohand') this._camMsg(this.match.round.item.kind === 'animal' ? 'MOSTRE AS MÃOS' : 'MOSTRE A MÃO');
+        if (r.state === 'nohand') this._camMsg('MOSTRE A MÃO');
         else if (r.state === 'match') this._camMsg('ISSO! CONTINUE...');
         else this._camMsg('OLHE A CARTA E TENTE');
         if (r.event === 'correct') {
@@ -322,7 +339,8 @@ export class SignGame {
           return;
         }
       }
-      if (this.match.tryElapsed > SIGN_GAME.timing.tryFor) {
+      // o limite vale para cada tentativa (a soma das tentativas conta só para o bônus)
+      if (this.match.attemptElapsed > SIGN_GAME.timing.tryFor) {
         this._timeout();
         return;
       }
@@ -331,9 +349,9 @@ export class SignGame {
     this._raf = requestAnimationFrame(tick);
   }
 
-  async _success({ self = false } = {}) {
+  async _success() {
     const token = this.token;
-    const result = this.match.correct({ self });
+    const result = this.match.correct();
     if (!result) return;
     this.el.camPanel.classList.remove('sg-cam--confere');
     this.el.camPanel.classList.add('sg-cam--acertou');
@@ -361,12 +379,6 @@ export class SignGame {
     sfx.wrong();
     announce('Quase! Vamos ver o sinal de novo?');
     this._showButtons('retry');
-  }
-
-  _selfAnswer(right) {
-    if (this.match.phase !== PHASE.TRY) return;
-    if (right) this._success({ self: true });
-    else this._timeout();
   }
 
   /** Ver o sinal de novo (também é o "TENTAR DE NOVO"). */
@@ -408,10 +420,12 @@ export class SignGame {
   }
 
   /* ------------------------------------------------------------ interface */
+  /** A vogal: a letra do português ao lado da carta com o sinal (o par). */
   _showItem(item) {
     const img = this.el.card;
     img.src = `assets/img/cartas-mini/carta${item.card}.webp`;
     img.alt = `Carta: ${item.label} em LIBRAS`;
+    this.el.letter.textContent = item.letter;
     this.el.name.textContent = item.label;
   }
 
@@ -430,7 +444,6 @@ export class SignGame {
 
   _showButtons(which) {
     this.el.actions.hidden = which !== 'watch';
-    this.el.self.hidden = which !== 'self';
     this.el.retry.hidden = which !== 'retry';
   }
 

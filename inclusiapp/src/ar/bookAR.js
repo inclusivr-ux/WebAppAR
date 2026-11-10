@@ -8,7 +8,7 @@
  *      transparente aos poucos e pede: "QUERO VOLTAR PARA MINHA PÁGINA!".
  *
  * Nas páginas sem animal em AR, a Maga Aia e o Seu Zé fazem o mesmo (olá,
- * feliz, andar, reação ao toque). O módulo de LIBRAS do Fauston só abre pelo
+ * feliz, andar, reação ao toque). O módulo de LIBRAS do intérprete só abre pelo
  * botão LIBRAS, nas páginas com animal (libras/librasPanel.js).
  *
  * O que aparece em cada página vem de BOOK_PAGES (config.js).
@@ -20,7 +20,8 @@ import { createAnimal, prefetchModel } from './modelManager.js';
 import { PageActor } from './pageActor.js';
 import { LibrasVideo } from './videoChroma.js';
 import { LibrasPanel } from '../libras/librasPanel.js';
-import { getCharacter, prefetchCharacterLib } from '../characters/characterModel.js';
+import { getCharacter, prefetchCharacter, prefetchCharacterLib } from '../characters/characterModel.js';
+import { onProgress, progressOf } from '../lib/download.js';
 import { showARError, toast, announce } from '../ui/notifications.js';
 import { sparkle } from '../ui/effects.js';
 import { sfx } from '../ui/sound.js';
@@ -41,6 +42,8 @@ export class BookExperience {
       chipImg: q('[data-chip-img]'),
       chipName: q('[data-chip-name]'),
       loading: q('[data-model-loading]'),
+      loadingText: q('[data-model-loading-text]'),
+      loadingBar: q('[data-model-loading-bar]'),
       status: q('[data-status]'),
       statusText: q('[data-status-text]'),
       statusBar: q('[data-status-bar]'),
@@ -111,16 +114,62 @@ export class BookExperience {
     this._showStatus(false);
     for (const page of BOOK_PAGES) session.anchor(page.target);
     this._scanStartedAt = performance.now();
-    // os animais em segundo plano, na ordem das páginas
-    if (!navigator.connection?.saveData) {
-      for (const page of BOOK_PAGES) {
-        if (page.animal) {
-          const a = animalById(page.animal.id);
-          prefetchModel(a.pageModel || a.model);
-        }
-      }
-      prefetchCharacterLib();
+    if (!navigator.connection?.saveData) this._prefetch(token);
+  }
+
+  /**
+   * Baixa em segundo plano, um de cada vez (para não disputar a internet):
+   * primeiro os animais (leves), depois a Aia e o Seu Zé (≈ 4 MB cada). Só
+   * baixa: montar o modelo trava o celular por um instante, então isso fica
+   * para quando a página aparece.
+   */
+  async _prefetch(token) {
+    for (const page of BOOK_PAGES) {
+      if (!page.animal) continue;
+      const a = animalById(page.animal.id);
+      await prefetchModel(a.pageModel || a.model);
+      if (!this._alive(token)) return;
     }
+    prefetchCharacterLib();
+    for (const c of Object.values(CHARACTERS)) {
+      await prefetchCharacter(c);
+      if (!this._alive(token)) return;
+    }
+  }
+
+  /** Os arquivos 3D de uma página (para a barra de progresso). */
+  _urlsOf(page) {
+    const urls = [];
+    if (page.animal) {
+      const a = animalById(page.animal.id);
+      urls.push(a.pageModel || a.model);
+    }
+    for (const c of page.characters || []) urls.push(CHARACTERS[c.id].model);
+    return urls;
+  }
+
+  /** "CHEGANDO..." com a barra do download (a Aia e o Seu Zé têm ≈ 8 MB juntos). */
+  _showLoading(page) {
+    const el = this.el;
+    const who = page.animal
+      ? (() => { const a = animalById(page.animal.id); return `${a.article === 'o' ? 'O' : 'A'} ${a.name.toUpperCase()} ESTÁ CHEGANDO...`; })()
+      : `${page.characters.map((c) => CHARACTERS[c.id].name.toUpperCase()).join(' E ')} ESTÃO CHEGANDO...`;
+    el.loadingText.textContent = who;
+    const urls = this._urlsOf(page);
+    const render = () => {
+      const p = progressOf(urls);
+      el.loadingBar.style.width = `${Math.round(Math.max(0.04, p) * 100)}%`;
+    };
+    render();
+    this._stopLoadingProgress?.();
+    this._stopLoadingProgress = onProgress(render);
+    el.loading.hidden = false;
+  }
+
+  _hideLoading() {
+    this._stopLoadingProgress?.();
+    this._stopLoadingProgress = null;
+    this.el.loading.hidden = true;
   }
 
   _alive(token) {
@@ -137,6 +186,7 @@ export class BookExperience {
     this.token = null;
     clearTimeout(this._lostTimer);
     clearTimeout(this._hintTimer);
+    this._hideLoading();
     this.panel?.close();
     if (this.session) {
       this.session.onTargetFound = this.session.onTargetLost = null;
@@ -158,7 +208,10 @@ export class BookExperience {
       const session = this.session;
       const anchor = session.anchor(page.target);
       const aspect = session.aspect(page.target);
-      const common = { anchor, scene: session.scene, aspect, lostGrace: BOOK.lostGraceMs / 1000, margin: BOOK.margin };
+      const common = {
+        anchor, scene: session.scene, aspect, margin: BOOK.margin,
+        lostGrace: BOOK.lostGraceMs / 1000, holdGrace: BOOK.holdGraceMs / 1000,
+      };
       const build = async () => {
         const list = [];
         if (page.animal) {
@@ -166,10 +219,12 @@ export class BookExperience {
           const model = await createAnimal(animal, { url: animal.pageModel || animal.model });
           list.push(new PageActor({ ...common, model, place: page.animal }));
         }
-        for (const c of page.characters || []) {
-          const model = await getCharacter(CHARACTERS[c.id]);
-          list.push(new PageActor({ ...common, model, character: true, place: { home: c.home, size: BOOK.characterHeight } }));
-        }
+        // os dois personagens baixam ao mesmo tempo
+        const chars = page.characters || [];
+        const models = await Promise.all(chars.map((c) => getCharacter(CHARACTERS[c.id])));
+        chars.forEach((c, i) => {
+          list.push(new PageActor({ ...common, model: models[i], character: true, place: { home: c.home, size: BOOK.characterHeight } }));
+        });
         list.forEach((actor) => { actor.onSay = (text) => this._say(actor, text); });
         return list;
       };
@@ -186,6 +241,7 @@ export class BookExperience {
     if (!page) return;
     const token = this.token;
     clearTimeout(this._lostTimer);
+    this.session.focusTarget(-1);
     this._setScan('found');
     // outra página: os atores da anterior saem de cena
     if (this.page && this.page.target !== target) {
@@ -202,7 +258,7 @@ export class BookExperience {
 
     let list = this.ready.get(target);
     if (!list) {
-      this.el.loading.hidden = false;
+      this._showLoading(page);
       try {
         list = await this._actorsOf(page);
       } catch (err) {
@@ -210,7 +266,7 @@ export class BookExperience {
         toast('Não foi possível carregar esta página agora. Verifique a internet e aponte de novo.', { type: 'error' });
         return;
       } finally {
-        this.el.loading.hidden = true;
+        if (this.page?.target === target || !this.page) this._hideLoading();
       }
       if (!this._alive(token)) return;
     }
@@ -223,6 +279,8 @@ export class BookExperience {
   _lost(target) {
     if (!this.active) return;
     (this.ready.get(target) || []).forEach((a) => a.lost());
+    // nos próximos segundos, procura primeiro esta mesma página (reencontra mais rápido)
+    if (this.session?.visibleTargets.length === 0) this.session.focusTarget(target, BOOK.refocusMs);
     clearTimeout(this._lostTimer);
     this._lostTimer = setTimeout(() => {
       if (this.session?.visibleTargets.length === 0) {

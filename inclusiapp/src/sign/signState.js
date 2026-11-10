@@ -3,7 +3,7 @@
  * (tests/unit/signState.test.mjs).
  *
  *   start(seed) → embaralha UMA vez (ordem fixa na partida)
- *   nextRound() → [WATCH] o Fauston mostra o sinal
+ *   nextRound() → [WATCH] o intérprete mostra o sinal
  *               → startTry() [TRY] a vez da criança (cronômetro)
  *               → correct() | fail() → [DONE] → nextRound() … → [FINISHED]
  *
@@ -33,7 +33,8 @@ export class SignMatch {
     this.config = config;
     this.items = new Map(config.items.map((i) => [i.id, i]));
     this.clock = new Stopwatch(now);
-    this.tryTimer = new Stopwatch(now);
+    this.tryTimer = new Stopwatch(now); // soma as tentativas do desafio (bônus de rapidez)
+    this.attemptTimer = new Stopwatch(now); // só a tentativa atual (tempo limite)
     this.phase = PHASE.IDLE;
   }
 
@@ -55,7 +56,7 @@ export class SignMatch {
     this.clock.start();
   }
 
-  /** Próximo desafio (o Fauston mostra o sinal). Devolve o item, ou null no fim. */
+  /** Próximo desafio (o intérprete mostra o sinal). Devolve o item, ou null no fim. */
   nextRound() {
     if (this.phase === PHASE.WATCH || this.phase === PHASE.TRY) return this.round.item;
     this.index += 1;
@@ -75,6 +76,7 @@ export class SignMatch {
   watchAgain() {
     if (this.phase !== PHASE.TRY && this.phase !== PHASE.WATCH) return;
     this.tryTimer.pause();
+    this.attemptTimer.pause();
     this.phase = PHASE.WATCH;
   }
 
@@ -85,33 +87,43 @@ export class SignMatch {
     this.phase = PHASE.TRY;
     if (this.round.tries === 1) this.tryTimer.start();
     else this.tryTimer.resume();
+    // cada tentativa tem o seu tempo inteiro (antes, a 2ª tentativa já começava com o tempo esgotado)
+    this.attemptTimer.start();
   }
 
+  /** Tempo do desafio somando as tentativas (s): é o que conta para o bônus. */
   get tryElapsed() {
     return this.tryTimer.elapsed;
   }
 
-  /** A câmera reconheceu (ou a pessoa confirmou "ACERTEI" no modo sem câmera). */
-  correct({ self = false } = {}) {
+  /** Tempo da tentativa atual (s): é o que conta para o tempo limite. */
+  get attemptElapsed() {
+    return this.attemptTimer.elapsed;
+  }
+
+  /** A câmera reconheceu o sinal. */
+  correct() {
     if (this.phase !== PHASE.TRY) return null;
     const seconds = this.tryTimer.elapsed;
     this.tryTimer.pause();
+    this.attemptTimer.pause();
     const points = stepPoints(seconds, this.config.scoring.sign);
     const s = this.stats;
     s.score += points.total;
     s.signsCorrect += 1;
     s.streak += 1;
     s.bestStreak = Math.max(s.bestStreak, s.streak);
-    this.round.result = { ok: true, self, seconds, ...points };
+    this.round.result = { ok: true, seconds, ...points };
     this.results.push({ id: this.round.item.id, ...this.round.result });
     this.phase = PHASE.DONE;
     return this.round.result;
   }
 
-  /** Não deu: o tempo acabou ou a pessoa disse "ERREI" (pode tentar de novo). */
+  /** Não deu: o tempo da tentativa acabou (pode tentar de novo). */
   miss() {
     if (this.phase !== PHASE.TRY) return;
     this.tryTimer.pause();
+    this.attemptTimer.pause();
     this.stats.streak = 0;
     this.phase = PHASE.WATCH;
   }
@@ -120,6 +132,7 @@ export class SignMatch {
   skip() {
     if (this.phase !== PHASE.TRY && this.phase !== PHASE.WATCH) return null;
     this.tryTimer.pause();
+    this.attemptTimer.pause();
     this.stats.skipped += 1;
     this.stats.streak = 0;
     this.round.result = { ok: false, skipped: true, total: 0 };
@@ -128,11 +141,14 @@ export class SignMatch {
     return this.round.result;
   }
 
-  pause() { this.clock.pause(); this.tryTimer.pause(); }
+  pause() { this.clock.pause(); this.tryTimer.pause(); this.attemptTimer.pause(); }
 
   resume() {
     this.clock.resume();
-    if (this.phase === PHASE.TRY) this.tryTimer.resume();
+    if (this.phase === PHASE.TRY) {
+      this.tryTimer.resume();
+      this.attemptTimer.resume();
+    }
   }
 
   summary() {

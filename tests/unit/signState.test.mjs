@@ -4,7 +4,7 @@ import { SIGN_GAME, clipFor, itemById } from '../../inclusiapp/src/sign/signConf
 import { PHASE, SignMatch } from '../../inclusiapp/src/sign/signState.js';
 import { maxRoundScore, stepPoints } from '../../inclusiapp/src/sign/signScore.js';
 
-import { LIBRAS_VIDEOS } from '../../inclusiapp/src/libras/librasVideos.js';
+import { LIBRAS_VIDEOS, VOWEL_CLIPS } from '../../inclusiapp/src/libras/librasVideos.js';
 
 function newMatch(seed = 1) {
   const clock = { now: 0 };
@@ -13,20 +13,24 @@ function newMatch(seed = 1) {
   return { match, clock };
 }
 
-test('os itens: 5 vogais e 5 animais, cada um com a carta do sinal', () => {
-  assert.equal(SIGN_GAME.items.length, 10);
-  assert.deepEqual(SIGN_GAME.items.filter((i) => i.kind === 'letra').map((i) => i.letter), ['A', 'E', 'I', 'O', 'U']);
-  for (const i of SIGN_GAME.items) assert.ok(i.card >= 6 && i.card <= 15, `${i.id}: carta de LIBRAS`);
-  assert.equal(itemById('urso').card, 10);
+test('os itens: só as 5 vogais, cada uma com a carta do sinal e a carta da letra', () => {
+  assert.equal(SIGN_GAME.items.length, 5);
+  assert.deepEqual(SIGN_GAME.items.map((i) => i.letter), ['A', 'E', 'I', 'O', 'U']);
+  for (const i of SIGN_GAME.items) {
+    assert.ok(i.card >= 11 && i.card <= 15, `${i.id}: carta do sinal`);
+    assert.equal(i.letterCard, i.card + 5, `${i.id}: carta da letra`);
+  }
+  assert.equal(itemById('urso'), null);
 });
 
-test('o vídeo de cada desafio: a letra 2 vezes; o animal no trecho com o sinal duas vezes', () => {
-  const a = clipFor(itemById('A'));
-  assert.equal(a.repeat, 2);
-  assert.ok(a.end > a.start && a.end - a.start < 1.5);
-  const urso = clipFor(itemById('urso'));
-  assert.equal(urso.src, LIBRAS_VIDEOS.urso.src);
-  assert.ok(urso.start >= LIBRAS_VIDEOS.urso.sign.start - 1e-9);
+test('o vídeo de cada desafio: a vogal 2 vezes, parando um pouco na vogal', () => {
+  for (const item of SIGN_GAME.items) {
+    const c = clipFor(item);
+    assert.equal(c.repeat, 2);
+    assert.ok(c.hold > 0);
+    assert.equal(c.src, LIBRAS_VIDEOS[VOWEL_CLIPS[item.letter].video].src);
+    assert.ok(c.end > c.start && c.end - c.start < 1.5);
+  }
 });
 
 test('a ordem é embaralhada uma vez por partida, com semente (mesma semente = mesma ordem)', () => {
@@ -59,12 +63,16 @@ test('não deu: pode ver de novo e tentar de novo, sem perder pontos (o bônus s
   match.nextRound();
   match.startTry();
   clock.now += 15000;
+  assert.equal(match.attemptElapsed, 15);
   match.miss();
   assert.equal(match.phase, PHASE.WATCH);
   assert.equal(match.stats.score, 0);
   clock.now += 8000; // revendo o sinal
   match.startTry();
+  // a 2ª tentativa começa com o tempo inteiro (antes começava esgotada: "3, 2, 1… QUASE!")
+  assert.equal(match.attemptElapsed, 0);
   clock.now += 1000;
+  assert.equal(match.attemptElapsed, 1);
   const r = match.correct();
   assert.equal(r.bonus, 5, '16 s de tentativa no total');
   assert.equal(match.round.tries, 2);
@@ -74,19 +82,19 @@ test('pular: sem pontos e quebra a sequência; o fim dá o resumo com estrelas',
   const { match } = newMatch();
   let n = 0;
   for (let item = match.nextRound(); item; item = match.nextRound(), n++) {
-    if (n < 9) {
+    if (n < SIGN_GAME.rounds - 1) {
       match.startTry();
-      match.correct({ self: n % 2 === 0 });
+      match.correct();
     } else {
       match.skip();
     }
   }
   assert.equal(match.phase, PHASE.FINISHED);
   const s = match.summary();
-  assert.equal(s.signsCorrect, 9);
+  assert.equal(s.signsCorrect, SIGN_GAME.rounds - 1);
   assert.equal(s.skipped, 1);
-  assert.equal(s.bestStreak, 9);
-  assert.equal(s.stars, 3);
+  assert.equal(s.bestStreak, SIGN_GAME.rounds - 1);
+  assert.equal(s.stars, 2); // 4 de 5
   assert.equal(s.total, SIGN_GAME.rounds);
 });
 

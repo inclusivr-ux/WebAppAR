@@ -1,6 +1,6 @@
 {
   "name": "inclusiapp-ar",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "SinalizaAção: Animais em Voga — WebApp de Realidade Aumentada: o livro ganha vida (animais em 3D, Maga Aia e Seu Zé, LIBRAS com o Fauston) e a sala de jogos (Jogo de Cartas, Zoológico e Sinalize!) com MindAR, Three.js, three-vrm e MediaPipe",
   "type": "module",

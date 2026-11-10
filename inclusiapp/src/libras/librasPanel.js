@@ -1,11 +1,11 @@
 /**
- * Módulo de LIBRAS do Fauston (no livro em AR).
+ * Módulo de LIBRAS do intérprete (no livro em AR).
  *
  * Não começa sozinho: só abre pelo botão LIBRAS, que aparece quando a câmera
  * vê uma página com animal. Dentro dele há duas atividades separadas:
  *
- *   SINAL     (ícone da mão)    o Fauston faz o sinal do animal; DE NOVO repete
- *   SOLETRAR  (ícone A B C)     o Fauston soletra o nome, letra por letra, e a
+ *   SINAL     (ícone da mão)    o intérprete faz o sinal do animal; DE NOVO repete
+ *   SOLETRAR  (ícone A B C)     o intérprete soletra o nome, letra por letra, e a
  *                               letra da vez fica em destaque (como karaokê:
  *                               as anteriores ficam ciano, as próximas de pedra)
  *
@@ -96,7 +96,7 @@ export class LibrasPanel {
     this.video.setEnabled(true);
     this.onLayout?.();
     const seg = segmentOf(this.data, mode);
-    announce(mode === 'spell' ? `O Fauston soletra ${this.animal.name}.` : `O Fauston faz o sinal de ${this.animal.name}.`);
+    announce(mode === 'spell' ? `O intérprete soletra ${this.animal.name}.` : `O intérprete faz o sinal de ${this.animal.name}.`);
     const finished = await this.video.playSegment(seg.start, seg.end);
     if (!finished || this.mode !== mode || !this.isOpen) return;
     if (mode === 'spell') this._renderProgress(this.data.spell.length);
@@ -104,7 +104,7 @@ export class LibrasPanel {
     this._setStatus('QUER VER DE NOVO?');
   }
 
-  /** Karaokê: destaca a letra que o Fauston está fazendo. */
+  /** Karaokê: destaca a letra que o intérprete está fazendo. */
   update() {
     if (this.mode !== 'spell' || !this.data || this.video.ended) return;
     const i = letterAt(this.data.spell, this.video.currentTime);

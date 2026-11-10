@@ -179,11 +179,12 @@ export class LibrasVideo {
 
   /**
    * Toca só um trecho do vídeo (em segundos), `repeat` vezes seguidas, e para
-   * no fim. `onEnd` é chamado quando acaba (não é chamado se outro trecho
+   * no fim. `hold` (s): fica parado no último quadro de cada vez por esse
+   * tempo. `onEnd` é chamado quando acaba (não é chamado se outro trecho
    * começar antes). Devolve uma promessa resolvida no fim do trecho.
    */
-  playSegment(start, end, { repeat = 1, onEnd = null } = {}) {
-    this.segment = { start, end, left: repeat - 1, onEnd };
+  playSegment(start, end, { repeat = 1, hold = 0, onEnd = null } = {}) {
+    this.segment = { start, end, left: repeat - 1, hold, holdUntil: 0, onEnd };
     this.ended = false;
     const go = () => {
       try {
@@ -215,8 +216,24 @@ export class LibrasVideo {
 
   _checkSegment() {
     const seg = this.segment;
-    if (!seg || this.video.paused && !this.video.seeking) return;
-    if (this.video.currentTime >= seg.end || this.video.ended) {
+    if (!seg) return;
+    // parado no último quadro da vez (hold): espera e segue
+    if (seg.holdUntil) {
+      if (performance.now() < seg.holdUntil) return;
+      seg.holdUntil = 0;
+      seg.held = true;
+    } else if (this.video.paused && !this.video.seeking) {
+      return;
+    }
+    if (seg.held || this.video.currentTime >= seg.end || this.video.ended) {
+      if (seg.hold > 0 && !seg.held) {
+        this.video.pause();
+        // o quadro desenhado pode ter passado um pouco do fim: volta para o fim exato
+        if (this.video.currentTime > seg.end) this.video.currentTime = seg.end;
+        seg.holdUntil = performance.now() + seg.hold * 1000;
+        return;
+      }
+      seg.held = false;
       if (seg.left > 0) {
         seg.left -= 1;
         this.video.currentTime = seg.start;

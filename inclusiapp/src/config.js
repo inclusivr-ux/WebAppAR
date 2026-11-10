@@ -5,14 +5,14 @@
  * 3D → vídeo de LIBRAS, os pares das cartas e os ajustes de AR ficam aqui.
  * Altere este arquivo para mudar o comportamento do app sem mexer no resto
  * do código. Configurações próprias: zoológico (src/zoo/zooConfig.js),
- * Sinalize (src/sign/signConfig.js) e tempos dos vídeos do Fauston
+ * Sinalize (src/sign/signConfig.js) e tempos dos vídeos do intérprete
  * (src/libras/librasVideos.js).
  */
 
 export const APP = {
   name: 'SinalizaAção',
   subtitle: 'Animais em Voga',
-  version: '2.0.0',
+  version: '2.1.0',
   links: {
     store: 'https://loja.inclusivr.com.br/',
     site: 'https://inclusivr.com.br/',
@@ -20,12 +20,12 @@ export const APP = {
 };
 
 /**
- * OS 5 ANIMAIS DO LIVRO (modelos 3D do traço do Igor, repositório inclusivr-animais)
+ * OS 5 ANIMAIS DO LIVRO (modelos 3D do traço do ilustrador, repositório inclusivr-animais)
  *
  *   letter     a vogal (runa) que revela o animal no livro: A de Abelha...
  *   model      .glb leve (meshopt + WebP); `pageModel` substitui no livro
- *              (o elefante da lagoa tem o reflexo turquesa da pág. 17)
- *   portrait   retrato redondo recortado da ilustração do Igor
+ *              (o elefante da lagoa tem o reflexo turquesa da pág. 15)
+ *   portrait   retrato redondo recortado da ilustração do livro
  *   cards      cartas recortáveis: `picture` = face com o desenho,
  *              `sign` = face com o sinal em LIBRAS (as duas faces da MESMA carta)
  *   clips      animações do .glb: `idle` em laço, `walk` em laço (a abelha voa),
@@ -81,7 +81,7 @@ export const animalById = (id) => ANIMALS.find((a) => a.id === id) || null;
  */
 export const CHARACTERS = {
   aia: { id: 'aia', name: 'Maga Aia', model: 'assets/personagens/aia.vrm', portrait: 'assets/img/aia-rosto.webp' },
-  seuze: { id: 'seuze', name: 'Seu Zé', model: 'assets/personagens/seuze.vrm', portrait: null },
+  seuze: { id: 'seuze', name: 'Seu Zé', model: 'assets/personagens/seuze.vrm', portrait: 'assets/img/seuze-rosto.webp' },
 };
 
 /**
@@ -89,7 +89,8 @@ export const CHARACTERS = {
  *
  * `target` é o índice do alvo em assets/targets/paginas.mind, que segue a
  * numeração dos arquivos em /pag (Pagina1 → 0, Pagina2 → 1, ...).
- * `bookPage` é o número impresso no livro.
+ * `bookPage` é o número impresso no livro físico (os arquivos de referência
+ * da diagramação, como "livro_p15", contam 2 páginas a mais).
  *
  * Coordenadas na página: x de −0,5 (esquerda) a +0,5 (direita); y com +
  * para cima, de −altura/2 a +altura/2, na medida da largura da página.
@@ -102,17 +103,18 @@ export const CHARACTERS = {
  * entrar como outra camada da página, sem mudar as existentes.
  */
 export const BOOK_PAGES = [
-  { target: 0, bookPage: 15, thumb: 'assets/img/paginas/pagina-ar1.webp', animal: { id: 'abelha', home: [-0.04, -0.3], size: 0.16, lift: 0.12 } },
-  { target: 1, bookPage: 17, thumb: 'assets/img/paginas/pagina-ar2.webp', animal: { id: 'elefante', home: [-0.05, 0.0], size: 0.27 } },
-  { target: 2, bookPage: 19, thumb: 'assets/img/paginas/pagina-ar3.webp', animal: { id: 'iguana', home: [-0.33, -0.19], size: 0.26 } },
-  { target: 3, bookPage: 21, thumb: 'assets/img/paginas/pagina-ar4.webp', animal: { id: 'onca', home: [0.0, -0.14], size: 0.26 } },
-  { target: 4, bookPage: 23, thumb: 'assets/img/paginas/pagina-ar5.webp', animal: { id: 'urso', home: [0.29, 0.0], size: 0.28 } },
-  // páginas sem animal em AR, com a Aia e o Seu Zé (ilustrações do Igor sem as cartelas de texto:
+  // tamanhos maiores desde 10/11/2026 (a abelha e a iguana estavam pequenas para tocar)
+  { target: 0, bookPage: 13, thumb: 'assets/img/paginas/pagina-ar1.webp', animal: { id: 'abelha', home: [-0.04, -0.26], size: 0.27, lift: 0.08 } },
+  { target: 1, bookPage: 15, thumb: 'assets/img/paginas/pagina-ar2.webp', animal: { id: 'elefante', home: [-0.05, 0.0], size: 0.34 } },
+  { target: 2, bookPage: 17, thumb: 'assets/img/paginas/pagina-ar3.webp', animal: { id: 'iguana', home: [-0.28, -0.17], size: 0.4 } },
+  { target: 3, bookPage: 19, thumb: 'assets/img/paginas/pagina-ar4.webp', animal: { id: 'onca', home: [0.0, -0.14], size: 0.34 } },
+  { target: 4, bookPage: 21, thumb: 'assets/img/paginas/pagina-ar5.webp', animal: { id: 'urso', home: [0.25, 0.0], size: 0.35 } },
+  // páginas sem animal em AR, com a Aia e o Seu Zé (ilustrações do livro sem as cartelas de texto:
   // conferir com o livro impresso; o ideal é exportar a página da diagramação final)
-  { target: 5, bookPage: 10, thumb: 'assets/img/paginas/pagina10.webp', characters: [{ id: 'seuze', home: [0.18, -0.12] }, { id: 'aia', home: [-0.3, -0.18] }] },
-  { target: 6, bookPage: 13, thumb: 'assets/img/paginas/pagina13.webp', characters: [{ id: 'seuze', home: [-0.2, -0.12] }, { id: 'aia', home: [0.22, -0.12] }] },
-  { target: 7, bookPage: 24, thumb: 'assets/img/paginas/pagina24.webp', characters: [{ id: 'seuze', home: [-0.2, -0.14] }, { id: 'aia', home: [0.2, -0.16] }] },
-  { target: 8, bookPage: 25, thumb: 'assets/img/paginas/pagina25.webp', characters: [{ id: 'seuze', home: [-0.2, -0.14] }, { id: 'aia', home: [0.2, -0.14] }] },
+  { target: 5, bookPage: 8, thumb: 'assets/img/paginas/pagina8.webp', characters: [{ id: 'seuze', home: [0.18, -0.12] }, { id: 'aia', home: [-0.3, -0.18] }] },
+  { target: 6, bookPage: 11, thumb: 'assets/img/paginas/pagina11.webp', characters: [{ id: 'seuze', home: [-0.2, -0.12] }, { id: 'aia', home: [0.22, -0.12] }] },
+  { target: 7, bookPage: 22, thumb: 'assets/img/paginas/pagina22.webp', characters: [{ id: 'seuze', home: [-0.2, -0.14] }, { id: 'aia', home: [0.2, -0.16] }] },
+  { target: 8, bookPage: 23, thumb: 'assets/img/paginas/pagina23.webp', characters: [{ id: 'seuze', home: [-0.2, -0.14] }, { id: 'aia', home: [0.2, -0.14] }] },
 ];
 
 export const pageByTarget = (target) => BOOK_PAGES.find((p) => p.target === target) || null;
@@ -127,11 +129,16 @@ export const BOOK = {
   /** margem da página onde ninguém anda (fração da largura) */
   margin: 0.07,
   /**
-   * Quando a página some da câmera, o animal fica um tempo "preso" no último
-   * lugar: pisca, fica transparente e pede para voltar. Se a página voltar
-   * nesse tempo, ele se anima de novo; senão, some.
+   * Quando a página some da câmera, o animal fica "preso" no último lugar:
+   *   holdGraceMs  primeiro só espera, sem piscar (uma falha curta do
+   *                rastreamento, comum ao abaixar o celular, passa despercebida)
+   *   lostGraceMs  depois pisca, fica transparente e pede para voltar; se a
+   *                página voltar nesse tempo, ele se anima de novo; senão, some
+   *   refocusMs    nesse tempo, o rastreamento procura primeiro a mesma página
    */
+  holdGraceMs: 1200,
   lostGraceMs: 4500,
+  refocusMs: 2000,
 };
 
 /**

@@ -18,9 +18,20 @@
  *
  * Se um dia vierem animações gravadas (.vrma, como os sinais do plugin de
  * LIBRAS), elas podem substituir estas sem mudar quem usa o personagem.
+ *
+ * FÍSICA (molas do VRM: cabelo, capa, vestido). No AR, o "mundo" é medido em
+ * pixels da página (uma página ≈ 1000 unidades), e as molas do VRM esperam
+ * metros. Por isso:
+ *   - as molas rodam no espaço do próprio personagem (`center` = a cena do
+ *     VRM): rigidez e gravidade ficam em metros, e o tremor do rastreamento
+ *     não sacode o vestido;
+ *   - os raios das colisões (o vestido contra as pernas) acompanham a escala
+ *     em que o personagem é desenhado.
+ * Sem isso o vestido da Aia "quebrava" (as partes da saia voavam).
  */
 import * as THREE from '../lib/three.js';
 import { getRenderer } from '../ar/arSession.js';
+import { download } from '../lib/download.js';
 
 let vrmLib = null;
 /**
@@ -47,6 +58,7 @@ function loadVrmLib() {
 }
 
 const cache = new Map();
+const _scale = new THREE.Vector3();
 
 async function loadVRM(url) {
   const lib = await loadVrmLib();
@@ -54,7 +66,9 @@ async function loadVRM(url) {
   loader.setMeshoptDecoder(THREE.MeshoptDecoder);
   loader.setKTX2Loader(lib.ktx2);
   loader.register((parser) => new lib.VRMLoaderPlugin(parser));
-  const gltf = await loader.loadAsync(url);
+  // o download tem progresso (a barra "chegando..." do livro) e é o mesmo da pré-carga
+  const buffer = await download(url);
+  const gltf = await loader.parseAsync(buffer, url.slice(0, url.lastIndexOf('/') + 1));
   const vrm = gltf.userData.vrm;
   if (!vrm) throw new Error(`${url} não é um VRM`);
   lib.VRMUtils.removeUnnecessaryVertices(gltf.scene);
@@ -77,6 +91,11 @@ export function getCharacter(character) {
 
 export function prefetchCharacterLib() {
   loadVrmLib().catch(() => {});
+}
+
+/** Baixa o VRM em segundo plano (sem montar: montar trava o celular por um instante). */
+export function prefetchCharacter(character) {
+  return download(character.model).catch(() => {});
 }
 
 const ONE_SHOTS = { happy: 1.6, ola: 2.4, worried: 2.2, special: 2.4 };
@@ -106,13 +125,26 @@ export class CharacterModel {
     vrm.scene.position.y = -box.min.y * this.normalize;
     this.size = [size.x * this.normalize, 1, size.z * this.normalize];
 
+    // o estado original de cada material: a íris e o brilho dos olhos, por
+    // exemplo, já são transparentes e têm que continuar assim depois do "sumir"
     this.materials = [];
     vrm.scene.traverse((o) => {
       if (!o.isMesh) return;
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-        if (m && !this.materials.includes(m)) this.materials.push(m);
+        if (!m || this.materials.some((x) => x.material === m)) continue;
+        this.materials.push({ material: m, transparent: m.transparent, depthWrite: m.depthWrite, opacity: m.opacity ?? 1 });
       }
     });
+
+    // molas no espaço do personagem, com colisões na escala certa (ver o topo do arquivo)
+    const springs = vrm.springBoneManager;
+    this.springs = springs ? {
+      manager: springs,
+      joints: [...springs.joints].map((j) => ({ joint: j, hitRadius: j.settings.hitRadius })),
+      shapes: [...springs.colliders].map((c) => ({ shape: c.shape, radius: c.shape.radius })),
+      scale: 1,
+    } : null;
+    if (springs) for (const j of springs.joints) j.center = vrm.scene;
 
     const bone = (name) => vrm.humanoid?.getNormalizedBoneNode(name) || null;
     this.bones = Object.fromEntries([
@@ -156,14 +188,39 @@ export class CharacterModel {
   setOpacity(value) {
     const o = THREE.MathUtils.clamp(value, 0, 1);
     if (Math.abs(o - this.opacity) < 1e-3) return;
+    const wasFading = this.opacity < 0.999;
+    const fading = o < 0.999;
     this.opacity = o;
-    for (const m of this.materials) {
-      m.transparent = o < 0.999 || m.userData.wasTransparent === true;
-      if (m.userData.wasTransparent === undefined) m.userData.wasTransparent = m.transparent && o >= 0.999;
-      m.opacity = o;
-      m.needsUpdate = true;
+    for (const base of this.materials) {
+      const m = base.material;
+      m.opacity = base.opacity * o;
+      if (fading !== wasFading) {
+        // ao sumir, tudo fica transparente; ao voltar, cada material volta ao que era
+        m.transparent = fading || base.transparent;
+        m.depthWrite = base.depthWrite;
+        m.needsUpdate = true;
+      }
     }
     this.root.visible = o > 0.01;
+  }
+
+  /** Molas na posição de descanso (ao aparecer na página). */
+  resetPhysics() {
+    if (!this.springs) return;
+    this.root.updateWorldMatrix(true, true);
+    this._scaleSprings();
+    this.springs.manager.reset();
+  }
+
+  /** Os raios das colisões acompanham a escala em que o personagem é desenhado. */
+  _scaleSprings() {
+    const sp = this.springs;
+    if (!sp) return;
+    const k = this.vrm.scene.getWorldScale(_scale).x;
+    if (!(k > 0) || Math.abs(k - sp.scale) <= k * 1e-4) return;
+    sp.scale = k;
+    for (const j of sp.joints) j.joint.settings.hitRadius = j.hitRadius * k;
+    for (const c of sp.shapes) c.shape.radius = c.radius * k;
   }
 
   _expression(name, value) {
@@ -247,6 +304,7 @@ export class CharacterModel {
     }
     this._expression('happy', happy);
     this._expression('blink', happy > 0.5 ? 0 : blink);
+    this._scaleSprings();
     this.vrm.update(dt);
   }
 

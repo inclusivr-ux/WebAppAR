@@ -1,5 +1,5 @@
 /**
- * VÍDEOS DE LIBRAS DO FAUSTON: onde está cada parte em cada vídeo.
+ * VÍDEOS DE LIBRAS DO INTÉRPRETE: onde está cada parte em cada vídeo.
  *
  * Cada vídeo (videos/<animal>.mp4) tem duas partes seguidas:
  *   1. a SOLETRAÇÃO do nome, letra por letra (datilologia);
@@ -13,7 +13,7 @@
  * quadro, com erro de cerca de 0,1 s. Cada letra vai do meio da passagem
  * anterior até o meio da próxima, para o destaque nunca "pular" um quadro.
  *
- * `conferido: false` = falta o Fauston conferir. Para ajustar: mude os números
+ * `conferido: false` = falta o intérprete conferir. Para ajustar: mude os números
  * e veja no app (Livro → página do animal → LIBRAS → SOLETRAR).
  */
 export const LIBRAS_VIDEOS = {
@@ -93,20 +93,29 @@ export const LIBRAS_VIDEOS = {
 };
 
 /**
- * As VOGAIS sozinhas: a primeira letra da soletração de cada animal é a
- * vogal da runa (A de ABELHA, E de ELEFANTE, I de IGUANA, O de ONÇA, U de URSO).
- * Assim o Sinalize mostra o Fauston fazendo a letra sem precisar de vídeo novo.
+ * As VOGAIS sozinhas (Sinalize!): a primeira letra da soletração de cada
+ * animal é a vogal (A de ABELHA, E de ELEFANTE, I de IGUANA, O de ONÇA, U de
+ * URSO). O trecho começa com a mão subindo do repouso e TERMINA enquanto a mão
+ * ainda está parada na vogal, antes de começar a letra seguinte (o U de URSO
+ * não mostra o R). Medido quadro a quadro em 10/11/2026 (a cada 0,1 s):
+ *   A  mão parada de 0,5 a 1,2 s; em 1,3 s começa o B
+ *   E  mão parada de 1,0 a 1,52 s; a partir de 1,55 s vai para o L
+ *   I  mão parada de 0,5 a 1,15 s; em 1,2 s começa o G
+ *   O  mão parada de 1,0 a 1,5 s; em 1,6 s começa o N
+ *   U  mão parada de 1,2 a 1,62 s; em 1,7 s os dedos começam a cruzar (R)
+ * `hold`: no fim de cada vez, o vídeo fica parado na vogal por este tempo (s),
+ * para a criança ver bem a mão.
  */
 export const VOWEL_CLIPS = {
-  A: { video: 'abelha', ...LIBRAS_VIDEOS.abelha.spell[0] },
-  E: { video: 'elefante', ...LIBRAS_VIDEOS.elefante.spell[0] },
-  I: { video: 'iguana', ...LIBRAS_VIDEOS.iguana.spell[0] },
-  O: { video: 'onca', ...LIBRAS_VIDEOS.onca.spell[0] },
-  U: { video: 'urso', ...LIBRAS_VIDEOS.urso.spell[0] },
+  A: { video: 'abelha', start: 0.3, end: 1.2, hold: 0.7 },
+  E: { video: 'elefante', start: 0.7, end: 1.52, hold: 0.7 },
+  I: { video: 'iguana', start: 0.25, end: 1.13, hold: 0.7 },
+  O: { video: 'onca', start: 0.75, end: 1.5, hold: 0.7 },
+  U: { video: 'urso', start: 0.95, end: 1.6, hold: 0.7 },
 };
 
 /**
- * Índice da letra que o Fauston está fazendo no instante `t` (karaokê), ou
+ * Índice da letra que o intérprete está fazendo no instante `t` (karaokê), ou
  * −1 antes da primeira letra. Depois da última, continua na última.
  */
 export function letterAt(spell, t) {
