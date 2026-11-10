@@ -11,14 +11,28 @@ const run = (zoo, seconds, step = 0.1) => {
   return events;
 };
 
+// carta N do baralho = alvo N−1 do cartas.mind (sem a página 22 desde a versão 2.2)
+const card = (n) => ZOO_CARDS[n - 1];
+
 test('as 20 cartas: as duas faces de cada animal trazem o animal; as das vogais trazem a letra', () => {
   assert.equal(Object.keys(ZOO_CARDS).length, 20);
+  assert.equal(ZOO.targets, 'assets/targets/cartas', 'só as cartas: a página 22 saiu');
   for (const a of ANIMALS) {
-    assert.deepEqual([ZOO_CARDS[a.cards.picture].type, ZOO_CARDS[a.cards.sign].type], [a.id, a.id]);
+    assert.deepEqual([card(a.cards.picture).type, card(a.cards.sign).type], [a.id, a.id]);
   }
-  for (let n = 11; n <= 20; n++) assert.equal(ZOO_CARDS[n].kind, 'letra');
-  assert.equal(ZOO_CARDS[11].type, 'A', 'a carta do sinal do A');
-  assert.equal(ZOO_CARDS[16].type, 'A', 'a carta da letra A');
+  for (let n = 11; n <= 20; n++) assert.equal(card(n).kind, 'letra');
+  assert.equal(card(11).type, 'A', 'a carta do sinal do A');
+  assert.equal(card(16).type, 'A', 'a carta da letra A');
+});
+
+test('cada face sabe qual é a outra face da mesma carta (as duas saem da procura juntas)', () => {
+  for (const [t, c] of Object.entries(ZOO_CARDS)) {
+    assert.equal(c.target, Number(t));
+    const twin = ZOO_CARDS[c.twin];
+    assert.equal(twin.twin, c.target);
+    assert.deepEqual([twin.kind, twin.type], [c.kind, c.type]);
+    assert.notEqual(twin.face, c.face);
+  }
 });
 
 test('um de cada no zoológico, até o limite', () => {
@@ -29,9 +43,7 @@ test('um de cada no zoológico, até o limite', () => {
   assert.equal(zoo.find('animal', 'urso'), urso);
   for (const a of ['abelha', 'elefante', 'iguana', 'onca']) assert.ok(zoo.add('animal', a));
   for (const l of 'AEIOU') assert.ok(zoo.add('letra', l));
-  assert.ok(zoo.add('personagem', 'aia'));
-  assert.ok(zoo.add('personagem', 'seuze'));
-  assert.equal(zoo.count, ZOO.maxItems);
+  assert.equal(zoo.count, ZOO.maxItems, '5 animais + 5 letras');
   assert.ok(zoo.full);
   assert.ok(zoo.remove(urso.id));
   assert.equal(zoo.find('animal', 'urso'), null);
@@ -103,10 +115,10 @@ test('de tempos em tempos o animal vai visitar a sua letra (ou um amigo)', () =>
   assert.equal(LETTER_OF.urso, 'U');
 });
 
-test('a Aia, o Seu Zé e as letras não sentem fome nem querem brincar', () => {
+test('as letras não sentem fome nem querem brincar', () => {
   const zoo = new ZooState({ random: seededRandom(9) });
-  zoo.add('personagem', 'aia', { x: 0, y: 0 });
-  zoo.add('letra', 'A', { x: 0.3, y: 0 });
+  zoo.add('letra', 'A', { x: 0, y: 0 });
+  zoo.add('letra', 'E', { x: 0.3, y: 0 });
   const ev = run(zoo, ZOO.needEvery[1] + 2, 0.5);
   assert.equal(ev.filter((e) => e.type === 'need' || e.type === 'visit').length, 0);
 });

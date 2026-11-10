@@ -101,6 +101,20 @@ export class Wanderer {
     this.restLeft = 0;
   }
 
+  /**
+   * Troca a área do passeio (a página do livro ↔ o palco de brincar). Se o
+   * animal ficou fora da área nova, ele volta andando (sem pulo).
+   */
+  setBounds(bounds) {
+    this.bounds = bounds;
+    if (!inBounds(this.pos, bounds)) {
+      this.target = clampToBounds(this.pos, bounds);
+      this.restLeft = 0;
+    } else if (this.target && !inBounds(this.target, bounds)) {
+      this.target = clampToBounds(this.target, bounds);
+    }
+  }
+
   update(dt) {
     const out = { pos: this.pos, heading: this.heading, moving: false, arrived: false, edge: false };
     if (this.paused) return out;
@@ -125,7 +139,9 @@ export class Wanderer {
       this.target = null;
       this.restLeft = this._restTime();
     } else {
-      this.pos = clampToBounds([this.pos[0] + (dx / dist) * step, this.pos[1] + (dy / dist) * step], this.bounds);
+      const next = [this.pos[0] + (dx / dist) * step, this.pos[1] + (dy / dist) * step];
+      // fora da área (ela acabou de mudar): anda de volta sem ser "puxado" para dentro
+      this.pos = inBounds(this.pos, this.bounds) ? clampToBounds(next, this.bounds) : next;
       out.moving = true;
     }
     out.pos = this.pos;

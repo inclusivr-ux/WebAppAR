@@ -3,8 +3,12 @@
  *
  *   o jogo sorteia uma VOGAL (ordem fixa por partida, com semente)
  *   → mostra a letra e a carta do sinal → o intérprete faz o sinal DUAS vezes
- *   → 3, 2, 1… SUA VEZ: a criança faz o sinal para a câmera (frontal)
- *   → a câmera reconheceu dentro do tempo: ISSO! + pontos → próximo
+ *   → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
+ *   → a câmera reconheceu: ISSO! → próximo
+ *   → a câmera viu outro sinal: QUASE! Olhe de novo… (e a criança continua)
+ *
+ * Sem pontos e sem tempo (pedido da equipe, 10/11/2026): o relógio passava a
+ * ideia de fazer rápido, e o reconhecimento funciona melhor com calma.
  *
  * Só as vogais: são configurações de mão paradas, que a câmera reconhece bem
  * (cerca de 90% nos testes da equipe). Os sinais dos animais têm movimento e
@@ -36,32 +40,10 @@ export const SIGN_GAME = {
   /** o intérprete faz a vogal duas vezes (e para um pouco na vogal, ver VOWEL_CLIPS.hold) */
   watch: { letterTimes: 2 },
 
-  /**
-   * PONTUAÇÃO: sinal reconhecido = `points` + bônus de rapidez (contado do
-   * "SUA VEZ!" até a câmera reconhecer). Errar ou pular não tira pontos.
-   */
-  scoring: {
-    sign: {
-      points: 100,
-      speed: {
-        mode: 'tiers',
-        tiers: [
-          { upTo: 3, bonus: 50 },
-          { upTo: 6, bonus: 30 },
-          { upTo: 9, bonus: 15 },
-          { upTo: Infinity, bonus: 5 },
-        ],
-      },
-    },
-  },
-
-  /** estrelas no fim: fração dos sinais certos */
-  stars: [{ min: 0.9, stars: 3 }, { min: 0.5, stars: 2 }, { min: 0, stars: 1 }],
-
   timing: {
-    countdown: 3, // 3, 2, 1… antes da vez da criança
-    tryFor: 15, // segundos de CADA tentativa para fazer o sinal (depois: QUASE! e as opções)
-    nextMs: 1700, // depois do ISSO!, até o próximo desafio
+    nextMs: 1900, // depois do ISSO!, até o próximo desafio
+    almostMs: 2600, // quanto tempo o "QUASE!" fica na tela (a criança continua tentando)
+    tipAfter: 12, // segundos sem acertar até aparecer UMA dica (luz, mão inteira na tela); nada se perde
   },
 
   /** câmera: 'user' = frontal (padrão; dá para trocar na tela) */

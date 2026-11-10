@@ -1,9 +1,9 @@
 /**
  * Inicialização do app SinalizaAção: Animais em Voga.
  *
- *   INÍCIO ─┬─ LIVRO ── instruções ── câmera (páginas → animais, Aia e Seu Zé + LIBRAS)
+ *   INÍCIO ─┬─ LIVRO ── instruções ── câmera (páginas → animais + LIBRAS; palco de brincar)
  *           └─ JOGOS ─┬─ JOGO DE CARTAS ── como jogar ── câmera (ache o sinal do par)
- *                     ├─ ZOOLÓGICO ── como brincar ── câmera (página 22 + cartas → animais e letras)
+ *                     ├─ ZOOLÓGICO ── como brincar ── câmera (cartas → animais e letras no palco)
  *                     └─ SINALIZE! ── como jogar ── câmera frontal (veja o sinal e faça igual)
  */
 import { Router } from './router.js';

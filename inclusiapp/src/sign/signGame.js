@@ -2,9 +2,13 @@
  * SINALIZE! — a tela do jogo.
  *
  *   a vogal na tela (a letra e a carta do sinal) → OLHE: o intérprete faz o
- *   sinal duas vezes → 3, 2, 1 → SUA VEZ: a criança faz o sinal para a câmera
- *   → a câmera reconheceu: ISSO! + pontos → próximo desafio (ordem fixa)
- *   → o tempo da tentativa acabou: QUASE! → TENTAR DE NOVO ou PRÓXIMO
+ *   sinal duas vezes → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA", com calma
+ *   → a câmera reconheceu: ISSO! → próximo desafio (ordem fixa)
+ *   → a câmera viu outro sinal: QUASE! Olhe de novo... (e a criança continua)
+ *
+ * Sem pontos, sem contagem regressiva e sem tempo limite desde a versão 2.2:
+ * o relógio fazia a criança se apressar, e o reconhecimento da mão funciona
+ * melhor com calma. Só certo e "quase", com a instrução bem clara.
  *
  * O jogo precisa da câmera, como os outros jogos (não há botões "acertei" e
  * "errei", que dariam para trapacear). Nada de esqueleto da mão nem termos
@@ -19,14 +23,12 @@ import { LIBRAS } from '../config.js';
 import { getRenderer } from '../ar/arSession.js';
 import { LibrasVideo } from '../ar/videoChroma.js';
 import { announce, clearToasts, toast } from '../ui/notifications.js';
-import { storage } from '../ui/storage.js';
 import { isSoundOn, setSound, sfx, unlockAudio } from '../ui/sound.js';
 import { celebrate, sparkle } from '../ui/effects.js';
 import { SIGN_GAME, clipFor } from './signConfig.js';
 import { PHASE, SignMatch } from './signState.js';
 import { HandTracker } from './handTracker.js';
 import { createRecognizer } from './signRecognizers.js';
-import { applyMatch, loadRecords, saveRecords } from './signRecords.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const icon = (name, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -39,7 +41,6 @@ export class SignGame {
       sound: q('[data-action="sound"]'),
       progress: q('[data-progress]'),
       round: q('[data-round-label]'),
-      score: q('[data-score]'),
       card: q('[data-card-img]'),
       stepBox: q('[data-step-box]'),
       stepText: q('[data-step-text]'),
@@ -50,9 +51,7 @@ export class SignGame {
       cam: q('[data-cam-video]'),
       camMsg: q('[data-cam-msg]'),
       hold: q('[data-hold]'),
-      countdown: q('[data-countdown]'),
       actions: q('[data-sz-actions]'),
-      retry: q('[data-sz-retry]'),
       letter: q('[data-letter]'),
       noCamera: q('[data-no-camera]'),
       noCameraText: q('[data-no-camera-text]'),
@@ -64,7 +63,6 @@ export class SignGame {
     };
     const on = (sel, fn) => screen.querySelectorAll(sel).forEach((b) => b.addEventListener('click', fn));
     on('[data-action="watch-again"]', () => this.watchAgain());
-    on('[data-action="try-again"]', () => this.watchAgain());
     on('[data-action="skip-round"]', () => this.skipRound());
     on('[data-action="flip-camera"]', () => this.flipCamera());
     on('[data-action="replay"]', () => this.newMatch());
@@ -142,6 +140,7 @@ export class SignGame {
     this.active = false;
     this.token = {};
     cancelAnimationFrame(this._raf);
+    clearTimeout(this._feedbackTimer);
     this._stopCamera();
     this.libras?.dispose();
     this.libras = null;
@@ -289,37 +288,25 @@ export class SignGame {
     const item = this.match.round.item;
     cancelAnimationFrame(this._raf);
     this._showButtons('watch');
-    this._step('olhe', 'olho', 'OLHE O SINAL');
+    this._step('olhe', 'olho', `OLHE O SINAL DO <b>${item.letter}</b>`);
     this.el.videoPanel.classList.add('is-olhe');
-    announce(`Olhe o sinal: ${item.label}.`);
+    this.el.camPanel.classList.remove('is-vez');
+    announce(`Olhe o sinal da letra ${item.letter}.`);
     await this._playClip(item);
     this.el.videoPanel.classList.remove('is-olhe');
     if (!this._alive(token) || this.match.phase !== PHASE.WATCH) return;
-    await this._countdown(token);
-    if (!this._alive(token) || this.match.phase !== PHASE.WATCH) return;
+    // sem 3, 2, 1 e sem relógio: a vez da criança começa com calma
     this.match.startTry();
-    this._step('vez', 'mao', 'SUA VEZ!');
-    announce('Sua vez! Faça o sinal.');
+    this._step('vez', 'mao', `SUA VEZ! FAÇA O SINAL DO <b>${item.letter}</b> PARA A CÂMERA`);
+    this.el.camPanel.classList.add('is-vez');
+    announce(`Sua vez! Faça o sinal da letra ${item.letter} para a câmera.`);
     sfx.reveal();
     this._showButtons('watch');
     this.recognizer = createRecognizer(item, SIGN_GAME.recognition);
     this._camMsg('MOSTRE A MÃO');
+    this._tryStartedAt = performance.now();
+    this._tipShown = false;
     this._loop(token);
-  }
-
-  async _countdown(token) {
-    const box = this.el.countdown;
-    box.hidden = false;
-    for (let n = SIGN_GAME.timing.countdown; n > 0; n--) {
-      box.textContent = n;
-      box.classList.remove('is-pulso');
-      void box.offsetWidth;
-      box.classList.add('is-pulso');
-      sfx.tick();
-      await sleep(700);
-      if (!this._alive(token)) break;
-    }
-    box.hidden = true;
   }
 
   _loop(token) {
@@ -338,11 +325,12 @@ export class SignGame {
           this._success();
           return;
         }
+        if (r.event === 'wrong') this._almost();
       }
-      // o limite vale para cada tentativa (a soma das tentativas conta só para o bônus)
-      if (this.match.attemptElapsed > SIGN_GAME.timing.tryFor) {
-        this._timeout();
-        return;
+      // sem tempo limite: depois de um tempo sem acertar, só UMA dica (nada se perde)
+      if (!this._tipShown && now - this._tryStartedAt > SIGN_GAME.timing.tipAfter * 1000) {
+        this._tipShown = true;
+        this._tip();
       }
       this._raf = requestAnimationFrame(tick);
     };
@@ -353,16 +341,17 @@ export class SignGame {
     const token = this.token;
     const result = this.match.correct();
     if (!result) return;
-    this.el.camPanel.classList.remove('sg-cam--confere');
+    const { letter } = this.match.round.item;
+    this.el.camPanel.classList.remove('sg-cam--confere', 'is-vez');
     this.el.camPanel.classList.add('sg-cam--acertou');
     this._camMsg('ISSO!');
-    this._step('certo', 'check', 'ISSO!');
+    this._step('certo', 'check', `ISSO! VOCÊ FEZ O <b>${letter}</b>!`);
     this._renderHud();
     sfx.correct();
     const r = this.el.camPanel.getBoundingClientRect();
     sparkle(this.screen, r.left + r.width / 2, r.top + r.height / 2, { count: 18 });
-    this._feedback('certo', 'check', 'ISSO!', `Você fez ${this.match.round.item.label}!`, `+${result.total}`);
-    announce(`Isso! Mais ${result.total} pontos.`);
+    this._feedback('certo', 'check', 'ISSO!', `Você fez o ${letter}!`);
+    announce(`Isso! Você fez o ${letter}!`);
     this._showButtons('none');
     await sleep(SIGN_GAME.timing.nextMs);
     if (!this._alive(token)) return;
@@ -370,18 +359,22 @@ export class SignGame {
     this._round();
   }
 
-  _timeout() {
-    this.match.miss();
-    this.el.camPanel.classList.remove('sg-cam--confere');
-    this._camMsg('');
-    this._step('quase', 'repetir', 'QUASE!');
-    this._feedback('quase', 'olho', 'QUASE!', 'Vamos ver o sinal de novo?', '', 2600);
+  /** A câmera viu outro sinal por um tempo: QUASE! A criança continua tentando (nada se perde). */
+  _almost() {
+    const { letter } = this.match.round.item;
+    this.match.almost();
     sfx.wrong();
-    announce('Quase! Vamos ver o sinal de novo?');
-    this._showButtons('retry');
+    this._feedback('quase', 'olho', 'QUASE!', `Olhe de novo o sinal do ${letter} na carta e tente outra vez.`, SIGN_GAME.timing.almostMs);
+    announce(`Quase! Olhe de novo o sinal do ${letter}.`);
   }
 
-  /** Ver o sinal de novo (também é o "TENTAR DE NOVO"). */
+  /** Muito tempo sem acertar: uma dica de como a câmera vê melhor (sem pressa). */
+  _tip() {
+    this._feedback('dica', 'ajuda', 'DICA', 'Mostre a mão inteira na câmera, com bastante luz. Se quiser, toque em VER DE NOVO.', 4200);
+    announce('Dica: mostre a mão inteira na câmera, com bastante luz.');
+  }
+
+  /** Ver o sinal de novo (a criança pode olhar quantas vezes quiser). */
   async watchAgain() {
     if (![PHASE.TRY, PHASE.WATCH].includes(this.match?.phase)) return;
     this.token = {};
@@ -400,22 +393,18 @@ export class SignGame {
     this._round();
   }
 
+  /** Fim: "Você fez X de 5", com cada vogal (certa ou pulada). Sem pontos nem recorde. */
   _finish() {
     const s = this.match.summary();
-    const before = loadRecords(storage);
-    const { records, improved } = applyMatch(before, s);
-    saveRecords(storage, records);
     const box = this.el.summary;
-    box.querySelector('[data-sum="signs"]').textContent = `${s.signsCorrect}/${s.total}`;
-    box.querySelector('[data-sum="score"]').textContent = s.score;
-    box.querySelector('[data-sum="record"]').textContent = records.bestScore;
-    box.querySelector('[data-sum-new-record]').hidden = !improved.score;
-    box.querySelector('[data-sum-stars]').innerHTML = [1, 2, 3].map((n) => icon('estrela', `ico${n <= s.stars ? ' is-acesa' : ''}`)).join('');
+    box.querySelector('[data-sum-title]').textContent = s.signsCorrect === s.total ? 'PARABÉNS!' : s.signsCorrect ? 'MUITO BEM!' : 'VAMOS TREINAR MAIS?';
+    box.querySelector('[data-sum="signs"]').textContent = `${s.signsCorrect} DE ${s.total}`;
+    box.querySelector('[data-sum-vowels]').innerHTML = s.results.map((r) => `<li class="${r.ok ? 'is-certo' : 'is-pulou'}" aria-label="${r.id}: ${r.ok ? 'certo' : 'pulou'}"><span class="sg-letra-grande" aria-hidden="true">${r.id}</span>${icon(r.ok ? 'check' : 'pular')}</li>`).join('');
     box.hidden = false;
     this._showButtons('none');
     sfx.fanfare();
-    celebrate(this.screen, 60);
-    announce(`Fim! ${s.signsCorrect} sinais de ${s.total}, ${s.score} pontos.`);
+    celebrate(this.screen, s.signsCorrect ? 60 : 20);
+    announce(`Fim! Você fez ${s.signsCorrect} de ${s.total} sinais.`);
     box.querySelector('[data-action="replay"]').focus();
   }
 
@@ -429,12 +418,12 @@ export class SignGame {
     this.el.name.textContent = item.label;
   }
 
-  _step(kind, iconName, text) {
+  /** O passo da vez, com a letra em destaque (o texto vem do próprio jogo, não da pessoa). */
+  _step(kind, iconName, html) {
     const box = this.el.stepBox;
     box.classList.toggle('is-vez', kind === 'vez');
     box.classList.toggle('is-certo', kind === 'certo');
-    box.classList.toggle('is-quase', kind === 'quase');
-    this.el.stepText.innerHTML = `${icon(iconName)} ${text}`;
+    this.el.stepText.innerHTML = `${icon(iconName)} <span>${html}</span>`;
   }
 
   _camMsg(text) {
@@ -444,13 +433,12 @@ export class SignGame {
 
   _showButtons(which) {
     this.el.actions.hidden = which !== 'watch';
-    this.el.retry.hidden = which !== 'retry';
   }
 
-  _feedback(kind, iconName, title, text, points = '', duration = 0) {
+  _feedback(kind, iconName, title, text, duration = 0) {
     const box = this.el.feedback;
     box.className = `faixa faixa--${kind}`;
-    box.innerHTML = `${icon(iconName, 'ico faixa__ico')}<span><b class="faixa__titulo">${title}</b><span class="faixa__texto"></span></span>${points ? `<b class="faixa__pontos">${points}</b>` : ''}`;
+    box.innerHTML = `${icon(iconName, 'ico faixa__ico')}<span><b class="faixa__titulo">${title}</b><span class="faixa__texto"></span></span>`;
     box.querySelector('.faixa__texto').textContent = text;
     box.hidden = false;
     clearTimeout(this._feedbackTimer);
@@ -462,7 +450,6 @@ export class SignGame {
     const total = m.rounds;
     const n = Math.max(1, Math.min(total, (m.index ?? 0) + 1));
     this.el.round.textContent = `${n} DE ${total}`;
-    this.el.score.textContent = m.stats?.score ?? 0;
     const done = m.results?.length || 0;
     this.el.progress.style.width = `${(done / total) * 100}%`;
   }

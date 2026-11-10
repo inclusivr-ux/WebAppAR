@@ -1,8 +1,8 @@
 /**
  * CONFIGURAÇÃO CENTRAL — SinalizaAção: Animais em Voga
  *
- * Tudo o que liga página do livro → alvo AR → animal ou personagem → modelo
- * 3D → vídeo de LIBRAS, os pares das cartas e os ajustes de AR ficam aqui.
+ * Tudo o que liga página do livro → alvo AR → animal → modelo 3D → vídeo de
+ * LIBRAS, os pares das cartas e os ajustes de AR ficam aqui.
  * Altere este arquivo para mudar o comportamento do app sem mexer no resto
  * do código. Configurações próprias: zoológico (src/zoo/zooConfig.js),
  * Sinalize (src/sign/signConfig.js) e tempos dos vídeos do intérprete
@@ -12,7 +12,7 @@
 export const APP = {
   name: 'SinalizaAção',
   subtitle: 'Animais em Voga',
-  version: '2.1.1',
+  version: '2.2.0',
   links: {
     store: 'https://loja.inclusivr.com.br/',
     site: 'https://inclusivr.com.br/',
@@ -75,32 +75,21 @@ export const ANIMALS = [
 export const animalById = (id) => ANIMALS.find((a) => a.id === id) || null;
 
 /**
- * MAGA AIA E SEU ZÉ (VRM 1.0 leves para o navegador: repositórios
- * inclusivr-aia e inclusivr-personagens). Animações feitas por código
- * (src/characters/characterModel.js): olá, feliz, andar e reação ao toque.
- */
-export const CHARACTERS = {
-  aia: { id: 'aia', name: 'Maga Aia', model: 'assets/personagens/aia.vrm', portrait: 'assets/img/aia-rosto.webp' },
-  seuze: { id: 'seuze', name: 'Seu Zé', model: 'assets/personagens/seuze.vrm', portrait: 'assets/img/seuze-rosto.webp' },
-};
-
-/**
  * LIVRO EM AR: as páginas que têm realidade aumentada nesta versão.
  *
  * `target` é o índice do alvo em assets/targets/paginas.mind, que segue a
- * numeração dos arquivos em /pag (Pagina1 → 0, Pagina2 → 1, ...).
+ * numeração dos arquivos em /pag (Pagina1 → 0, Pagina2 → 1, ...). São as
+ * mesmas 5 páginas (e o mesmo arquivo) da primeira versão do app.
  * `bookPage` é o número impresso no livro físico (os arquivos de referência
  * da diagramação, como "livro_p15", contam 2 páginas a mais).
  *
  * Coordenadas na página: x de −0,5 (esquerda) a +0,5 (direita); y com +
  * para cima, de −altura/2 a +altura/2, na medida da largura da página.
- *   home   onde o animal (ou personagem) está desenhado: é dali que ele salta
+ *   home   onde o animal está desenhado: é dali que ele salta
  *   size   tamanho do animal em relação à largura da página
  *   lift   altura do voo (abelha), na medida da largura da página
  *
- * Para o futuro: cada página é uma lista de "camadas". Hoje há animais e
- * personagens; a leitura da história pela Maga Aia (plugin de LIBRAS) pode
- * entrar como outra camada da página, sem mudar as existentes.
+ * A Maga Aia e o Seu Zé em 3D foram arquivados em 10/11/2026 (docs/ARQUIVO.md).
  */
 export const BOOK_PAGES = [
   // tamanhos maiores desde 10/11/2026 (a abelha e a iguana estavam pequenas para tocar)
@@ -109,36 +98,55 @@ export const BOOK_PAGES = [
   { target: 2, bookPage: 17, thumb: 'assets/img/paginas/pagina-ar3.webp', animal: { id: 'iguana', home: [-0.28, -0.17], size: 0.4 } },
   { target: 3, bookPage: 19, thumb: 'assets/img/paginas/pagina-ar4.webp', animal: { id: 'onca', home: [0.0, -0.14], size: 0.34 } },
   { target: 4, bookPage: 21, thumb: 'assets/img/paginas/pagina-ar5.webp', animal: { id: 'urso', home: [0.25, 0.0], size: 0.35 } },
-  // páginas sem animal em AR, com a Aia e o Seu Zé (ilustrações do livro sem as cartelas de texto:
-  // conferir com o livro impresso; o ideal é exportar a página da diagramação final)
-  { target: 5, bookPage: 8, thumb: 'assets/img/paginas/pagina8.webp', characters: [{ id: 'seuze', home: [0.18, -0.12] }, { id: 'aia', home: [-0.3, -0.18] }] },
-  { target: 6, bookPage: 11, thumb: 'assets/img/paginas/pagina11.webp', characters: [{ id: 'seuze', home: [-0.2, -0.12] }, { id: 'aia', home: [0.22, -0.12] }] },
-  { target: 7, bookPage: 22, thumb: 'assets/img/paginas/pagina22.webp', characters: [{ id: 'seuze', home: [-0.2, -0.14] }, { id: 'aia', home: [0.2, -0.16] }] },
-  { target: 8, bookPage: 23, thumb: 'assets/img/paginas/pagina23.webp', characters: [{ id: 'seuze', home: [-0.2, -0.14] }, { id: 'aia', home: [0.2, -0.14] }] },
 ];
 
 export const pageByTarget = (target) => BOOK_PAGES.find((p) => p.target === target) || null;
 export const pageOfAnimal = (id) => BOOK_PAGES.find((p) => p.animal?.id === id) || null;
 
+/**
+ * O PALCO DE BRINCAR: uma "página" invisível na frente da câmera, onde o
+ * animal fica quando a página do livro sai da câmera (e onde o zoológico
+ * acontece). Coordenadas da câmera: centro da tela, +y para cima.
+ *   elevation  inclinação do "chão" (graus): 90 = visto de cima, 0 = de lado
+ *   widthFrac  largura da página do palco, em frações da largura da tela
+ *   maxHeightFrac  em paisagem, a largura não passa desta fração da altura
+ *   centerY    altura do centro (fração da altura da tela; − = abaixo do meio)
+ *   minZoom / maxZoom  limites da pinça
+ *   walk       área do passeio no palco: fração da metade da largura da tela
+ *              (o animal não sai da tela) e profundidade (fração da página)
+ */
+export const STAGE = {
+  elevation: 24,
+  widthFrac: 1.45,
+  maxHeightFrac: 0.8,
+  centerY: -0.17,
+  minZoom: 0.6,
+  maxZoom: 2.4,
+  walk: { screen: 0.86, depth: 0.16 },
+};
+
 export const BOOK = {
   targets: 'assets/targets/paginas', // .mind / .mind.gz / .json
   /** segundos sem encontrar página até mostrar a dica de aproximar/afastar */
   notFoundHintAfter: 8,
-  /** personagens: altura na página (fração da largura da página) */
-  characterHeight: 0.34,
-  /** margem da página onde ninguém anda (fração da largura) */
+  /** margem da página onde o animal não anda (fração da largura) */
   margin: 0.07,
   /**
-   * Quando a página some da câmera, o animal fica "preso" no último lugar:
-   *   holdGraceMs  primeiro só espera, sem piscar (uma falha curta do
-   *                rastreamento, comum ao abaixar o celular, passa despercebida)
-   *   lostGraceMs  depois pisca, fica transparente e pede para voltar; se a
-   *                página voltar nesse tempo, ele se anima de novo; senão, some
-   *   refocusMs    nesse tempo, o rastreamento procura primeiro a mesma página
+   * A PÁGINA É O VALIDADOR: depois que o animal saltou da página, ele fica na
+   * tela para brincar, mesmo que a câmera perca a página.
+   *   smoothMs      o animal segue a página com este amortecimento: o
+   *                 rastreio atualiza a pose 10 a 20 vezes por segundo, e o
+   *                 desenho, 60 (sem isso, o animal anda "aos saltinhos")
+   *   stageAfterMs  a página sumiu: depois deste tempo, o animal desliza
+   *                 para o palco de brincar e continua lá
+   *   glideMs       duração da viagem página ↔ palco
+   *   refocusMs     depois de perder a página, procura primeiro a mesma
+   *                 página por este tempo (reencontra mais rápido)
    */
-  holdGraceMs: 1200,
-  lostGraceMs: 4500,
-  refocusMs: 2000,
+  smoothMs: 70,
+  stageAfterMs: 150,
+  glideMs: 650,
+  refocusMs: 1500,
 };
 
 /**

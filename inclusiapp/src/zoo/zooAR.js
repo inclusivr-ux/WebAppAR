@@ -1,35 +1,38 @@
 /**
- * ZOOLÓGICO EM AR — o livro e as cartas.
+ * ZOOLÓGICO EM AR — as cartas e o palco de brincar (sem a página 22).
  *
- *   1. a criança abre o livro na página 22 (o zoológico cheio) e aponta o
- *      celular: a página vira o "chão" do zoológico;
- *   2. coloca uma carta em cima da página: o animal (ou a LETRA, nas cartas
- *      das vogais) salta da carta para o zoológico e fica lá;
- *   3. coloca outra carta, e outra: todos ficam juntos, passeiam e se
- *      encontram (o urso come o mel da abelha, o elefante joga água, a onça
- *      brinca; o animal acende a letra da sua inicial);
- *   4. tocar = carinho; a Maga Aia e o Seu Zé vêm pelos botões; a casinha
- *      leva alguém para descansar (sai do zoológico e a carta volta a valer).
+ *   1. a criança mostra uma carta para a câmera, em qualquer posição: o
+ *      animal (ou a LETRA, nas cartas das vogais) salta do lugar da carta para
+ *      o zoológico, um "chão" invisível no meio da tela (o palco de brincar,
+ *      o mesmo do livro: ar/poseFollower.js);
+ *   2. a carta usada deixa de ser procurada (as duas faces), e o celular logo
+ *      acha a próxima. Com os 10 no zoológico, o reconhecimento das cartas
+ *      para: o celular só desenha (mais leve);
+ *   3. todos ficam juntos, passeiam e se encontram (o urso come o mel da
+ *      abelha, o elefante joga água, a onça brinca; o animal acende a letra
+ *      da sua inicial);
+ *   4. tocar = carinho; um dedo gira o zoológico, dois dedos aproximam; a
+ *      casinha leva alguém para descansar (e a carta volta a valer).
  *
- * O rastreamento acompanha a página e UMA carta ao mesmo tempo. A carta que
- * já trouxe alguém deixa de ser procurada (ARSession.ignoreTarget): assim o
- * celular encontra a próxima carta, mesmo com a anterior ainda na página.
+ * Antes (versão 2.1) a página 22 tinha que ficar à vista o tempo todo, com as
+ * cartas em cima: com muitas cartas a página ficava tampada e o rastreio se
+ * perdia (teste da equipe, 10/11/2026). Agora a carta só VALIDA.
  *
- * Os animais e personagens são os mesmos do livro (PageActor: passear dentro
- * da página, carinho, sumir e voltar); as letras são letterModel.js. As
+ * Os animais e as letras usam o PageActor do livro (passear, carinho); as
  * regras (necessidades, encontros, letras acesas) ficam em zooState.js.
  */
 import * as THREE from '../lib/three.js';
-import { CHARACTERS, animalById } from '../config.js';
+import { AR, animalById } from '../config.js';
 import { ARSession } from '../ar/arSession.js';
 import { createAnimal } from '../ar/modelManager.js';
 import { PageActor } from '../ar/pageActor.js';
-import { pageBounds } from '../ar/pageWalker.js';
-import { getCharacter } from '../characters/characterModel.js';
+import { PoseFollower, makePose, stagePose } from '../ar/poseFollower.js';
+import { GestureController } from '../ar/gestures.js';
+import { DebugHud, debugEnabled } from '../ar/debugHud.js';
 import { onProgress, progressOf } from '../lib/download.js';
 import { showARError, toast, announce } from '../ui/notifications.js';
 import { sparkle } from '../ui/effects.js';
-import { sfx, unlockAudio } from '../ui/sound.js';
+import { sfx } from '../ui/sound.js';
 import { storage } from '../ui/storage.js';
 import { ZOO, ZOO_CARDS, NEED_ICONS } from './zooConfig.js';
 import { ZooState } from './zooState.js';
@@ -41,8 +44,7 @@ const _inv = new THREE.Matrix4();
 const _v = new THREE.Vector3();
 const _normal = new THREE.Vector3();
 const _plane = new THREE.Plane();
-const PAGE = ZOO.pageTarget;
-const MARGIN = 0.06;
+const _pose = makePose();
 
 const icon = (name, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
@@ -52,8 +54,7 @@ function nameOf(kind, type) {
     const a = animalById(type);
     return `${a.article} ${a.name}`;
   }
-  if (kind === 'letra') return `a letra ${type}`;
-  return type === 'aia' ? 'a Maga Aia' : 'o Seu Zé';
+  return `a letra ${type}`;
 }
 
 export class ZooExperience {
@@ -70,18 +71,17 @@ export class ZooExperience {
       loading: q('[data-model-loading]'),
       loadingText: q('[data-model-loading-text]'),
       loadingBar: q('[data-model-loading-bar]'),
-      bubble: q('[data-bubble]'),
       present: q('[data-zoo-present]'),
       help: q('[data-zoo-help-box]'),
       status: q('[data-status]'),
       statusText: q('[data-status-text]'),
       statusBar: q('[data-status-bar]'),
     };
-    this.stageEl.addEventListener('pointerdown', (e) => this._tap(e));
-    screen.querySelectorAll('[data-zoo-call]').forEach((b) => b.addEventListener('click', () => {
-      unlockAudio();
-      this.callCharacter(b.dataset.zooCall);
-    }));
+    this.gestures = new GestureController(this.stageEl, {
+      minZoom: ZOO.stage.minZoom,
+      maxZoom: ZOO.stage.maxZoom,
+      onTap: (e) => this._tap(e),
+    });
     q('[data-action="zoo-help"]').addEventListener('click', () => this._help(true));
     q('[data-action="zoo-help-close"]').addEventListener('click', () => this._help(false));
   }
@@ -92,31 +92,32 @@ export class ZooExperience {
     this.token = token;
     this.active = true;
     this.state = new ZooState();
-    this.state.setBounds(pageBounds(1, { margin: MARGIN }));
-    this.entries = new Map(); // id do zooState → { item, actor, card }
-    this.usedCards = new Map(); // carta → id de quem ela trouxe
-    this.cardSeen = new Map(); // carta → último instante em que chamou alguém
-    this.queue = []; // cartas vistas sem a página: entram quando a página aparecer
+    this.state.setBounds(ZOO.bounds);
+    this.entries = new Map(); // id do zooState → { item, actor, cards }
     this.bubbles = new Map();
-    this.speaker = null;
-    this.el.bubble.hidden = true;
+    this.timers = new Set();
     this._hideLoading();
     this._renderPresent();
     this._setScan('searching');
     this._hint(null);
 
-    const session = new ARSession({ container: this.stageEl, targets: ZOO.targets, id: 'zoo', tuning: ZOO.tuning });
+    // o mesmo reconhecimento (e as mesmas cartas) do jogo de cartas: o celular prepara uma vez só
+    const session = new ARSession({ container: this.stageEl, targets: ZOO.targets, id: 'game', tuning: AR.game });
     this.session = session;
     session.onStatus = (step, p) => this._status(step, p);
-    session.onTargetFound = (i) => this._found(i);
-    session.onTargetLost = (i) => this._lost(i);
+    session.onTargetFound = (i) => this._card(i);
     session.onFrame = (dt) => this._frame(dt);
     session.onCameraEnded = () => showARError({ code: 'ended' }, { onRetry: () => this.restart(), screen: this.screen });
-    // luz para a Aia, o Seu Zé e as letras (os animais já vêm pintados)
+    // luz para as letras (os animais já vêm pintados)
     session.scene.add(new THREE.AmbientLight(0xffffff, 1.4));
     const sun = new THREE.DirectionalLight(0xffffff, 1.6);
     sun.position.set(0.3, 1, 0.6);
     session.camera.add(sun);
+    // o palco: um "chão" invisível na frente da câmera
+    this.stage = new THREE.Group();
+    this.stage.name = 'palco-do-zoologico';
+    session.scene.add(this.stage);
+    this.follower = new PoseFollower(this.stage, { smoothMs: 60 });
 
     this.el.status.hidden = false;
     this.el.statusBar.style.width = '0%';
@@ -131,11 +132,14 @@ export class ZooExperience {
     }
     if (!this._alive(token)) return;
     this.el.status.hidden = true;
-    this.pageAnchor = session.anchor(PAGE);
-    for (const n of Object.keys(ZOO_CARDS)) session.anchor(Number(n));
+    for (const t of Object.keys(ZOO_CARDS)) session.anchor(Number(t));
+    this.gestures.reset();
+    this.gestures.setManipulate(true);
+    this.gestures.attach();
+    if (debugEnabled()) this.debug = new DebugHud(this.screen, session, () => `no zoo ${this.state.count}`);
     this._scanStartedAt = performance.now();
-    if (!storage.get('zooArHelpSeen', false)) {
-      storage.set('zooArHelpSeen', true);
+    if (!storage.get('zooCardsHelpSeen', false)) {
+      storage.set('zooCardsHelpSeen', true);
       this._help(true);
     }
   }
@@ -152,197 +156,146 @@ export class ZooExperience {
   async leave() {
     this.active = false;
     this.token = null;
-    clearTimeout(this._lostTimer);
+    for (const t of this.timers || []) clearTimeout(t);
+    this.timers?.clear();
+    this.gestures.detach();
+    this.debug?.dispose();
+    this.debug = null;
     this._help(false);
     this._hideLoading();
     if (this.session) {
-      this.session.onTargetFound = this.session.onTargetLost = null;
+      this.session.onTargetFound = null;
       await this.session.stop();
     }
     for (const e of this.entries?.values() || []) this._dispose(e);
     this.entries?.clear();
     for (const b of this.bubbles?.values() || []) b.remove();
     this.bubbles?.clear();
+    this.stage?.removeFromParent();
     this.session = null;
-    this.el.bubble.hidden = true;
     this.el.status.hidden = true;
   }
 
-  get pageVisible() {
-    return !!this.session?.isVisible(PAGE);
+  _later(fn, ms) {
+    const t = setTimeout(() => {
+      this.timers.delete(t);
+      if (this.active) fn();
+    }, ms);
+    this.timers.add(t);
   }
 
-  /* ------------------------------------------------------------ página e cartas */
-  _found(target) {
+  /* ------------------------------------------------------------ cartas */
+  /** Uma carta apareceu: traz quem ela mostra (e a carta para de ser procurada). */
+  _card(target) {
     if (!this.active) return;
-    if (target === PAGE) {
-      this._pageFound();
-      return;
-    }
     const card = ZOO_CARDS[target];
-    if (card) this._card(target, card);
-  }
-
-  _lost(target) {
-    if (!this.active || target !== PAGE) return;
-    for (const e of this.entries.values()) e.actor.lost();
-    clearTimeout(this._lostTimer);
-    this._lostTimer = setTimeout(() => {
-      if (this.active && !this.pageVisible) {
-        this._scanStartedAt = performance.now();
-        this._setScan('searching');
-      }
-    }, ZOO.lostGraceMs);
-  }
-
-  _pageFound() {
-    clearTimeout(this._lostTimer);
+    if (!card) return;
+    const from = this._cardOnStage(target);
     this._setScan('found');
-    for (const e of this.entries.values()) {
-      // quem tinha sumido volta de onde estava
-      if (e.actor.state === 'gone') e.actor.place.home = [...e.actor.wander.pos];
-      e.actor.found();
-    }
-    const queued = this.queue.splice(0);
-    for (const q of queued) this._bring(q.kind, q.type, null, q.card);
-    if (!this.entries.size && !queued.length) this._hint('COLOQUE UMA CARTA EM CIMA DA PÁGINA', 'carta');
-    sfx.reveal();
-  }
-
-  /** Uma carta apareceu: traz quem ela mostra (ou chama, se já estiver lá). */
-  _card(n, { kind, type }) {
-    const now = performance.now();
-    if (now - (this.cardSeen.get(n) || -Infinity) < ZOO.cardCooldown * 1000) return;
-    this.cardSeen.set(n, now);
-    if (!this.pageVisible) {
-      // a carta foi vista longe da página: entra quando a página aparecer
-      if (!this.queue.some((q) => q.kind === kind && q.type === type)) this.queue.push({ kind, type, card: n });
-      this.session.ignoreTarget(n);
-      this._hint(`AGORA APONTE PARA A PÁGINA ${ZOO.bookPage}`, 'livro');
-      announce(`Agora aponte para a página ${ZOO.bookPage}.`);
-      return;
-    }
-    this._bring(kind, type, this._cardOnPage(n), n);
+    // as duas faces da carta deixam de ser procuradas: o celular procura logo a próxima
+    this.session.ignoreTarget(target);
+    this.session.ignoreTarget(card.twin);
+    this._bring(card, from);
   }
 
   /**
-   * Onde a carta está, nas coordenadas da página (ou null).
-   *
-   * Cada imagem do MindAR tem a sua escala (a distância vem em "pixels da
-   * imagem", e a carta e a página têm tamanhos diferentes), então a posição
-   * 3D da carta não serve direto. O que vale para todas é a TELA: o centro da
-   * carta na imagem da câmera, e o raio da câmera até o plano da página.
+   * Onde a carta está: na tela (para os brilhos) e no chão do palco (de onde
+   * o animal salta). Cada imagem do MindAR tem a sua escala, então vale a
+   * TELA: o raio da câmera pelo centro da carta até o chão do palco.
    */
-  _cardOnPage(n) {
-    const card = this.session.anchor(n);
-    const page = this.pageAnchor;
-    if (!card.visible || !page?.visible) return null;
+  _cardOnStage(target) {
+    const card = this.session.anchor(target);
     const camera = this.session.camera;
+    const vp = this.session.viewport || { width: 1, height: 1 };
     camera.updateMatrixWorld();
     _v.setFromMatrixPosition(card.matrix).project(camera);
+    const screen = { x: ((_v.x + 1) / 2) * vp.width, y: ((1 - _v.y) / 2) * vp.height };
     raycaster.setFromCamera(_ndc.set(_v.x, _v.y), camera);
-    _normal.setFromMatrixColumn(page.matrix, 2).normalize();
-    _plane.setFromNormalAndCoplanarPoint(_normal, _v.setFromMatrixPosition(page.matrix));
-    if (!raycaster.ray.intersectPlane(_plane, _v)) return null;
-    _v.applyMatrix4(_inv.copy(page.matrix).invert());
-    return [_v.x, _v.y];
+    this.stage.updateMatrixWorld();
+    _normal.set(0, 0, 1).transformDirection(this.stage.matrixWorld);
+    _plane.setFromNormalAndCoplanarPoint(_normal, _v.setFromMatrixPosition(this.stage.matrixWorld));
+    let at = null;
+    if (raycaster.ray.intersectPlane(_plane, _v)) {
+      _v.applyMatrix4(_inv.copy(this.stage.matrixWorld).invert());
+      const b = this.state.bounds;
+      at = [THREE.MathUtils.clamp(_v.x, b.minX, b.maxX), THREE.MathUtils.clamp(_v.y, b.minY, b.maxY)];
+    }
+    return { screen, at };
   }
 
   /* ------------------------------------------------------------ quem entra e sai */
-  /**
-   * Traz um animal, uma letra ou um personagem para o zoológico (em `pos`, ou
-   * onde estiver desenhado). Se já estiver lá, ele comemora e vem até a carta.
-   */
-  async _bring(kind, type, pos, card = null) {
+  /** Traz um animal ou uma letra para o zoológico (saltando de onde a carta estava). */
+  async _bring(card, from) {
     const token = this.token;
-    const existing = this.state.find(kind, type);
-    if (existing) {
-      const e = this.entries.get(existing.id);
-      if (card != null) {
-        this.usedCards.set(card, existing.id);
-        this.session.ignoreTarget(card);
-      }
-      if (e?.actor.state === 'living') {
-        if (pos) e.actor.wander.goTo(clampPos(pos, this.state.bounds));
-        e.actor.model.playOnce(kind === 'personagem' ? 'ola' : 'happy');
-        sfx.reveal();
-      }
-      return;
-    }
-    if (this.state.full) {
-      sfx.wrong();
-      this._hint('O ZOOLÓGICO ESTÁ CHEIO! LEVE ALGUÉM PARA A CASINHA', 'casa', 4000);
-      return;
-    }
-    const home = pos || (kind === 'personagem' ? ZOO.homes[type] : null);
-    const item = this.state.add(kind, type, home ? { x: home[0], y: home[1] } : null);
+    const { kind, type } = card;
+    if (this.state.find(kind, type)) return; // já está (as duas faces da carta já saíram da procura)
+    // salta de onde a carta está e anda até um lugar livre (as cartas costumam aparecer no meio da tela)
+    const spot = this._freeSpot(from.at);
+    const item = this.state.add(kind, type, { x: spot[0], y: spot[1] });
     if (!item) return;
-    if (card != null) {
-      this.usedCards.set(card, item.id);
-      this.session.ignoreTarget(card);
-    }
     this._hint(null);
     this._renderPresent();
+    if (from.screen) sparkle(this.ui, from.screen.x, from.screen.y, { count: 16 });
+    sfx.reveal();
 
     let model;
-    const loadingOf = kind === 'personagem' ? CHARACTERS[type].model : kind === 'animal' ? animalById(type).model : null;
-    if (loadingOf) this._showLoading(nameOf(kind, type), [loadingOf]);
+    const url = kind === 'animal' ? animalById(type).model : null;
+    if (url) this._showLoading(nameOf(kind, type), [url]);
     try {
-      if (kind === 'animal') model = await createAnimal(animalById(type));
-      else if (kind === 'letra') model = await createLetter(type);
-      else model = await getCharacter(CHARACTERS[type]);
+      model = kind === 'animal' ? await createAnimal(animalById(type)) : await createLetter(type);
     } catch (err) {
       console.error(err);
       this.state.remove(item.id);
-      this._release(item.id);
+      this._releaseCard(card, 0);
       this._renderPresent();
-      if (this._alive(token)) toast('Não foi possível trazer agora. Verifique a internet e tente de novo.', { type: 'error' });
+      if (this._alive(token)) toast('Não foi possível trazer agora. Verifique a internet e mostre a carta de novo.', { type: 'error' });
       return;
     } finally {
-      if (loadingOf) this._hideLoading();
+      if (url) this._hideLoading();
     }
     if (!this._alive(token) || !this.state.items.has(item.id)) {
-      if (kind !== 'personagem') model.dispose?.();
+      model.dispose?.();
       return;
     }
-    const size = kind === 'animal' ? ZOO.sizes[type] : kind === 'letra' ? ZOO.sizes.letra : ZOO.sizes.personagem;
+    const size = kind === 'animal' ? ZOO.sizes[type] : ZOO.sizes.letra;
     const actor = new PageActor({
       model,
-      anchor: this.pageAnchor,
-      scene: this.session.scene,
-      aspect: this.session.aspect(PAGE),
+      parent: this.stage,
+      aspect: 1,
       place: { home: [item.x, item.y], size, lift: kind === 'animal' && model.flies ? ZOO.beeLift : 0 },
-      margin: MARGIN,
-      character: kind === 'personagem',
       faceCamera: kind === 'letra',
       // a letra reclina para trás, como uma placa, para quem olha de cima: tem que dar para LER
       lean: kind === 'letra' ? [10, 62] : [40, 38],
-      holdGrace: ZOO.holdGraceMs / 1000,
-      lostGrace: ZOO.lostGraceMs / 1000,
-      lostText: 'QUERO VOLTAR PARA O ZOOLÓGICO!',
     });
-    actor.onSay = (text) => this._say(actor, text);
-    const entry = { item, actor };
-    this.entries.set(item.id, entry);
-    if (this.pageVisible) {
-      actor.found();
-      const p = actor.screenPoint(this.session.camera, this.session.viewport);
-      if (p.visible) sparkle(this.ui, p.x, p.y + 30, { count: 14 });
-      sfx.reveal();
-    }
+    this.entries.set(item.id, { item, actor, card });
+    actor.found({ at: from.at || spot, stageBounds: this.state.bounds });
+    if (from.at) actor.wander.goTo(spot);
     announce(`${capitalize(nameOf(kind, type))} chegou no zoológico!`);
     this._renderPresent();
+    this._checkFull();
   }
 
-  /** Botões da Aia e do Seu Zé (eles ainda não têm carta). */
-  callCharacter(id) {
-    if (!this.active || !this.session?.running) return;
-    if (!this.pageVisible) {
-      this._hint(`PRIMEIRO APONTE PARA A PÁGINA ${ZOO.bookPage}`, 'livro', 3500);
-      sfx.wrong();
-      return;
+  /** Um lugar do palco longe dos outros (e, se der, do lado em que a carta apareceu). */
+  _freeSpot(hint) {
+    const b = this.state.bounds;
+    const others = [...this.state.items.values()];
+    let best = null;
+    for (let i = 0; i < 18; i++) {
+      const p = [b.minX + Math.random() * (b.maxX - b.minX), b.minY + Math.random() * (b.maxY - b.minY)];
+      const near = others.reduce((m, o) => Math.min(m, Math.hypot(o.x - p[0], o.y - p[1])), Infinity);
+      const score = Math.min(near, 0.35) - (hint ? 0.12 * Math.abs(hint[0] - p[0]) : 0);
+      if (!best || score > best.score) best = { p, score };
     }
-    this._bring('personagem', id, null);
+    return best.p;
+  }
+
+  /** Com todos os 10 no zoológico, o reconhecimento das cartas para (o celular só desenha). */
+  _checkFull() {
+    if (this.state.count >= ZOO.maxItems && this.session?.tracking) {
+      this.session.pauseTracking();
+      this._hint('TODOS ESTÃO NO ZOOLÓGICO!', 'coracao', 4500);
+      sfx.fanfare();
+    }
   }
 
   /** A casinha: vai descansar em casa (sai do zoológico; a carta volta a valer). */
@@ -354,60 +307,62 @@ export class ZooExperience {
     sfx.skip();
     announce(`${capitalize(nameOf(e.item.kind, e.item.type))} foi descansar em casa.`);
     this.state.remove(id);
-    this._release(id);
     this._renderPresent();
-    if (e.actor.state !== 'gone') await e.actor.leave();
+    this._releaseCard(e.card, ZOO.cardCooldown * 1000);
+    if (this.session?.running && !this.session.tracking) this.session.resumeTracking();
+    await e.actor.leave();
     this._dispose(e);
     this.entries.delete(id);
   }
 
-  /** As cartas que trouxeram este alguém voltam a ser procuradas. */
-  _release(id) {
-    for (const [card, who] of this.usedCards) {
-      if (who !== id) continue;
-      this.usedCards.delete(card);
-      this.cardSeen.delete(card);
-      this.session?.ignoreTarget(card, false);
-    }
+  /** As duas faces da carta voltam a ser procuradas (depois de um tempinho). */
+  _releaseCard(card, ms) {
+    const free = () => {
+      this.session?.ignoreTarget(card.target, false);
+      this.session?.ignoreTarget(card.twin, false);
+    };
+    if (ms > 0) this._later(free, ms);
+    else free();
   }
 
   _dispose(e) {
     e.actor.dispose();
-    // a Aia e o Seu Zé são um só modelo por app (o VRM não é clonado): ficam guardados
-    if (e.item.kind !== 'personagem') e.actor.model.dispose?.();
+    e.actor.model.dispose?.();
   }
 
   /* ------------------------------------------------------------ toque */
+  /** Toque curto (gestures.js): carinho. Devolve true se acertou alguém. */
   _tap(event) {
-    if (!this.session?.running) return;
+    if (!this.session?.running) return false;
     const list = [...this.entries.values()].filter((e) => e.actor.visible && e.actor.state === 'living');
-    if (!list.length) return;
+    if (!list.length) return false;
     const rect = this.stageEl.getBoundingClientRect();
     _ndc.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     this.session.scene.updateMatrixWorld();
     raycaster.setFromCamera(_ndc, this.session.camera);
     const hit = raycaster.intersectObjects(list.map((e) => e.actor.hit), false)[0];
-    if (!hit) return;
+    if (!hit) return false;
     const actor = hit.object.userData.actor;
     const entry = list.find((e) => e.actor === actor);
-    const role = actor.tap(actor.cameraInPage());
-    if (!role) return;
+    const role = actor.tap();
+    if (!role) return true;
     if (entry.item.kind === 'animal') this._events(this.state.caress(entry.item.id));
     sparkle(this.ui, event.clientX - rect.left, event.clientY - rect.top, { hearts: entry.item.kind !== 'letra', count: entry.item.kind === 'letra' ? 10 : 14 });
     sfx.correct();
+    return true;
   }
 
   /* ------------------------------------------------------------ quadro a quadro */
   _frame(dt) {
+    this.gestures.update(dt);
+    this.follower.update(dt, stagePose(this.session.camera, ZOO.stage, this.gestures.state, _pose));
     for (const e of this.entries.values()) {
       e.actor.update(dt);
       if (e.actor.state === 'living') this.state.move(e.item.id, e.actor.wander.pos[0], e.actor.wander.pos[1]);
     }
-    // o zoológico "vive" enquanto a página está à vista
-    if (this.pageVisible) this._events(this.state.tick(dt));
+    this._events(this.state.tick(dt));
     this._placeBubbles();
-    if (this.speaker) this._placeSpeech();
-    if (this.el.scan.dataset.state === 'searching' && performance.now() - this._scanStartedAt > 8000) this._setScan('hint');
+    if (this.el.scan.dataset.state === 'searching' && performance.now() - this._scanStartedAt > 9000) this._setScan('hint');
   }
 
   _events(events) {
@@ -431,8 +386,7 @@ export class ZooExperience {
     const still = mover === a ? b : a;
     this._approach(mover, still);
     still.actor.wander.hold(3);
-    setTimeout(() => {
-      if (!this.active) return;
+    this._later(() => {
       this._play(a, rule.aClip);
       this._play(b, rule.bClip);
     }, 900);
@@ -503,33 +457,6 @@ export class ZooExperience {
     }
   }
 
-  _say(actor, text) {
-    if (!text) {
-      if (this.speaker === actor) {
-        this.speaker = null;
-        this.el.bubble.hidden = true;
-      }
-      return;
-    }
-    if (this.speaker && this.speaker !== actor) return;
-    this.speaker = actor;
-    this.el.bubble.querySelector('[data-bubble-text]').textContent = text;
-    this.el.bubble.hidden = false;
-    announce(text);
-    this._placeSpeech();
-  }
-
-  _placeSpeech() {
-    const vp = this.session?.viewport;
-    if (!vp) return;
-    const p = this.speaker.screenPoint(this.session.camera, vp);
-    const b = this.el.bubble;
-    const w = b.offsetWidth || 200;
-    const x = Math.min(vp.width - w / 2 - 10, Math.max(w / 2 + 10, p.x));
-    const y = Math.max(90, Math.min(vp.height - 220, p.y));
-    b.style.transform = `translate(${x - w / 2}px, ${y - b.offsetHeight - 14}px)`;
-  }
-
   /* ------------------------------------------------------------ interface */
   /** Quem está no zoológico, cada um com a casinha (ir descansar). */
   _renderPresent() {
@@ -540,18 +467,15 @@ export class ZooExperience {
       b.type = 'button';
       b.className = 'zoo-presente';
       b.setAttribute('aria-label', `Levar ${nameOf(it.kind, it.type)} para casa`);
-      let face;
-      if (it.kind === 'animal') face = `<img class="sg-retrato" src="${animalById(it.type).portrait}" alt="" width="40" height="40">`;
-      else if (it.kind === 'letra') face = `<span class="sg-letra-grande zoo-presente__letra">${it.type}</span>`;
-      else face = `<img class="sg-retrato" src="${CHARACTERS[it.type].portrait}" alt="" width="40" height="40">`;
+      const face = it.kind === 'animal'
+        ? `<img class="sg-retrato" src="${animalById(it.type).portrait}" alt="" width="40" height="40">`
+        : `<span class="sg-letra-grande zoo-presente__letra">${it.type}</span>`;
       b.innerHTML = `${face}<span class="zoo-presente__casa">${icon('casa')}</span>`;
       b.addEventListener('click', () => this.goHome(it.id));
       box.appendChild(b);
     }
     box.hidden = !box.childElementCount;
-    for (const btn of this.screen.querySelectorAll('[data-zoo-call]')) {
-      btn.classList.toggle('is-presente', !!this.state?.find('personagem', btn.dataset.zooCall));
-    }
+    if (this.state && !this.state.count && this.el.scan.dataset.state === 'found') this._setScan('searching');
   }
 
   _hint(text, iconName = 'carta', duration = 0) {
@@ -586,30 +510,28 @@ export class ZooExperience {
     this.el.loading.hidden = true;
   }
 
+  /** A moldura grande só aparece com o zoológico vazio. */
   _setScan(state) {
     const scan = this.el.scan;
+    if (state === 'searching') this._scanStartedAt = performance.now();
     scan.dataset.state = state;
     scan.hidden = state === 'found';
     this.el.scanText.innerHTML = state === 'hint'
-      ? `<strong>NÃO ENCONTREI A PÁGINA ${ZOO.bookPage}.</strong><span>Chegue mais perto ou mais longe, com a página bem iluminada.</span>`
-      : `<strong>ABRA O LIVRO NA PÁGINA ${ZOO.bookPage}</strong><span>a do zoológico, e aponte o celular</span>`;
+      ? '<strong>NÃO ENCONTREI A CARTA.</strong><span>Mostre uma carta de cada vez, bem iluminada, a uns 20 cm.</span>'
+      : '<strong>MOSTRE UMA CARTA PARA A CÂMERA</strong><span>Em qualquer posição. O animal vem para o zoológico!</span>';
   }
 
   _status(step, progress) {
     const text = {
       loading: 'Preparando o zoológico...',
       camera: 'Abrindo a câmera... Se o navegador perguntar, toque em "Permitir".',
-      targets: 'Carregando a página e as cartas...',
+      targets: 'Carregando as cartas...',
       preparing: 'Quase pronto...',
       ready: 'Pronto!',
     }[step];
     if (text) this.el.statusText.textContent = text;
     if (step === 'targets' && typeof progress === 'number') this.el.statusBar.style.width = `${Math.round(progress * 100)}%`;
   }
-}
-
-function clampPos([x, y], b) {
-  return [Math.min(b.maxX, Math.max(b.minX, x)), Math.min(b.maxY, Math.max(b.minY, y))];
 }
 
 function capitalize(s) {

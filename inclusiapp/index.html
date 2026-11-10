@@ -239,7 +239,8 @@
         <div class="sg-barra" aria-hidden="true"><i data-model-loading-bar></i></div>
       </div>
       <div class="dica-toque sg-cartela sg-cartela--chip" data-tap-hint hidden><svg class="ico dica-toque__dedo" aria-hidden="true"><use href="#i-toque"/></svg> <span data-tap-hint-text>TOQUE NO ANIMAL</span></div>
-      <div class="balao sg-cartela sg-cartela--rosa sg-cartela--centro" data-bubble role="status" hidden><span data-bubble-text></span></div>
+      <!-- no palco de brincar (a página saiu da câmera): a moldura grande some e fica só este lembrete -->
+      <p class="placa-palco sg-cartela sg-cartela--chip" data-stage-plaque hidden><svg class="ico" aria-hidden="true"><use href="#i-livro"/></svg> <span>APONTE PARA OUTRA PÁGINA PARA TROCAR DE ANIMAL</span></p>
 
       <footer class="ar-rodape">
         <button type="button" class="botao-libras" data-action="libras" hidden>
@@ -300,7 +301,7 @@
           </span>
           <span class="jogo__corpo">
             <span class="jogo__titulo">ZOOLÓGICO</span>
-            <span class="jogo__texto">Ponha as cartas na página do zoológico!</span>
+            <span class="jogo__texto">Mostre as cartas e monte o zoológico!</span>
           </span>
           <svg class="ico jogo__ir" aria-hidden="true"><use href="#i-play"/></svg>
         </a>
@@ -312,7 +313,6 @@
           <span class="jogo__corpo">
             <span class="jogo__titulo">SINALIZE!</span>
             <span class="jogo__texto">Veja o sinal e faça igual!</span>
-            <span class="jogo__meta" data-tile-meta="sign" hidden></span>
           </span>
           <svg class="ico jogo__ir" aria-hidden="true"><use href="#i-play"/></svg>
         </a>
@@ -442,12 +442,12 @@
       </header>
       <ol class="demo" aria-label="Como brincar">
         <li class="demo__passo">
-          <span class="demo__arte demo__arte--pagina"><img src="assets/img/paginas/pagina22.webp" alt="" width="84" height="84"><span class="sg-selo">22</span></span>
-          <span class="demo__rotulo sg-cartela sg-cartela--chip">ABRA NA PÁGINA 22</span>
+          <span class="demo__arte demo__arte--celular"><svg class="ico" aria-hidden="true"><use href="#i-celular"/></svg><img src="assets/img/cartas-mini/carta3.webp" alt="" width="60" height="90"></span>
+          <span class="demo__rotulo sg-cartela sg-cartela--chip">MOSTRE A CARTA</span>
         </li>
         <li class="demo__passo">
-          <span class="demo__arte demo__arte--pousar"><img src="assets/img/paginas/pagina22.webp" alt="" width="84" height="84"><img class="demo__carta-cai" src="assets/img/cartas-mini/carta3.webp" alt="" width="34" height="51"></span>
-          <span class="demo__rotulo sg-cartela sg-cartela--chip">PONHA A CARTA</span>
+          <span class="demo__arte"><img class="sg-retrato" src="assets/img/animais/urso.webp" alt="" width="110" height="110"></span>
+          <span class="demo__rotulo sg-cartela sg-cartela--chip">O ANIMAL VEM</span>
         </li>
         <li class="demo__passo">
           <span class="demo__arte demo__arte--par"><img src="assets/img/cartas-mini/carta11.webp" alt="" width="60" height="90"><span class="sg-letra-grande" aria-hidden="true">A</span></span>
@@ -459,13 +459,12 @@
         </li>
       </ol>
       <div class="sg-cartela intro__texto">
-        <p>Abra o livro na <strong>página 22</strong>, a do zoológico, e aponte o celular.</p>
-        <p>Coloque uma <strong>carta</strong> em cima da página: o animal aparece no zoológico!</p>
+        <p>Mostre uma <strong>carta</strong> para a câmera, em qualquer posição: o animal aparece no zoológico!</p>
         <p>Com a carta do <strong>sinal de uma vogal</strong>, aparece a <strong>letra</strong>.</p>
-        <p>Ponha mais cartas: os animais brincam juntos. Toque para fazer <strong>carinho</strong>.</p>
+        <p>Mostre mais cartas, uma de cada vez: os animais brincam juntos. Toque para fazer <strong>carinho</strong>.</p>
       </div>
       <div class="sg-cartela sg-cartela--rosa intro__dica">
-        <p><strong>DICA:</strong> a Maga Aia e o Seu Zé vêm pelos botões. A <strong>casinha</strong> leva alguém para descansar.</p>
+        <p><strong>DICA:</strong> gire o zoológico com o dedo e aproxime com dois dedos. A <strong>casinha</strong> leva alguém para descansar.</p>
       </div>
       <div class="acoes">
         <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/sala">VOLTAR</a>
@@ -484,9 +483,9 @@
         <button type="button" class="sg-redondo zoo-ajuda-btn" data-action="zoo-help" aria-label="Como brincar"><svg class="ico" aria-hidden="true"><use href="#i-ajuda"/></svg></button>
       </header>
 
-      <div class="ar-scan" data-scan data-state="searching">
+      <div class="ar-scan ar-scan--carta" data-scan data-state="searching">
         <div class="ar-scan__moldura" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="ar-scan__demo" aria-hidden="true"><svg class="ico"><use href="#i-celular"/></svg><svg class="ico"><use href="#i-livro"/></svg></div>
+        <div class="ar-scan__demo" aria-hidden="true"><svg class="ico"><use href="#i-celular"/></svg><svg class="ico"><use href="#i-carta"/></svg></div>
         <p class="ar-scan__texto sg-cartela sg-cartela--centro" data-scan-text aria-live="polite"></p>
       </div>
 
@@ -495,23 +494,17 @@
         <p class="carregando__texto"><span class="giro" aria-hidden="true"></span> <span data-model-loading-text>CHEGANDO...</span></p>
         <div class="sg-barra" aria-hidden="true"><i data-model-loading-bar></i></div>
       </div>
-      <div class="balao sg-cartela sg-cartela--rosa sg-cartela--centro" data-bubble role="status" hidden><span data-bubble-text></span></div>
 
       <footer class="zoo-rodape">
         <div class="zoo-presentes" data-zoo-present role="group" aria-label="No zoológico (toque para levar para casa)" hidden></div>
-        <div class="zoo-chamar" role="group" aria-label="Chamar os personagens">
-          <button type="button" class="zoo-chamar__btn sg-cartela sg-cartela--chip" data-zoo-call="aia"><img class="sg-retrato" src="assets/img/aia-rosto.webp" alt="" width="40" height="40"> AIA</button>
-          <button type="button" class="zoo-chamar__btn sg-cartela sg-cartela--chip" data-zoo-call="seuze"><img class="sg-retrato" src="assets/img/seuze-rosto.webp" alt="" width="40" height="40"> SEU ZÉ</button>
-        </div>
       </footer>
 
       <div class="zoo__ajuda" data-zoo-help-box hidden role="dialog" aria-modal="true" aria-label="Como brincar">
         <div class="sg-cartela zoo__ajuda-card">
           <ul class="zoo__dicas">
-            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-livro"/></svg></span> <span>Abra o livro na <strong>página 22</strong> e aponte o celular.</span></li>
-            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-carta"/></svg></span> <span>Coloque uma <strong>carta</strong> em cima da página.</span></li>
+            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-carta"/></svg></span> <span>Mostre uma <strong>carta</strong> para a câmera, em qualquer posição.</span></li>
             <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-mao"/></svg></span> <span>Carta do <strong>sinal de uma vogal</strong>: aparece a <strong>letra</strong>.</span></li>
-            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-coracao"/></svg></span> <span>Toque para fazer <strong>carinho</strong>.</span></li>
+            <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-coracao"/></svg></span> <span>Toque para fazer <strong>carinho</strong>. Gire com o dedo e aproxime com dois dedos.</span></li>
             <li><span class="zoo__dica-ico"><svg class="ico"><use href="#i-casa"/></svg></span> <span>A <strong>casinha</strong> leva alguém para descansar.</span></li>
           </ul>
           <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-action="zoo-help-close">ENTENDI</button>
@@ -549,18 +542,15 @@
         </li>
         <li class="demo__passo">
           <span class="demo__arte demo__arte--ok"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
-          <span class="demo__rotulo sg-cartela sg-cartela--chip">GANHE PONTOS</span>
+          <span class="demo__rotulo sg-cartela sg-cartela--chip">ISSO!</span>
         </li>
       </ol>
       <div class="sg-cartela intro__texto">
         <p>O jogo mostra uma <strong>vogal</strong>: A, E, I, O ou U.</p>
         <p>O intérprete de LIBRAS faz o sinal dela <strong>duas vezes</strong>.</p>
-        <p>Depois é a <strong>sua vez</strong>: faça o sinal para a câmera. Quanto mais rápido, mais pontos!</p>
+        <p>Depois é a <strong>sua vez</strong>: faça o sinal para a câmera, <strong>com calma</strong>. Não tem tempo!</p>
       </div>
       <div class="sg-ficha sg-ficha--ceu intro__privacidade"><svg class="ico" aria-hidden="true"><use href="#i-cadeado"/></svg> <span>Este jogo usa a <strong>câmera</strong>. <strong>Não gravamos suas imagens em nenhum momento</strong>: a câmera só é usada aqui no aparelho, enquanto você joga.</span></div>
-      <section class="recordes" data-records hidden aria-label="Seus recordes">
-        <span class="sg-cartela sg-cartela--chip"><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> RECORDE: <output data-record-score>0</output></span>
-      </section>
       <div class="acoes">
         <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/sala">VOLTAR</a>
         <button class="sg-btn sg-btn--ambar sg-cartela" type="button" data-action="start-sign"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg> JOGAR</button>
@@ -575,8 +565,7 @@
         <a class="sg-redondo" href="#/sala" aria-label="Sair do jogo"><svg class="ico" aria-hidden="true"><use href="#i-fechar"/></svg></a>
         <div class="placar">
           <div class="sg-barra placar__barra" aria-hidden="true"><i data-progress></i></div>
-          <span class="sg-cartela sg-cartela--chip" data-round-label>1 DE 10</span>
-          <span class="sg-cartela sg-cartela--chip"><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> <output data-score>0</output></span>
+          <span class="sg-cartela sg-cartela--chip" data-round-label>1 DE 5</span>
         </div>
         <button type="button" class="sg-redondo" data-action="sound" aria-pressed="true" aria-label="Desligar sons"><svg class="ico" aria-hidden="true"><use href="#i-som"/></svg></button>
       </header>
@@ -599,7 +588,6 @@
         </div>
         <div class="sg-cam sz__cam" data-cam-panel>
           <video class="sz__cam-video" data-cam-video playsinline muted autoplay></video>
-          <div class="sz__contagem" data-countdown aria-hidden="true" hidden></div>
           <div class="sz__cam-msg" data-cam-msg aria-live="polite"></div>
           <div class="sz__cam-prog" aria-hidden="true"><i data-hold></i></div>
           <button type="button" class="sg-redondo sz__trocar" data-action="flip-camera" aria-label="Trocar de câmera"><svg class="ico" aria-hidden="true"><use href="#i-trocar-camera"/></svg></button>
@@ -611,23 +599,14 @@
         <button type="button" class="sg-btn sg-btn--branco sg-btn--mini sg-cartela" data-action="watch-again"><svg class="ico" aria-hidden="true"><use href="#i-repetir"/></svg> VER DE NOVO</button>
         <button type="button" class="sg-btn sg-btn--branco sg-btn--mini sg-cartela" data-action="skip-round"><svg class="ico" aria-hidden="true"><use href="#i-pular"/></svg> PULAR</button>
       </div>
-      <div class="sz__acoes" data-sz-retry hidden>
-        <button type="button" class="sg-btn sg-btn--pergaminho sg-cartela" data-action="skip-round"><svg class="ico" aria-hidden="true"><use href="#i-pular"/></svg> PRÓXIMO</button>
-        <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-action="try-again"><svg class="ico" aria-hidden="true"><use href="#i-repetir"/></svg> TENTAR DE NOVO</button>
-      </div>
     </div>
     <div class="faixa" data-feedback hidden role="status"></div>
 
     <div class="resumo" data-summary hidden role="dialog" aria-modal="true" aria-labelledby="sz-summary-title">
       <div class="resumo__card sg-cartela sg-cartela--centro">
-        <h2 id="sz-summary-title" class="resumo__titulo">PARABÉNS!</h2>
-        <div class="resumo__estrelas" data-sum-stars aria-hidden="true"></div>
-        <dl class="resumo__numeros">
-          <div><dt><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg> SINAIS</dt><dd data-sum="signs">0</dd></div>
-          <div><dt><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> PONTOS</dt><dd data-sum="score">0</dd></div>
-          <div><dt><svg class="ico" aria-hidden="true"><use href="#i-estrela"/></svg> RECORDE</dt><dd data-sum="record">0</dd></div>
-        </dl>
-        <p class="resumo__novo sg-cartela sg-cartela--ambar sg-cartela--chip" data-sum-new-record hidden>NOVO RECORDE!</p>
+        <h2 id="sz-summary-title" class="resumo__titulo" data-sum-title>PARABÉNS!</h2>
+        <p class="resumo__fez">VOCÊ FEZ <b data-sum="signs">0 DE 5</b> SINAIS</p>
+        <ol class="resumo__vogais" data-sum-vowels aria-label="As vogais da partida"></ol>
         <div class="acoes">
           <a class="sg-btn sg-btn--pergaminho sg-cartela" href="#/sala">SAIR</a>
           <button type="button" class="sg-btn sg-btn--ambar sg-cartela" data-action="replay"><svg class="ico" aria-hidden="true"><use href="#i-repetir"/></svg> JOGAR DE NOVO</button>
