@@ -175,13 +175,15 @@ faixa do "QUASE!" ficava por cima dos botões durante quase três segundos. O
 aviso passou para a instrução e para a câmera (imagem `03_05`).
 
 **As instruções sem a pessoa.** "Ser humano ali está um pouco feio, não combina
-com o estilo da InclusiVR." A foto do livro aberto e o celular vieram do site,
-da versão com o plugin de LIBRAS, junto com a animação do "salto".
-
-O elefante do site era um elefante cinza genérico, diferente do que a criança
-vê no app. O Claude preferiu fotografar o elefante do próprio app, feito do
-traço do Igor, jogando água com a tromba. Um script faz isso
-(`tools/render-instrucoes.mjs`). Imagem `03_02`.
+com o estilo da InclusiVR."
+- Na primeira tentativa, o Claude pegou as fotos da versão de teste do site com
+  o plugin (de 19/10) e trocou o elefante cinza do site pelo elefante do
+  próprio app.
+- O Luciano corrigiu: "o site que eu digo é a versão update, que estamos
+  fazendo no artefato". É a versão de 04/11.
+- A imagem final é a montagem dessa versão, como está lá: a foto do livro
+  aberto, o celular com o app e o elefante em 3D que mexe a orelha e enrola a
+  tromba. Por cima, só o "± 30 cm" (imagem `03_02`).
 
 **Tela inicial e tela cheia.**
 - A tela inicial passou a ocupar a altura exata do aparelho. Foi conferida sem

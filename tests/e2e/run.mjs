@@ -86,14 +86,16 @@ async function testScreens() {
 
   await go(page, 'livro', 'book-intro');
   check('instruções: o texto de sempre ("Aponte o celular...", "30 cm")', (await page.textContent('.passos')).includes('30 cm de distância'));
-  const salto = await page.evaluate(() => ({
-    fotos: [...document.querySelectorAll('.salto img')].map((i) => i.getAttribute('src').split('/').pop()).join(','),
-    carregadas: [...document.querySelectorAll('.salto img')].every((i) => i.complete && i.naturalWidth > 0),
-    medida: document.querySelector('.salto__medida')?.textContent,
+  await page.waitForFunction(() => [...document.querySelectorAll('.livro-ele img')].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 10000 }).catch(() => {});
+  const montagem = await page.evaluate(() => ({
+    fotos: [...document.querySelectorAll('.livro-ele img')].map((i) => i.getAttribute('src').split('/').pop()).join(','),
+    carregadas: [...document.querySelectorAll('.livro-ele img')].every((i) => i.complete && i.naturalWidth > 0),
+    medida: document.querySelector('.livro-ele__medida')?.textContent,
     pessoa: !!document.querySelector('.esquema'),
   }));
-  check('instruções: fotos do livro aberto e do celular, e o elefante do app saltando (sem pessoa desenhada)', salto.fotos === 'livro-aberto.webp,celular.webp,elefante.webp' &&
-    salto.carregadas && salto.medida.includes('30 cm') && !salto.pessoa, JSON.stringify(salto));
+  check('instruções: a montagem do site (livro aberto, celular e o elefante que mexe a tromba), sem pessoa desenhada',
+    montagem.fotos === 'livro-app-elefante.webp,elefante-corpo.webp,elefante-tromba-quieta.webp,elefante-tromba.webp' &&
+    montagem.carregadas && montagem.medida.includes('30 cm') && !montagem.pessoa, JSON.stringify(montagem));
   check('instruções: o palco de brincar está explicado', (await page.textContent('.passos')).includes('continua na tela'));
   const pages = await page.locator('[data-pages] .paginas__item').count();
   check('instruções: só as 5 páginas dos animais (a Aia e o Seu Zé foram arquivados)', pages === 5, `${pages}`);

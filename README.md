@@ -102,11 +102,11 @@ inclusiapp/
 │   ├── targets/               paginas.mind (as 5 páginas da primeira versão), cartas.mind (20 faces: jogo e zoológico)
 │   ├── musica/                a trilha (musica.json diz qual arquivo toca)
 │   ├── zoo/letras.json        contorno das vogais 3D (tools/gerar-letras.py)
-│   ├── img/                   arte final do Igor e do design system, em WebP (instrucoes/: fotos do site + o elefante do app)
+│   ├── img/                   arte final do Igor e do design system, em WebP (instrucoes/: a montagem do site, versão de 04/11)
 │   └── fonts/                 Fraunces Soft (substituta livre da Cooper; OFL)
 ├── vendor/                    MindAR 1.2.5, Three.js r160 (+ meshopt, SkeletonUtils), MediaPipe 1.0.1
 └── cartas/ pag/ videos/ exemplo/ codes/      arquivos originais
-tools/                         servidor, alvos (compile-targets), imagens, foto do animal (render-instrucoes), letras 3D, medição dos vídeos de LIBRAS
+tools/                         servidor, alvos (compile-targets), imagens, letras 3D, medição dos vídeos de LIBRAS
 tests/                         testes de unidade, de reconhecimento e ponta a ponta
 ```
 
@@ -295,9 +295,10 @@ acertar, aparece **uma** dica (a mão inteira na câmera, com luz); nada se perd
   qualquer celular, sem rolar: a janela usa o espaço que sobra, e a marca da
   InclusiVR fica sempre à vista. **TELA CHEIA** nos cantos (só onde o navegador
   deixa: o Safari do iPhone não deixa) e **MÚSICA** (quando houver o arquivo).
-- **Instruções do livro**: a foto do livro aberto e o celular (do site da
-  InclusiVR), com o elefante **do app** saltando da página para o celular
-  (`tools/render-instrucoes.mjs` fotografa o `.glb`), e "± 30 cm". Sem pessoa.
+- **Instruções do livro**: a montagem do site da InclusiVR (a versão em
+  atualização, de 04/11): a foto do livro aberto, o celular com o app e o
+  elefante em 3D que mexe a orelha e enrola a tromba (WebP animado, as mesmas
+  regras `.ele-anim` do site), com "± 30 cm". Sem pessoa.
 - **Música**: a trilha do sound design, em laço e baixinha
   (`src/ui/music.js`). Para ligar ou trocar: ponha o MP3 em `assets/musica/`
   (nome sem acento nem espaço) e escreva o nome em `assets/musica/musica.json`.
