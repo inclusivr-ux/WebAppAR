@@ -17,12 +17,38 @@ export function pageBounds(aspect, { margin = 0.07, radius = 0 } = {}) {
   return { minX: -hx, maxX: hx, minY: -hy, maxY: hy };
 }
 
+/**
+ * Os limites de x na altura y. A área é um retângulo (a página do livro) ou um
+ * trapézio (o chão do zoológico, desde a versão 2.2.1): com `farMinX`/`farMaxX`,
+ * minX/maxX valem na borda da frente (minY) e farMinX/farMaxX na do fundo
+ * (maxY), porque a perspectiva deixa o fundo mais largo na tela.
+ */
+export function xRangeAt(b, y) {
+  if (b.farMinX == null && b.farMaxX == null) return [b.minX, b.maxX];
+  const k = b.maxY > b.minY ? Math.min(1, Math.max(0, (y - b.minY) / (b.maxY - b.minY))) : 0;
+  return [b.minX + ((b.farMinX ?? b.minX) - b.minX) * k, b.maxX + ((b.farMaxX ?? b.maxX) - b.maxX) * k];
+}
+
 export function clampToBounds([x, y], b) {
-  return [Math.min(b.maxX, Math.max(b.minX, x)), Math.min(b.maxY, Math.max(b.minY, y))];
+  const cy = Math.min(b.maxY, Math.max(b.minY, y));
+  const [x0, x1] = xRangeAt(b, cy);
+  return [Math.min(x1, Math.max(x0, x)), cy];
 }
 
 export function inBounds([x, y], b, eps = 1e-9) {
-  return x >= b.minX - eps && x <= b.maxX + eps && y >= b.minY - eps && y <= b.maxY + eps;
+  if (y < b.minY - eps || y > b.maxY + eps) return false;
+  const [x0, x1] = xRangeAt(b, y);
+  return x >= x0 - eps && x <= x1 + eps;
+}
+
+/** Um ponto ao acaso dentro da área (retângulo ou trapézio). */
+export function randomPoint(b, random = Math.random) {
+  if (b.farMinX == null && b.farMaxX == null) {
+    return [b.minX + random() * (b.maxX - b.minX), b.minY + random() * (b.maxY - b.minY)];
+  }
+  const y = b.minY + random() * (b.maxY - b.minY);
+  const [x0, x1] = xRangeAt(b, y);
+  return [x0 + random() * (x1 - x0), y];
 }
 
 /** Direção para olhar de `from` para `to`. */
@@ -47,14 +73,15 @@ export function turnToward(current, target, maxStep) {
 
 /** Perto da borda (para o animal "espiar" a beirada e voltar). */
 export function nearEdge([x, y], b, tolerance = 0.03) {
-  return x - b.minX < tolerance || b.maxX - x < tolerance || y - b.minY < tolerance || b.maxY - y < tolerance;
+  const [x0, x1] = xRangeAt(b, y);
+  return x - x0 < tolerance || x1 - x < tolerance || y - b.minY < tolerance || b.maxY - y < tolerance;
 }
 
-/** Um ponto ao acaso dentro do retângulo, longe o bastante de `from`. */
+/** Um ponto ao acaso dentro da área, longe o bastante de `from`. */
 export function randomTarget(b, random = Math.random, from = null, minDist = 0.12) {
   let best = null;
   for (let i = 0; i < 8; i++) {
-    const p = [b.minX + random() * (b.maxX - b.minX), b.minY + random() * (b.maxY - b.minY)];
+    const p = randomPoint(b, random);
     const d = from ? Math.hypot(p[0] - from[0], p[1] - from[1]) : Infinity;
     if (d >= minDist) return p;
     if (!best || d > best.d) best = { p, d };
@@ -68,9 +95,14 @@ export function randomTarget(b, random = Math.random, from = null, minDist = 0.1
  *   arrived = chegou agora a um ponto; edge = esse ponto fica na beirada
  */
 export class Wanderer {
+  /**
+   * @param {object} opts
+   * @param {(from: number[]) => number[]} [opts.pickTarget]  quem escolhe o próximo ponto do
+   *        passeio (o zoológico procura um lugar vazio); sem ele, um ponto ao acaso
+   */
   constructor({
     bounds, start = [0, 0], heading = 0, speed = 0.09, turnSpeed = 3.2,
-    rest = [1.6, 4.2], random = Math.random,
+    rest = [1.6, 4.2], random = Math.random, pickTarget = null,
   }) {
     this.bounds = bounds;
     this.pos = clampToBounds(start, bounds);
@@ -79,9 +111,17 @@ export class Wanderer {
     this.turnSpeed = turnSpeed;
     this.restRange = rest;
     this.random = random;
+    this.pickTarget = pickTarget;
     this.target = null;
     this.restLeft = this._restTime() * 0.5;
     this.paused = false;
+  }
+
+  /** O próximo ponto do passeio. */
+  nextTarget() {
+    return this.pickTarget
+      ? clampToBounds(this.pickTarget(this.pos), this.bounds)
+      : randomTarget(this.bounds, this.random, this.pos);
   }
 
   _restTime() {
@@ -121,7 +161,7 @@ export class Wanderer {
     if (!this.target) {
       this.restLeft -= dt;
       if (this.restLeft > 0) return out;
-      this.target = randomTarget(this.bounds, this.random, this.pos);
+      this.target = this.nextTarget();
     }
     const want = headingTo(this.pos, this.target);
     this.heading = turnToward(this.heading, want, this.turnSpeed * dt);

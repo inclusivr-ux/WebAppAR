@@ -236,3 +236,36 @@ O zoológico com os 10 (5 animais e 5 letras) tem 101 mil triângulos e 30 chama
    - ver se continua fluido com todos. Se não ficar, o caminho para arquivar está em `docs/ARQUIVO.md`.
 3. Tela inicial sem rolar, no aparelho de cada um, e o botão TELA CHEIA.
 4. A música: se o volume está bom no alto-falante do celular (é um número só: `MUSIC.volume`, no `config.js`).
+
+### 8.1 Versão 2.2.1 — os detalhes do teste da 2.2 (11/11/2026)
+
+A equipe testou a 2.2 no celular: "está funcionando bem o tracking novo agora".
+Faltavam três detalhes:
+
+| Pedido | O que foi feito | Onde |
+|---|---|---|
+| "Botão de tela cheia e de música estão mal posicionados nesse layout [...] refaça para ficar bem feito e elegante" | Os dois saíram de cima da ilustração. Ficam **embaixo, dos lados da marca da InclusiVR**: TELA CHEIA à esquerda, MÚSICA à direita. São os mesmos botões de ícone dos jogos (o X, o ? e o som). A música desligada mostra a nota cortada, em cinza; o nome de cada botão fica para os leitores de tela. Sem a TELA CHEIA (iPhone), a marca continua no meio. Conferido em 6 tamanhos e em paisagem, também com o botão INSTALAR O APLICATIVO | `index.html`, `app.css` (`.menu__assinatura`), `ui/music.js`, `ui/fullscreen.js` |
+| "No zoológico [...] todos estão muito amontoados [...] Seria melhor que eles andassem para ocupar mais os espaços da tela" | **Cada um com o seu espaço** (`zoo/zooSpace.js`). (1) O chão ocupa a tela entre a barra de cima e a fileira de retratos; na 2.2, ele ia só de 28% a 73% da altura. Agora é calculado com a câmera do app, quando ela abre e ao girar o celular, e é um trapézio: a perspectiva deixa o fundo mais largo. (2) Espaço pessoal: ninguém entra no outro, e na profundidade o espaço é um pouco maior. (3) Para passear, cada um procura um lugar vazio. (4) Encontros lado a lado: era a 0,16, menos que a soma dos tamanhos. (5) Visitas a cada 16 a 30 s (eram 7 a 14), e ninguém visita quem já recebe visita. (6) Bichos uns 15% menores. (7) Os retratos cabem numa linha em tela larga. A letra pede um pouco mais de espaço, senão "U" e "I" viram "UI" | `zoo/zooSpace.js`, `zoo/zooState.js`, `zoo/zooAR.js`, `zoo/zooConfig.js`, `ar/pageWalker.js` |
+| "Avisar que está sorteando no mini game do media pipe [...] A primeira vez pode ser a e i o u normal, depois sorteado sempre" | A **primeira partida** no aparelho vem **em ordem**: A, E, I, O, U. Ela conta até terminar uma vez; o aparelho guarda `sinalizeOrdemFeita`. Depois, as partidas vêm **sorteadas**, nunca A, E, I, O, U. Elas começam com uns 3 s de "SORTEANDO AS VOGAIS...": as vogais pulam, trocam de lugar e mostram a ordem da partida ("VOGAIS SORTEADAS!"). "Como jogar" explica as duas coisas | `sign/signState.js`, `sign/signGame.js`, `sign/signIntro.js`, `sign/signConfig.js` |
+
+**Medido nesta rodada** (o zoológico com os 10, 8 s depois do último chegar, a
+mesma conta nas duas versões):
+
+| | 2.2 | 2.2.1 |
+|---|---|---|
+| Pares um dentro do outro (de 45) | 17 a 24 | 0 |
+| Altura livre da tela usada | 34% a 43% | 65% a 77% |
+| Largura da tela usada | 38% a 41% | 59% a 62% |
+
+- 111 testes de unidade (o chão, o espaço pessoal, o passeio para os lugares
+  vazios, o trapézio e a ordem do Sinalize);
+- 128 verificações ponta a ponta;
+- o zoológico também foi conferido em 360×640, em tablet e em paisagem
+  (`ZOO_TELA=844x390 npm run test:e2e -- zoo`).
+
+**Pedido de teste no celular:**
+1. A tela inicial: os botões embaixo, TELA CHEIA e MÚSICA.
+2. O zoológico com as 10 cartas: se eles se espalham e se dá para tocar em cada um.
+3. O Sinalize: a primeira partida em ordem e o JOGAR DE NOVO com o sorteio.
+   O aparelho em que vocês já jogaram também começa em ordem uma vez, porque a
+   chave é nova.

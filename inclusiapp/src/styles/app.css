@@ -76,11 +76,6 @@ button { font-family: inherit; }
 .menu__brilhos > i:nth-child(4) { left: 8%; top: 46%; width: 11px; height: 11px; animation-delay: -2.1s; }
 .menu__logo-wrap { flex: none; position: relative; z-index: 1; margin: calc(-0.3 * min(290px, 74vw, 30dvh)) 0 0; }
 .menu__logo { display: block; width: min(290px, 74vw, 30dvh); height: auto; filter: drop-shadow(0 6px 10px #0004); }
-/* os cantos de cima: MÚSICA e TELA CHEIA */
-.menu__cantos { position: absolute; z-index: 3; top: calc(clamp(8px, 1.8dvh, 18px) + var(--safe-top)); right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.menu__canto { min-height: 32px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; }
-.menu__canto .ico { width: 18px; height: 18px; }
-.menu__canto[aria-pressed="false"] { opacity: .78; }
 .menu__portas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; margin-top: 0; }
 .porta {
   position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 0; color: var(--signaria-contorno); text-decoration: none;
@@ -103,8 +98,17 @@ button { font-family: inherit; }
 .menu__links .sg-btn { gap: 6px; padding: 6px 6px; font-size: clamp(10.5px, 3.1vw, 13px); letter-spacing: .02em; white-space: nowrap; }
 .menu__links .sg-btn .ico { flex: none; width: 18px; height: 18px; }
 .menu__instalar { width: 100%; }
-.menu__assinatura { padding-top: 0; }
-.menu__assinatura img { display: block; width: auto; height: clamp(34px, 6.5dvh, 64px); opacity: .95; }
+/*
+ * Embaixo: TELA CHEIA, a marca da InclusiVR e MÚSICA. São os mesmos botões de
+ * ícone dos jogos (o X, o ? e o som), fora da ilustração. As colunas são fixas:
+ * sem a TELA CHEIA (no iPhone), a marca continua no meio.
+ */
+.menu__assinatura { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 12px; padding-top: 0; }
+.menu__assinatura img { grid-area: 1 / 2; display: block; width: auto; height: clamp(34px, 6.5dvh, 64px); opacity: .95; }
+.menu__controle { width: 46px; height: 46px; box-shadow: 0 3px 0 #0002; }
+.menu__controle .ico { width: 24px; height: 24px; }
+.menu__controle--tela { grid-area: 1 / 1; justify-self: start; }
+.menu__controle--musica { grid-area: 1 / 3; justify-self: end; }
 
 /* ---------------------------------------------------------------- instruções / como jogar */
 .intro { max-width: 600px; margin: 0 auto; padding: 0 16px calc(24px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 14px; }
@@ -379,7 +383,8 @@ button { font-family: inherit; }
 .zoo-dica .ico { flex: none; width: 26px; height: 26px; animation: balanca 1.6s ease-in-out infinite; }
 .zoo-rodape { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 10px calc(12px + var(--safe-bottom)); pointer-events: none; }
 .zoo-rodape > * { pointer-events: auto; }
-.zoo-presentes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 520px; padding: 6px 8px; border-radius: 16px; background: color-mix(in srgb, var(--signaria-noite) 55%, transparent); }
+/* os 10 cabem numa linha só em tela larga (deitado, tablet): sobra mais tela para o zoológico */
+.zoo-presentes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: min(100%, 560px); padding: 6px 8px; border-radius: 16px; background: color-mix(in srgb, var(--signaria-noite) 55%, transparent); }
 .zoo-presentes[hidden] { display: none; }
 .zoo-presente { position: relative; display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; padding: 0; border: 0; background: none; cursor: pointer; }
 .zoo-presente .sg-retrato { width: 42px; height: 42px; }
@@ -447,6 +452,23 @@ button { font-family: inherit; }
 /* fim do Sinalize: "VOCÊ FEZ X DE 5" e cada vogal */
 .resumo__fez { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: .03em; }
 .resumo__fez b { font-size: 24px; font-weight: 900; }
+/* Sinalize: o aviso do sorteio. As vogais trocam de lugar e depois mostram a ordem da
+   partida, acesas em turquesa (a magia de Signária). */
+.sorteio__vogais { display: flex; justify-content: center; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.sorteio__vogais .sg-letra-grande { --tam: 52px; }
+.sorteio:not(.is-pronto) .sorteio__vogais li { animation: sorteia .42s ease-in-out infinite alternate; }
+.sorteio:not(.is-pronto) .sorteio__vogais li:nth-child(2n) { animation-direction: alternate-reverse; }
+.sorteio:not(.is-pronto) .sorteio__vogais li:nth-child(3) { animation-delay: -.14s; }
+.sorteio:not(.is-pronto) .sorteio__vogais li:nth-child(4) { animation-delay: -.28s; }
+.sorteio:not(.is-pronto) .sorteio__vogais li:nth-child(5) { animation-delay: -.07s; }
+@keyframes sorteia { from { transform: translate(-14px, 0) rotate(-8deg); } to { transform: translate(14px, -12px) rotate(8deg); } }
+.sorteio.is-pronto .sorteio__vogais li { animation: sorteada .38s cubic-bezier(.3, 1.6, .5, 1) both; }
+.sorteio.is-pronto .sorteio__vogais li:nth-child(2) { animation-delay: .07s; }
+.sorteio.is-pronto .sorteio__vogais li:nth-child(3) { animation-delay: .14s; }
+.sorteio.is-pronto .sorteio__vogais li:nth-child(4) { animation-delay: .21s; }
+.sorteio.is-pronto .sorteio__vogais li:nth-child(5) { animation-delay: .28s; }
+.sorteio.is-pronto .sorteio__vogais .sg-letra-grande { background: var(--signaria-ciano-claro); }
+@keyframes sorteada { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
 .resumo__vogais { display: flex; justify-content: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .resumo__vogais li { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .resumo__vogais .sg-letra-grande { --tam: 46px; }
@@ -486,13 +508,12 @@ button { font-family: inherit; }
 @media (orientation: landscape) and (max-height: 520px) {
   .menu { max-width: 760px; display: grid; grid-template-columns: 1fr 1.4fr; grid-template-rows: repeat(3, auto); align-content: center; align-items: start; column-gap: 24px; }
   .menu__heroi { grid-row: 1 / 4; align-self: center; justify-content: center; }
-  .menu__cantos { left: 12px; right: auto; align-items: flex-start; }
   .menu__janela { flex: none; height: 62dvh; max-height: none; }
   .menu__logo { width: min(220px, 26vw, 34dvh); }
   .menu__logo-wrap { margin-top: calc(-0.3 * min(220px, 26vw, 34dvh)); }
   .menu__portas { margin-top: 0; }
   .menu__portas .porta__arte { height: clamp(56px, 26dvh, 160px); }
-  .menu__assinatura { justify-self: center; }
+  .menu__assinatura { justify-self: stretch; }
   .menu__assinatura img { height: clamp(30px, 9dvh, 52px); }
   .alvo { top: calc(60px + var(--safe-top)); left: 12px; transform: none; width: min(46vw, 380px); }
   .libras__palco { height: 46vh; max-width: 300px; margin-left: 10px; }
@@ -503,7 +524,8 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .screen { transition: none; transform: none; }
   .ar-scan__moldura, .ar-scan__demo .ico, .dica-toque__dedo, .botao-libras, .demo__dedo, .demo__arte--mao .ico,
-  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .salto__animal, .salto__brilho, .menu__brilhos > i, .faixa { animation: none; }
+  .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .salto__animal, .salto__brilho, .menu__brilhos > i, .faixa,
+  .sorteio .sorteio__vogais li { animation: none; }
 }
 
 /* resumo: botões lado a lado sem quebrar em três linhas */

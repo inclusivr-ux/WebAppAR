@@ -42,3 +42,18 @@ Do Luciano, na conversa com o Claude, 10/11/2026:
 - "Não precisa mexer mais nesse elefante, o que tinha lá já tava legal." "O
   elefante do Igor é melhor que esse do site." (ao ver a montagem da versão de
   04/11, com o elefante cinza do site)
+
+Da equipe, no teste da 2.2, 11/11/2026 (texto como foi escrito, só com acentos
+e erros de digitação corrigidos):
+
+- "Botão de tela cheia e de música estão mal posicionados nesse layout.
+  Precisam ser inseridos de forma harmoniosa, refaça para ficar bem feito e
+  elegante."
+- "No zoológico, está funcionando bem o tracking novo agora, mas todos estão
+  muito amontoados. Estão todos convergindo para uma única área, possivelmente
+  um plano. Seria melhor que eles andassem para ocupar mais os espaços da tela
+  do celular, para melhor se distribuir. Assim tá difícil de ver e interagir
+  pois todos estão se aglomerando e entrando um dentro do outro."
+- "Só mais um detalhe, avisar que está sorteando no mini game do media pipe.
+  Só pra não pegar ninguém de surpresa. A primeira vez pode ser a e i o u
+  normal, depois sorteado sempre."

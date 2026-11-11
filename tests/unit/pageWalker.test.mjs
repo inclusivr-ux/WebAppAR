@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Wanderer, angleDelta, headingTo, inBounds, pageBounds, randomTarget, turnToward } from '../../inclusiapp/src/ar/pageWalker.js';
+import { Wanderer, angleDelta, clampToBounds, headingTo, inBounds, pageBounds, randomPoint, randomTarget, turnToward, xRangeAt } from '../../inclusiapp/src/ar/pageWalker.js';
 import { seededRandom } from '../../inclusiapp/src/game/random.js';
 
 test('a área de passeio é a página menos a margem e o tamanho do animal', () => {
@@ -52,4 +52,41 @@ test('o ponto sorteado fica dentro e longe de onde o animal está', () => {
     const p = randomTarget(b, r, [0, 0], 0.12);
     assert.ok(inBounds(p, b));
   }
+});
+
+test('o chão do zoológico é um trapézio: o fundo é mais largo, e ninguém sai dele', () => {
+  const b = { minX: -0.2, maxX: 0.2, minY: -0.6, maxY: 0.9, farMinX: -0.4, farMaxX: 0.4 };
+  assert.deepEqual(xRangeAt(b, b.minY), [-0.2, 0.2], 'na frente');
+  assert.deepEqual(xRangeAt(b, b.maxY), [-0.4, 0.4], 'no fundo');
+  assert.ok(Math.abs(xRangeAt(b, 0.15)[1] - 0.3) < 1e-9, 'no meio, no meio do caminho');
+  assert.deepEqual(clampToBounds([0.35, -0.6], b), [0.2, -0.6], 'na frente, 0,35 está fora');
+  assert.ok(inBounds([0.35, 0.9], b), 'no fundo, 0,35 está dentro');
+  const r = seededRandom(4);
+  let fundoLargo = false;
+  for (let i = 0; i < 500; i++) {
+    const p = randomPoint(b, r);
+    assert.ok(inBounds(p, b), `ponto fora: ${p}`);
+    if (Math.abs(p[0]) > 0.25) fundoLargo = true;
+  }
+  assert.ok(fundoLargo, 'o fundo largo também é usado');
+  // e o passeio continua dentro, mesmo longo
+  const w = new Wanderer({ bounds: b, random: seededRandom(5), rest: [0.1, 0.3] });
+  for (let i = 0; i < 6000; i++) assert.ok(inBounds(w.update(1 / 30).pos, b));
+});
+
+test('o livro continua igual: sem trapézio, o sorteio e os limites são os de sempre', () => {
+  const b = pageBounds(0.7, {});
+  assert.deepEqual(xRangeAt(b, 0), [b.minX, b.maxX]);
+  const a = randomPoint(b, seededRandom(3));
+  const r = seededRandom(3);
+  assert.deepEqual(a, [b.minX + r() * (b.maxX - b.minX), b.minY + r() * (b.maxY - b.minY)], 'x primeiro, depois y (como antes)');
+});
+
+test('quem passeia pode escolher para onde ir (o zoológico procura um lugar vazio)', () => {
+  const b = pageBounds(1, {});
+  const pedidos = [];
+  const w = new Wanderer({ bounds: b, random: seededRandom(2), rest: [0.1, 0.2], pickTarget: (from) => { pedidos.push(from); return [9, 9]; } });
+  for (let i = 0; i < 30; i++) w.update(1 / 30);
+  assert.ok(pedidos.length >= 1, 'pediu o próximo ponto');
+  assert.deepEqual(w.target, [b.maxX, b.maxY], 'o ponto pedido fica dentro da área');
 });

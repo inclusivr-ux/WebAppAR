@@ -83,11 +83,6 @@
   <!-- ========================================================== INÍCIO -->
   <section class="screen screen--claro screen--menu" data-screen="menu" aria-labelledby="menu-title" hidden>
     <div class="menu">
-      <!-- tela cheia (só onde o navegador deixa: o Safari do iPhone não deixa) e a música -->
-      <div class="menu__cantos">
-        <button type="button" class="sg-cartela sg-cartela--chip menu__canto" data-action="music" hidden aria-pressed="true"><svg class="ico" aria-hidden="true"><use href="#i-musica"/></svg> <span data-music-label>MÚSICA</span></button>
-        <button type="button" class="sg-cartela sg-cartela--chip menu__canto" data-action="fullscreen" hidden><svg class="ico" aria-hidden="true"><use href="#i-tela-cheia"/></svg> <span data-fullscreen-label>TELA CHEIA</span></button>
-      </div>
       <div class="menu__heroi">
         <!-- a cena do livro com todos no zoológico: o Seu Zé, a Maga Aia e os cinco animais -->
         <div class="menu__janela" aria-hidden="true">
@@ -117,7 +112,12 @@
         <a class="sg-btn sg-btn--pergaminho sg-btn--mini sg-cartela" data-link="site" href="https://inclusivr.com.br/" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-globo"/></svg> NOSSO SITE</a>
       </div>
       <button class="sg-btn sg-btn--branco sg-btn--mini sg-cartela menu__instalar" type="button" data-action="install" hidden><svg class="ico" aria-hidden="true"><use href="#i-celular"/></svg> INSTALAR O APLICATIVO</button>
-      <footer class="menu__assinatura"><img src="assets/img/inclusivr.webp" alt="InclusiVR" width="160" height="224"></footer>
+      <!-- embaixo: TELA CHEIA (só onde o navegador deixa: o Safari do iPhone não deixa), a marca e a MÚSICA -->
+      <footer class="menu__assinatura">
+        <button type="button" class="sg-redondo menu__controle menu__controle--tela" data-action="fullscreen" hidden aria-label="Tela cheia" title="Tela cheia"><svg class="ico" aria-hidden="true"><use href="#i-tela-cheia"/></svg></button>
+        <img src="assets/img/inclusivr.webp" alt="InclusiVR" width="160" height="224">
+        <button type="button" class="sg-redondo menu__controle menu__controle--musica" data-action="music" hidden aria-pressed="true" aria-label="Desligar a música" title="Desligar a música"><svg class="ico" aria-hidden="true"><use href="#i-musica"/></svg></button>
+      </footer>
     </div>
   </section>
 
@@ -516,6 +516,7 @@
       </ol>
       <div class="sg-cartela intro__texto">
         <p>O jogo mostra uma <strong>vogal</strong>: A, E, I, O ou U.</p>
+        <p data-sign-order>Na primeira vez, as vogais vêm <strong>em ordem</strong>: A, E, I, O, U. Depois, elas são <strong>sorteadas</strong>.</p>
         <p>O intérprete de LIBRAS faz o sinal dela <strong>duas vezes</strong>.</p>
         <p>Depois é a <strong>sua vez</strong>: faça o sinal para a câmera, <strong>com calma</strong>. Não tem tempo!</p>
       </div>
@@ -570,6 +571,12 @@
       </div>
     </div>
     <div class="faixa" data-feedback hidden role="status"></div>
+
+    <!-- o aviso do sorteio: as vogais trocam de lugar e mostram a ordem da partida -->
+    <div class="embaralhar sorteio" data-draw hidden aria-hidden="true">
+      <ol class="sorteio__vogais" data-draw-vowels></ol>
+      <p class="sg-cartela sg-cartela--chip" data-draw-title>SORTEANDO AS VOGAIS...</p>
+    </div>
 
     <div class="resumo" data-summary hidden role="dialog" aria-modal="true" aria-labelledby="sz-summary-title">
       <div class="resumo__card sg-cartela sg-cartela--centro">

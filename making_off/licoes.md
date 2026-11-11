@@ -48,3 +48,13 @@
     pede mais ganho que uma faixa comum. O `ebur128` do ffmpeg dá o número em
     LUFS em segundos; o volume escolhido antes de existir a faixa deixaria o
     começo dela quase mudo. (Capítulo 3)
+16. **Antes de espalhar, meça o amontoado.** Conte quantos pares se sobrepõem
+    e quanto da tela é usado, na versão antiga e na nova, com a mesma conta.
+    Assim "ficou melhor" vira número. (Capítulo 4)
+17. **Botão de canto é do mesmo sistema que os outros botões.** Use os mesmos
+    botões de ícone do resto do app e um lugar fixo da composição (aqui, dos
+    lados da marca), nunca por cima da ilustração. (Capítulo 4)
+18. **Em AR visto de cima, quem é alto tapa quem está atrás.** O espaço pessoal
+    precisa ser maior na profundidade do que dos lados. (Capítulo 4)
+19. **Se a ordem é sorteada, avise.** Mostre que está sorteando; a primeira vez
+    pode ser na ordem que a criança já conhece. (Capítulo 4)

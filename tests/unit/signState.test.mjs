@@ -101,3 +101,30 @@ test('pular e o fim: "você fez X de 5", com cada vogal (certa ou pulada)', () =
   assert.deepEqual(s.results.map((r) => r.ok), [true, true, true, true, false]);
   assert.equal(s.stars, undefined);
 });
+
+test('a primeira vez vem em ordem: A, E, I, O, U (pedido da equipe, 11/11/2026)', () => {
+  const match = new SignMatch(SIGN_GAME);
+  match.start(7, { inOrder: true });
+  assert.deepEqual(match.order, ['A', 'E', 'I', 'O', 'U']);
+  assert.equal(match.inOrder, true);
+  assert.equal(match.nextRound().letter, 'A');
+  assert.ok(SIGN_GAME.orderKey, 'o aparelho guarda que a primeira partida terminou');
+});
+
+test('depois, sorteada: nunca sai A, E, I, O, U, e a mesma semente dá a mesma ordem', () => {
+  const vistas = new Set();
+  for (let seed = 1; seed <= 500; seed++) {
+    const { match } = newMatch(seed);
+    assert.equal(match.inOrder, false);
+    assert.notDeepEqual(match.order, ['A', 'E', 'I', 'O', 'U'], `semente ${seed}`);
+    assert.deepEqual([...match.order].sort(), ['A', 'E', 'I', 'O', 'U'], 'as cinco vogais, uma vez cada');
+    assert.deepEqual(newMatch(seed).match.order, match.order);
+    vistas.add(match.order.join(''));
+  }
+  assert.ok(vistas.size > 60, `ordens diferentes de verdade: ${vistas.size}`);
+});
+
+test('o aviso do sorteio é curto (uns 3 segundos) e não tem relógio de jogo', () => {
+  const total = SIGN_GAME.timing.drawMs + SIGN_GAME.timing.drawShowMs;
+  assert.ok(total >= 2000 && total <= 3500, `${total} ms`);
+});

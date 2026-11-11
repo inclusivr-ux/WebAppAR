@@ -32,16 +32,23 @@ export async function toggleFullscreen() {
   }
 }
 
-/** Liga um botão: mostra só onde funciona e troca o texto (TELA CHEIA / SAIR DA TELA CHEIA). */
+/**
+ * Liga um botão: mostra só onde funciona e troca o ícone (abrir / fechar a
+ * tela cheia) e o nome ("Tela cheia" / "Sair da tela cheia"), que fica para
+ * os leitores de tela e na dica do mouse. Na tela inicial o botão é só o
+ * ícone, como os botões dos jogos (desde a versão 2.2.1).
+ */
 export function setupFullscreenButton(button) {
   if (!button || !fullscreenSupported()) return;
   const label = button.querySelector('[data-fullscreen-label]');
   const use = button.querySelector('use');
   const render = () => {
     const on = isFullscreen();
-    label.textContent = on ? 'SAIR DA TELA CHEIA' : 'TELA CHEIA';
+    const name = on ? 'Sair da tela cheia' : 'Tela cheia';
+    if (label) label.textContent = name.toUpperCase();
+    button.setAttribute('aria-label', name);
+    button.title = name;
     use?.setAttribute('href', on ? '#i-tela-normal' : '#i-tela-cheia');
-    button.setAttribute('aria-pressed', String(on));
   };
   button.hidden = false;
   button.addEventListener('click', toggleFullscreen);

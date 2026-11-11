@@ -11,7 +11,7 @@
  *
  * Ao publicar mudanças grandes, aumente VERSION para descartar caches antigos.
  */
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CODE_CACHE = `sinalizaacao-code-${VERSION}`;
 const ASSET_CACHE = `sinalizaacao-assets-${VERSION}`;
 

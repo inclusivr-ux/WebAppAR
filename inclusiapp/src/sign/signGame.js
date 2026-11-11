@@ -1,7 +1,9 @@
 /**
  * SINALIZE! — a tela do jogo.
  *
- *   a vogal na tela (a letra e a carta do sinal) → OLHE: o intérprete faz o
+ *   a ordem: na primeira vez, A, E, I, O, U; depois, sorteada, com a tela
+ *   "SORTEANDO AS VOGAIS..." (as vogais trocam de lugar e mostram a ordem)
+ *   → a vogal na tela (a letra e a carta do sinal) → OLHE: o intérprete faz o
  *   sinal duas vezes → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA", com calma
  *   → a câmera reconheceu: ISSO! → próximo desafio (ordem fixa)
  *   → a câmera viu outro sinal: QUASE! Olhe de novo... (e a criança continua)
@@ -24,6 +26,7 @@ import { getRenderer } from '../ar/arSession.js';
 import { LibrasVideo } from '../ar/videoChroma.js';
 import { announce, clearToasts, toast } from '../ui/notifications.js';
 import { isSoundOn, setSound, sfx, unlockAudio } from '../ui/sound.js';
+import { storage } from '../ui/storage.js';
 import { celebrate, sparkle } from '../ui/effects.js';
 import { SIGN_GAME, clipFor } from './signConfig.js';
 import { PHASE, SignMatch } from './signState.js';
@@ -60,6 +63,9 @@ export class SignGame {
       status: q('[data-status]'),
       statusText: q('[data-status-text]'),
       statusBar: q('[data-status-bar]'),
+      draw: q('[data-draw]'),
+      drawTitle: q('[data-draw-title]'),
+      drawVowels: q('[data-draw-vowels]'),
     };
     const on = (sel, fn) => screen.querySelectorAll(sel).forEach((b) => b.addEventListener('click', fn));
     on('[data-action="watch-again"]', () => this.watchAgain());
@@ -153,6 +159,7 @@ export class SignGame {
     }
     window.removeEventListener('resize', this._onResize);
     this.el.status.hidden = true;
+    this.el.draw.hidden = true;
     this._resizeObserver?.disconnect();
     clearToasts();
   }
@@ -262,12 +269,55 @@ export class SignGame {
   }
 
   /* ------------------------------------------------------------ partida */
-  newMatch() {
+  /**
+   * Nova partida. A primeira no aparelho vem em ordem (A, E, I, O, U); as
+   * outras, sorteadas, com o aviso "SORTEANDO AS VOGAIS..." antes de começar.
+   */
+  async newMatch() {
     this.token = {};
+    const token = this.token;
     this.el.summary.hidden = true;
-    this.match.start();
+    const inOrder = !storage.get(SIGN_GAME.orderKey, false);
+    this.match.start(undefined, { inOrder });
     this._renderHud();
+    if (!inOrder) {
+      await this._draw(token);
+      if (!this._alive(token)) return;
+    }
     this._round();
+  }
+
+  /**
+   * O aviso do sorteio (pedido da equipe, 11/11/2026): as cinco vogais trocam
+   * de lugar ("SORTEANDO AS VOGAIS...") e depois mostram a ordem da partida
+   * ("VOGAIS SORTEADAS!"). Uns 3 segundos, sem precisar tocar em nada.
+   */
+  async _draw(token) {
+    const { draw, drawTitle, drawVowels } = this.el;
+    const tiles = (letters) => letters.map((l) => `<li><span class="sg-letra-grande">${l}</span></li>`).join('');
+    // atrás do aviso, nada da partida anterior: a vogal ainda é segredo
+    this._step('olhe', 'olho', 'SORTEANDO AS VOGAIS...');
+    this.el.letter.textContent = '?';
+    this.el.name.textContent = '';
+    this.el.card.style.visibility = 'hidden';
+    this.el.camPanel.classList.remove('is-vez', 'is-quase');
+    this._camMsg('');
+    draw.classList.remove('is-pronto');
+    drawTitle.textContent = 'SORTEANDO AS VOGAIS...';
+    drawVowels.innerHTML = tiles(SIGN_GAME.items.map((i) => i.letter));
+    draw.hidden = false;
+    sfx.reveal();
+    announce('Sorteando as vogais.');
+    await sleep(SIGN_GAME.timing.drawMs);
+    if (!this._alive(token)) return;
+    const order = this.match.order.map((id) => this.match.items.get(id).letter);
+    drawVowels.innerHTML = tiles(order);
+    drawTitle.textContent = 'VOGAIS SORTEADAS!';
+    draw.classList.add('is-pronto');
+    sfx.tick();
+    announce(`Vogais sorteadas: ${order.join(', ')}.`);
+    await sleep(SIGN_GAME.timing.drawShowMs);
+    if (this._alive(token)) draw.hidden = true;
   }
 
   async _round() {
@@ -419,6 +469,8 @@ export class SignGame {
 
   /** Fim: "Você fez X de 5", com cada vogal (certa ou pulada). Sem pontos nem recorde. */
   _finish() {
+    // a primeira partida (em ordem) terminou: daqui em diante, as vogais vêm sorteadas
+    if (this.match.inOrder) storage.set(SIGN_GAME.orderKey, true);
     const s = this.match.summary();
     const box = this.el.summary;
     box.querySelector('[data-sum-title]').textContent = s.signsCorrect === s.total ? 'PARABÉNS!' : s.signsCorrect ? 'MUITO BEM!' : 'VAMOS TREINAR MAIS?';
@@ -436,6 +488,7 @@ export class SignGame {
   /** A vogal: a letra do português ao lado da carta com o sinal (o par). */
   _showItem(item) {
     const img = this.el.card;
+    img.style.visibility = '';
     img.src = `assets/img/cartas-mini/carta${item.card}.webp`;
     img.alt = `Carta: ${item.label} em LIBRAS`;
     this.el.letter.textContent = item.letter;

@@ -18,17 +18,20 @@ celular (Android e iPhone), sem instalar nada.
     entre as cartas com a face de LIBRAS para cima, **o sinal que combina**.
     Embaralha **uma vez por partida** (com semente); errar não tira pontos.
   - **Zoológico (em AR)** — cada **carta** mostrada para a câmera, em qualquer
-    posição, traz o seu animal para o zoológico (um palco no meio da tela), e a
-    carta do **sinal de uma vogal** traz a **letra** do português, em 3D. Todos
-    brincam juntos (o urso come o mel da abelha, o elefante joga água, a onça
-    brinca, a letra acende quando o seu animal chega); a **casinha** leva
-    alguém para descansar. Sem a página 22 desde a versão 2.2.
+    posição, traz o seu animal para o zoológico (um chão que ocupa a tela), e a
+    carta do **sinal de uma vogal** traz a **letra** do português, em 3D. Cada
+    um passeia com o seu espaço, e eles se encontram lado a lado (o urso come o
+    mel da abelha, o elefante joga água, a onça brinca, a letra acende quando o
+    seu animal chega); a **casinha** leva alguém para descansar. Sem a página
+    22 desde a versão 2.2.
   - **Sinalize!** — o jogo mostra uma **vogal**; o intérprete faz o sinal
     **duas vezes**, e a criança repete para a **câmera frontal**, com calma:
-    **sem pontos e sem tempo**, só "ISSO!" e "QUASE!". O jogo precisa da câmera
-    e **não grava imagens**.
-- **TELA CHEIA** e **MÚSICA** na tela inicial (a música é a trilha do sound
-  design, "oogway morrendo", em laço e baixinha).
+    **sem pontos e sem tempo**, só "ISSO!" e "QUASE!". Na primeira vez, as
+    vogais vêm em ordem (A, E, I, O, U); depois, **sorteadas**, com o aviso
+    "SORTEANDO AS VOGAIS...". O jogo precisa da câmera e **não grava imagens**.
+- **TELA CHEIA** e **MÚSICA** na tela inicial, embaixo, dos lados da marca da
+  InclusiVR (a música é a trilha do sound design, "oogway morrendo", em laço e
+  baixinha).
 
 Tudo no navegador: [MindAR](https://github.com/hiukim/mind-ar-js) (imagens),
 [Three.js](https://threejs.org/) r160 (3D) e [MediaPipe](https://ai.google.dev/edge/mediapipe) (mãos).
@@ -46,9 +49,13 @@ Visual: **Telas do Signária** do design system InclusiVR.
 |---|---|---|---|
 | ![Início](docs/screenshots/inicio.jpg) | ![Instruções](docs/screenshots/livro-instrucoes.jpg) | ![Elefante](docs/screenshots/livro-elefante.jpg) | ![Soletrar](docs/screenshots/livro-libras-soletrar.jpg) |
 
-| Palco de brincar (sem a página) | Jogo de Cartas | Zoológico (só cartas) | Sinalize!: sua vez | Sinalize!: fim |
-|---|---|---|---|---|
-| ![Palco](docs/screenshots/livro-palco.jpg) | ![Cartas](docs/screenshots/cartas-acerto.jpg) | ![Zoológico](docs/screenshots/zoologico.jpg) | ![Sinalize](docs/screenshots/sinalize-vez.jpg) | ![Fim](docs/screenshots/sinalize-fim.jpg) |
+| Palco de brincar (sem a página) | Jogo de Cartas | Zoológico (cada um com o seu espaço) |
+|---|---|---|
+| ![Palco](docs/screenshots/livro-palco.jpg) | ![Cartas](docs/screenshots/cartas-acerto.jpg) | ![Zoológico](docs/screenshots/zoologico.jpg) |
+
+| Sinalize!: o sorteio | Sinalize!: sua vez | Sinalize!: fim |
+|---|---|---|
+| ![Sorteio](docs/screenshots/sinalize-sorteio.jpg) | ![Sinalize](docs/screenshots/sinalize-vez.jpg) | ![Fim](docs/screenshots/sinalize-fim.jpg) |
 
 O que mudou na atualização de novembro de 2026, a análise feita antes e o que
 depende de material: **[docs/ATUALIZACAO-2026-11.md](docs/ATUALIZACAO-2026-11.md)**.
@@ -93,7 +100,8 @@ inclusiapp/
 │   │   └── librasPanel.js     o módulo do intérprete (SINAL / SOLETRAR em karaokê)
 │   ├── game/                  Jogo de Cartas (gameState.js = regras, random.js = semente)
 │   ├── zoo/                   Zoológico em AR (zooConfig.js ★ cartas e interações, zooState.js = regras,
-│   │                          zooAR.js = as cartas validam e trazem todos ao palco, letterModel.js = letras 3D)
+│   │                          zooAR.js = as cartas validam e trazem todos ao palco, letterModel.js = letras 3D,
+│   │                          zooSpace.js = o chão que ocupa a tela e o espaço de cada um)
 │   ├── sign/                  Sinalize! (signConfig.js ★, signRecognizers.js, handSigns.js...)
 │   ├── ui/                    menu, jogos, instruções, avisos, sons, música, tela cheia, faíscas
 │   └── styles/                tokens.css (design system) · signaria.css (componentes) · app.css (telas)
@@ -233,8 +241,20 @@ se perdia (teste da equipe, 10/11/2026).
 - Mostre uma **carta** para a câmera, **em qualquer posição** (girada, de lado,
   de cabeça para baixo): a carta só **valida**. O animal (as duas faces da
   carta valem) **salta do lugar da carta** para o zoológico, um "chão"
-  invisível no meio da tela (o mesmo palco do livro). A carta do **sinal de uma
-  vogal** (ou a da letra) traz a **letra do português em 3D**, animada.
+  invisível (o mesmo palco do livro). A carta do **sinal de uma vogal** (ou a
+  da letra) traz a **letra do português em 3D**, animada.
+- **Cada um com o seu espaço** (desde a versão 2.2.1, `src/zoo/zooSpace.js`;
+  na 2.2, todos se juntavam num ponto só):
+  - o chão ocupa a tela entre a barra de cima e a fileira de retratos, e é
+    calculado quando a câmera abre e ao girar o celular. Ele é um trapézio,
+    porque a perspectiva deixa o fundo mais largo;
+  - ninguém entra no outro: quem fica perto demais desliza para o lado, e na
+    profundidade o espaço é um pouco maior (quem é alto tapa quem está atrás);
+  - para passear, cada um procura um lugar vazio;
+  - os encontros são lado a lado, e as visitas são raras (a cada 16 a 30 s);
+    ninguém visita quem já está recebendo visita.
+  - Medido com os 10: na 2.2, 17 a 24 pares um dentro do outro e 34% a 43% da
+    altura da tela; na 2.2.1, nenhum par e 65% a 77% da altura.
 - Um de cada: no máximo **5 animais + 5 letras**. A carta usada sai da procura
   (as duas faces), e o celular acha logo a próxima. Com os 10 no zoológico, o
   reconhecimento das cartas **para** (o celular só desenha: 101 mil triângulos,
@@ -255,7 +275,8 @@ se perdia (teste da equipe, 10/11/2026).
 ## 9. Sinalize!
 
 ```text
-a vogal na tela (a letra + a carta do sinal) → OLHE: o intérprete faz o sinal 2 vezes
+a ordem: na 1ª vez, A, E, I, O, U; depois, "SORTEANDO AS VOGAIS..." e a ordem da partida
+→ a vogal na tela (a letra + a carta do sinal) → OLHE: o intérprete faz o sinal 2 vezes
 → "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
 → reconhecido: "ISSO! VOCÊ FEZ O A!" → próxima
 → outra vogal na câmera: "QUASE! OLHE DE NOVO O SINAL DO A NA CARTA" (e continua tentando)
@@ -267,6 +288,14 @@ passava a ideia de fazer rápido, e o reconhecimento funciona melhor com calma.
 Sem contagem 3-2-1, sem tempo limite, sem recordes. Depois de 12 s sem
 acertar, aparece **uma** dica (a mão inteira na câmera, com luz); nada se perde.
 
+- **A ordem** (desde a versão 2.2.1, pedido da equipe: "só pra não pegar
+  ninguém de surpresa"):
+  - na primeira vez no aparelho, as vogais vêm **em ordem**: A, E, I, O, U.
+    O aparelho guarda quando essa partida termina (`sinalizeOrdemFeita`);
+  - depois, elas vêm **sorteadas** (nunca A, E, I, O, U): a partida começa com
+    uns 3 segundos de "SORTEANDO AS VOGAIS...", e as vogais trocam de lugar até
+    mostrar a ordem da partida;
+  - "Como jogar" explica as duas coisas.
 - **Só as 5 vogais** (configurações de mão paradas, que a câmera reconhece bem).
   Os sinais dos animais têm movimento e saíram do jogo (10/11/2026); as regras
   provisórias deles estão no histórico do git (commit `9ceda81`), para o Signária IA.
@@ -293,8 +322,10 @@ acertar, aparece **uma** dica (a mão inteira na câmera, com luz); nada se perd
 - **Abertura**: a cena do livro com todos no zoológico (a ilustração do Igor),
   numa janela em arco, com o logo por cima. A tela inicial **cabe inteira** em
   qualquer celular, sem rolar: a janela usa o espaço que sobra, e a marca da
-  InclusiVR fica sempre à vista. **TELA CHEIA** nos cantos (só onde o navegador
-  deixa: o Safari do iPhone não deixa) e **MÚSICA** (liga e desliga a trilha).
+  InclusiVR fica sempre à vista. Embaixo, dos lados da marca, ficam **TELA
+  CHEIA** (só onde o navegador deixa: o Safari do iPhone não deixa) e
+  **MÚSICA**. São os mesmos botões de ícone dos jogos, fora da ilustração
+  (desde a versão 2.2.1). A música desligada aparece com a nota cortada.
 - **Instruções do livro**: a foto do livro aberto e o celular (do site da
   InclusiVR), com o elefante **do app** saltando da página para o celular
   (`tools/render-instrucoes.mjs` fotografa o `.glb`), e "± 30 cm". Sem pessoa.
@@ -317,19 +348,20 @@ Ao publicar mudanças grandes, aumente `VERSION` em `inclusiapp/sw.js`.
 ## 12. Testes
 
 ```bash
-npm test                         # 96 testes de unidade
+npm test                         # 111 testes de unidade
 python3 tests/e2e/make_zoo_frames.py   # fotos sintéticas do zoológico (cartas em várias posições)
 python3 tests/make_frames.py     # (opcional) fotos sintéticas das páginas e cartas
 node tests/e2e/recognition.mjs   # reconhecimento real das páginas e cartas
 npm run test:e2e                 # ponta a ponta no Chromium (telas, livro, cartas, zoo, sinalize, erros, paisagem)
 npm run test:e2e -- livro        # só uma parte
+ZOO_TELA=844x390 npm run test:e2e -- zoo   # o zoológico em outro tamanho de tela
 ```
 
 Os testes ponta a ponta usam uma **câmera falsa** (`tests/e2e/fakeCamera.js`):
 o caminho real (câmera → MindAR/MediaPipe → 3D → LIBRAS) roda no navegador.
 Verificam, entre outros:
 - nenhum nome da equipe no app, e nenhuma menção à Aia ou ao Seu Zé;
-- o início cabe sem rolar em 6 tamanhos; TELA CHEIA; a música (a trilha do app abre; com um tom de teste, liga e desliga; sem arquivo, o botão some);
+- o início cabe sem rolar em 6 tamanhos, com TELA CHEIA e MÚSICA ao lado da marca, fora da ilustração; a música (a trilha do app abre; com um tom de teste, liga e desliga; sem arquivo, o botão some);
 - as fotos das instruções; o intérprete não aparece sozinho; o karaokê destaca a letra certa;
 - no livro:
   - o animal segue a página pelo grupo liso;
@@ -340,9 +372,11 @@ Verificam, entre outros:
 - o zoológico só com cartas:
   - de cabeça para baixo, de lado e duas juntas;
   - os 10 juntos, com o reconhecimento parado, e a casinha;
+  - os 10 espalhados pela tela, sem ninguém dentro do outro e sem ficar embaixo das barras;
 - o Sinalize:
   - sem placar nem tempo, com "QUASE!" numa vogal errada sem tapar os botões;
   - "ISSO!" na certa e "VOCÊ FEZ 1 DE 5";
+  - a primeira partida em ordem, e o JOGAR DE NOVO com "SORTEANDO AS VOGAIS..." e uma ordem sorteada;
   - sem rolar em 360×640, e sem câmera = aviso;
 - câmera desligada ao sair;
 - mensagens de câmera negada, ocupada ou inexistente;

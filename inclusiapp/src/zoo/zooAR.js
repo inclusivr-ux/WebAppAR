@@ -8,9 +8,12 @@
  *   2. a carta usada deixa de ser procurada (as duas faces), e o celular logo
  *      acha a próxima. Com os 10 no zoológico, o reconhecimento das cartas
  *      para: o celular só desenha (mais leve);
- *   3. todos ficam juntos, passeiam e se encontram (o urso come o mel da
- *      abelha, o elefante joga água, a onça brinca; o animal acende a letra
- *      da sua inicial);
+ *   3. todos passeiam pelo chão inteiro, que ocupa a tela entre a barra de
+ *      cima e a fileira de retratos, cada um com o seu espaço (zooSpace.js:
+ *      ninguém entra no outro, e quem passeia procura um lugar vazio). De vez
+ *      em quando se encontram lado a lado (o urso come o mel da abelha, o
+ *      elefante joga água, a onça brinca; o animal acende a letra da sua
+ *      inicial);
  *   4. tocar = carinho; um dedo gira o zoológico, dois dedos aproximam; a
  *      casinha leva alguém para descansar (e a carta volta a valer).
  *
@@ -34,9 +37,11 @@ import { showARError, toast, announce } from '../ui/notifications.js';
 import { sparkle } from '../ui/effects.js';
 import { sfx } from '../ui/sound.js';
 import { storage } from '../ui/storage.js';
+import { clampToBounds, inBounds } from '../ar/pageWalker.js';
 import { ZOO, ZOO_CARDS, NEED_ICONS } from './zooConfig.js';
 import { ZooState } from './zooState.js';
 import { createLetter } from './letterModel.js';
+import { zooFloor, freeSpot, keepApart, occupied } from './zooSpace.js';
 
 const raycaster = new THREE.Raycaster();
 const _ndc = new THREE.Vector2();
@@ -132,6 +137,11 @@ export class ZooExperience {
     }
     if (!this._alive(token)) return;
     this.el.status.hidden = true;
+    // o chão ocupa a parte livre da tela (de novo ao girar o celular e quando a fileira de retratos muda)
+    this._fitFloor();
+    session.onResize = () => this._fitFloor();
+    this._trayWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this._fitFloor()) : null;
+    this._trayWatch?.observe(this.el.present);
     for (const t of Object.keys(ZOO_CARDS)) session.anchor(Number(t));
     this.gestures.reset();
     this.gestures.setManipulate(true);
@@ -158,6 +168,8 @@ export class ZooExperience {
     this.token = null;
     for (const t of this.timers || []) clearTimeout(t);
     this.timers?.clear();
+    this._trayWatch?.disconnect();
+    this._trayWatch = null;
     this.gestures.detach();
     this.debug?.dispose();
     this.debug = null;
@@ -165,6 +177,7 @@ export class ZooExperience {
     this._hideLoading();
     if (this.session) {
       this.session.onTargetFound = null;
+      this.session.onResize = null;
       await this.session.stop();
     }
     for (const e of this.entries?.values() || []) this._dispose(e);
@@ -217,8 +230,7 @@ export class ZooExperience {
     let at = null;
     if (raycaster.ray.intersectPlane(_plane, _v)) {
       _v.applyMatrix4(_inv.copy(this.stage.matrixWorld).invert());
-      const b = this.state.bounds;
-      at = [THREE.MathUtils.clamp(_v.x, b.minX, b.maxX), THREE.MathUtils.clamp(_v.y, b.minY, b.maxY)];
+      at = clampToBounds([_v.x, _v.y], this.state.bounds);
     }
     return { screen, at };
   }
@@ -267,7 +279,12 @@ export class ZooExperience {
       // a letra reclina para trás, como uma placa, para quem olha de cima: tem que dar para LER
       lean: kind === 'letra' ? [10, 62] : [40, 38],
     });
-    this.entries.set(item.id, { item, actor, card });
+    const entry = { item, actor, card };
+    this.entries.set(item.id, entry);
+    // o raio de verdade (o modelo chegou) e o passeio para os lugares vazios; a letra
+    // é larga e fica de frente para quem olha: pede um pouco mais de espaço
+    this.state.setRadius(item.id, actor.radius * (kind === 'letra' ? ZOO.letterSpace : 1));
+    actor.wander.pickTarget = (pos) => this._roamSpot(item.id, pos);
     actor.found({ at: from.at || spot, stageBounds: this.state.bounds });
     if (from.at) actor.wander.goTo(spot);
     announce(`${capitalize(nameOf(kind, type))} chegou no zoológico!`);
@@ -275,18 +292,77 @@ export class ZooExperience {
     this._checkFull();
   }
 
-  /** Um lugar do palco longe dos outros (e, se der, do lado em que a carta apareceu). */
+  /** Um lugar vazio no chão (e, se der, do lado em que a carta apareceu). */
   _freeSpot(hint) {
-    const b = this.state.bounds;
-    const others = [...this.state.items.values()];
-    let best = null;
-    for (let i = 0; i < 18; i++) {
-      const p = [b.minX + Math.random() * (b.maxX - b.minX), b.minY + Math.random() * (b.maxY - b.minY)];
-      const near = others.reduce((m, o) => Math.min(m, Math.hypot(o.x - p[0], o.y - p[1])), Infinity);
-      const score = Math.min(near, 0.35) - (hint ? 0.12 * Math.abs(hint[0] - p[0]) : 0);
-      if (!best || score > best.score) best = { p, score };
+    return freeSpot(this.state.bounds, this._crowd(null), Math.random, { hint, r: Math.max(...Object.values(ZOO.sizes)) * 0.45, depth: ZOO.depthSpace, tries: 32 });
+  }
+
+  /** O próximo passeio de alguém: um lugar vazio, sem atravessar o zoológico inteiro. */
+  _roamSpot(id, from) {
+    const it = this.state.items.get(id);
+    return freeSpot(this.state.bounds, this._crowd(id), Math.random, { from, r: it?.r || 0.1, depth: ZOO.depthSpace });
+  }
+
+  /** Onde estão os outros e para onde estão indo. */
+  _crowd(exceptId) {
+    const list = [];
+    for (const it of this.state.items.values()) {
+      if (it.id === exceptId) continue;
+      list.push({ x: it.x, y: it.y, r: it.r });
+      const t = this.entries.get(it.id)?.actor.wander.target;
+      if (t) list.push({ x: t[0], y: t[1], r: it.r });
     }
-    return best.p;
+    return list;
+  }
+
+  /** A parte livre da tela (frações do palco): abaixo da barra de cima, acima da fileira de retratos. */
+  _safeArea() {
+    const box = this.stageEl.getBoundingClientRect();
+    if (!box.width || !box.height) return null;
+    const s = ZOO.screen;
+    const topBar = this.screen.querySelector('.ar-topo')?.getBoundingClientRect();
+    const top = (topBar ? topBar.bottom : box.top) + s.headroom;
+    const tray = this.el.present;
+    const rodape = tray.parentElement?.getBoundingClientRect();
+    // a fileira de retratos aparece com o primeiro que chega: antes disso, guarda o lugar de uma linha
+    const trayTop = tray.hidden || !tray.offsetHeight ? (rodape ? rodape.bottom : box.bottom) - s.trayRow : tray.getBoundingClientRect().top;
+    return {
+      top: (top - box.top) / box.height,
+      bottom: (trayTop - s.gap - box.top) / box.height,
+      left: s.side / box.width,
+      right: 1 - s.side / box.width,
+    };
+  }
+
+  /** O chão ocupa a parte livre da tela (zooSpace.js: zooFloor). */
+  _fitFloor() {
+    const camera = this.session?.camera;
+    const safe = this._safeArea();
+    if (!camera || !safe || !this.state || !this.active) return;
+    const big = Math.max(...Object.values(ZOO.sizes));
+    const floor = zooFloor(camera, ZOO.stage, safe, { radius: big * 0.5, height: big });
+    this.safe = safe;
+    this.state.setBounds(floor);
+    for (const e of this.entries.values()) if (e.actor.state !== 'gone') e.actor.setStage(true, floor);
+  }
+
+  /**
+   * Espaço pessoal (zooSpace.js): ninguém entra no outro, e quem ia para um
+   * lugar que ficou ocupado escolhe outro (menos quem está indo visitar alguém).
+   */
+  _spread(dt) {
+    const bodies = [];
+    for (const e of this.entries.values()) {
+      if (e.leaving || e.actor.state !== 'living') continue;
+      bodies.push({ pos: e.actor.wander.pos, r: e.item.r, entry: e });
+    }
+    if (bodies.length < 2) return;
+    keepApart(bodies, dt, { gap: ZOO.personalGap, depth: ZOO.depthSpace, bounds: this.state.bounds });
+    for (const b of bodies) {
+      const w = b.entry.actor.wander;
+      if (!w.target || w.target === b.entry.approachTarget) continue;
+      if (occupied(w.target, bodies, b.r, b, ZOO.personalGap, ZOO.depthSpace)) w.target = w.nextTarget();
+    }
   }
 
   /** Com todos os 10 no zoológico, o reconhecimento das cartas para (o celular só desenha). */
@@ -356,6 +432,7 @@ export class ZooExperience {
   _frame(dt) {
     this.gestures.update(dt);
     this.follower.update(dt, stagePose(this.session.camera, ZOO.stage, this.gestures.state, _pose));
+    this._spread(dt);
     for (const e of this.entries.values()) {
       e.actor.update(dt);
       if (e.actor.state === 'living') this.state.move(e.item.id, e.actor.wander.pos[0], e.actor.wander.pos[1]);
@@ -398,12 +475,25 @@ export class ZooExperience {
     if (e && t && e.actor.state === 'living' && !e.actor.model.busy) this._approach(e, t);
   }
 
+  /**
+   * Vai até o outro e para AO LADO dele (a soma dos raios e a folga), à
+   * esquerda ou à direita, o lado mais perto que couber no chão: os dois
+   * ficam de frente para quem olha, e ninguém entra no outro.
+   */
   _approach(mover, still) {
     const [x0, y0] = mover.actor.wander.pos;
     const [x1, y1] = still.actor.wander.pos;
-    const d = Math.hypot(x1 - x0, y1 - y0) || 1;
-    const gap = mover.actor.model.flies ? 0.03 : ZOO.meetDistance * 0.6;
-    mover.actor.wander.goTo([x1 - ((x1 - x0) / d) * gap, y1 - ((y1 - y0) / d) * gap]);
+    const gap = mover.item.r + still.item.r + ZOO.personalGap + 0.01;
+    const sides = [[x1 - gap, y1], [x1 + gap, y1]]
+      .filter((p) => inBounds(p, this.state.bounds))
+      .sort((a, b) => Math.hypot(a[0] - x0, a[1] - y0) - Math.hypot(b[0] - x0, b[1] - y0));
+    let spot = sides[0];
+    if (!spot) {
+      const d = Math.hypot(x1 - x0, y1 - y0) || 1;
+      spot = [x1 - ((x1 - x0) / d) * gap, y1 - ((y1 - y0) / d) * gap];
+    }
+    mover.actor.wander.goTo(spot);
+    mover.approachTarget = mover.actor.wander.target;
   }
 
   _play(e, role) {
