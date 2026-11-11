@@ -40,11 +40,12 @@ test('a ordem é embaralhada uma vez por partida, com semente (mesma semente = m
   assert.notDeepEqual(newMatch(43).match.order, order);
 });
 
-test('sem pontos e sem tempo: a configuração não tem placar, estrelas, contagem nem tempo limite', () => {
+test('sem pontos e sem tempo limite; a contagem 3, 2, 1 antes da vez voltou (pedido da equipe, 11/11/2026)', () => {
   assert.equal(SIGN_GAME.scoring, undefined);
   assert.equal(SIGN_GAME.stars, undefined);
-  assert.equal(SIGN_GAME.timing.countdown, undefined);
-  assert.equal(SIGN_GAME.timing.tryFor, undefined);
+  assert.equal(SIGN_GAME.timing.tryFor, undefined, 'depois do SUA VEZ não há relógio');
+  assert.equal(SIGN_GAME.timing.countdown, 3, '3, 2, 1');
+  assert.ok(SIGN_GAME.timing.countdownMs >= 500 && SIGN_GAME.timing.countdownMs <= 1000, 'como na 2.1.1 (0,7 s cada número)');
   assert.ok(SIGN_GAME.timing.tipAfter >= 8, 'a dica vem com calma');
 });
 

@@ -4,13 +4,16 @@
  *   a ordem: na primeira vez, A, E, I, O, U; depois, sorteada, com a tela
  *   "SORTEANDO AS VOGAIS..." (as vogais trocam de lugar e mostram a ordem)
  *   → a vogal na tela (a letra e a carta do sinal) → OLHE: o intérprete faz o
- *   sinal duas vezes → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA", com calma
+ *   sinal duas vezes → 3, 2, 1 (por cima da câmera) → SUA VEZ: "FAÇA O SINAL
+ *   DO A PARA A CÂMERA", com calma
  *   → a câmera reconheceu: ISSO! → próximo desafio (ordem fixa)
  *   → a câmera viu outro sinal: QUASE! Olhe de novo... (e a criança continua)
  *
- * Sem pontos, sem contagem regressiva e sem tempo limite desde a versão 2.2:
- * o relógio fazia a criança se apressar, e o reconhecimento da mão funciona
- * melhor com calma. Só certo e "quase", com a instrução bem clara.
+ * Sem pontos e sem tempo limite desde a versão 2.2: o relógio fazia a criança
+ * se apressar, e o reconhecimento da mão funciona melhor com calma. Só certo e
+ * "quase", com a instrução bem clara. A contagem 3, 2, 1 antes da vez voltou
+ * na 2.2.2, a pedido da equipe: ela só avisa quando começar (a criança prepara
+ * a mão), e depois dela não há relógio.
  *
  * O jogo precisa da câmera, como os outros jogos (não há botões "acertei" e
  * "errei", que dariam para trapacear). Nada de esqueleto da mão nem termos
@@ -63,6 +66,7 @@ export class SignGame {
       status: q('[data-status]'),
       statusText: q('[data-status-text]'),
       statusBar: q('[data-status-bar]'),
+      countdown: q('[data-countdown]'),
       draw: q('[data-draw]'),
       drawTitle: q('[data-draw-title]'),
       drawVowels: q('[data-draw-vowels]'),
@@ -160,6 +164,7 @@ export class SignGame {
     window.removeEventListener('resize', this._onResize);
     this.el.status.hidden = true;
     this.el.draw.hidden = true;
+    this.el.countdown.hidden = true;
     this._resizeObserver?.disconnect();
     clearToasts();
   }
@@ -348,7 +353,9 @@ export class SignGame {
     await this._playClip(item);
     this.el.videoPanel.classList.remove('is-olhe');
     if (!this._alive(token) || this.match.phase !== PHASE.WATCH) return;
-    // sem 3, 2, 1 e sem relógio: a vez da criança começa com calma
+    // 3, 2, 1 por cima da câmera: a criança prepara a mão (e depois, sem relógio)
+    await this._countdown(token);
+    if (!this._alive(token) || this.match.phase !== PHASE.WATCH) return;
     this.match.startTry();
     this._step('vez', 'mao', `SUA VEZ! FAÇA O SINAL DO <b>${item.letter}</b> PARA A CÂMERA`);
     this.el.camPanel.classList.add('is-vez');
@@ -360,6 +367,27 @@ export class SignGame {
     this._tryStartedAt = performance.now();
     this._tipShown = false;
     this._loop(token);
+  }
+
+  /**
+   * 3, 2, 1 por cima da câmera, antes da vez da criança (como na versão 2.1.1).
+   * Para sozinha em VER DE NOVO, PULAR ou ao sair (o `token` muda).
+   */
+  async _countdown(token) {
+    const box = this.el.countdown;
+    const run = (this._countRun = (this._countRun || 0) + 1);
+    box.hidden = false;
+    for (let n = SIGN_GAME.timing.countdown; n > 0; n--) {
+      box.textContent = n;
+      box.classList.remove('is-pulso');
+      void box.offsetWidth; // recomeça a animação a cada número
+      box.classList.add('is-pulso');
+      sfx.tick();
+      await sleep(SIGN_GAME.timing.countdownMs);
+      if (!this._alive(token)) break;
+    }
+    // esconde, a não ser que outra contagem já tenha começado nesse meio-tempo
+    if (this._countRun === run) box.hidden = true;
   }
 
   _loop(token) {

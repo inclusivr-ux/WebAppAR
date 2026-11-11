@@ -110,3 +110,7 @@ A equipe pediu para arquivar o zoológico, se ele não ficar fluido. O caminho �
 - a contagem 3-2-1, o tempo limite de cada tentativa e as estrelas do fim.
 
 Tudo está no commit `a6eba3a`.
+
+**A contagem 3, 2, 1 voltou na versão 2.2.2** (11/11/2026), a pedido da equipe:
+"o 3, 2, 1... sua vez estava funcionando melhor". O tempo limite, os pontos e
+as estrelas continuam fora.

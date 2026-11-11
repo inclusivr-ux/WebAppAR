@@ -58,3 +58,6 @@
     precisa ser maior na profundidade do que dos lados. (Capítulo 4)
 19. **Se a ordem é sorteada, avise.** Mostre que está sorteando; a primeira vez
     pode ser na ordem que a criança já conhece. (Capítulo 4)
+20. **Contagem não é relógio.** Um 3, 2, 1 antes da vez diz quando a câmera
+    começa a olhar e dá tempo de preparar a mão. O que apressa a criança é o
+    tempo limite depois. Ao tirar o relógio, mantenha a contagem. (Capítulo 4)
