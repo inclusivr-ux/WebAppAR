@@ -221,6 +221,74 @@ veio depois:
 
 **Números.** 96 testes de unidade e 115 verificações ponta a ponta, todas
 passando (112 antes da música; as 3 novas conferem a trilha de verdade e o
-botão que some sem ela). O teste no celular de verdade ficou como pedido à equipe, com um
-medidor novo: abrir o app com `?debug=1` mostra quantas vezes por segundo a
-tela é desenhada e o rastreio roda.
+botão que some sem ela). O teste no celular de verdade ficou como pedido à
+equipe, com um medidor novo: abrir o app com `?debug=1` mostra quantas vezes
+por segundo a tela é desenhada e o rastreio roda.
+
+**No ar.** O Luciano pediu o link para testar e deu o OK para publicar. A 2.2
+entrou no `main` pelo PR #5 e chegou ao site em cerca de um minuto. O Claude
+conferiu o site ao vivo, num navegador sem janela:
+- a versão é a 2.2.0;
+- a música abre (5 min 55 s);
+- as instruções mostram o elefante do Igor;
+- os 5 animais e os 2 arquivos de reconhecimento baixam;
+- o arquivo da Aia não existe mais no site.
+
+## Capítulo 4. Os detalhes do teste da 2.2 (terça, 11/11/2026)
+
+**O que a equipe viu.** Com a 2.2 no ar, a equipe testou no celular e mandou
+três fotos. O rastreio novo agradou: "No zoológico, está funcionando bem o
+tracking novo agora". Faltavam três detalhes.
+
+**Os botões da tela inicial.** "Botão de tela cheia e de música estão mal
+posicionados nesse layout."
+- Na 2.2, os dois ficavam empilhados no canto de cima, por cima da ilustração
+  do Igor. Passavam da borda do arco e tinham larguras diferentes: "SAIR DA
+  TELA CHEIA" era bem mais larga.
+- O Claude levou os dois para baixo, dos lados da marca da InclusiVR, com os
+  mesmos botões de ícone dos jogos (o X, o ? e o som). A música desligada
+  aparece com a nota cortada (imagem `04_01`).
+- Um teste novo confere, em seis tamanhos de tela e em paisagem, que os dois
+  ficam na linha da marca, dentro da tela e fora da ilustração.
+
+**O zoológico amontoado.** "Estão todos convergindo para uma única área,
+possivelmente um plano." Antes de mexer, o Claude mediu:
+- o "chão" do zoológico ocupava só de 28% a 73% da altura da tela;
+- cada animal ia visitar alguém a cada 7 a 14 segundos. Com cinco animais, era
+  uma visita a cada dois segundos;
+- o encontro acontecia a uma distância menor que a soma dos tamanhos: um
+  entrava no outro, e nada os separava depois;
+- num teste com os 10, a 2.2 tinha de 17 a 24 pares um dentro do outro, de 45
+  pares possíveis.
+
+O que resolveu foi um arquivo novo, `zooSpace.js`:
+- o chão passou a ocupar a tela entre a barra de cima e a fileira de retratos,
+  calculado com a própria câmera do app;
+- ninguém entra no outro, e cada um passeia para um lugar vazio;
+- os encontros ficaram lado a lado, e as visitas, raras.
+
+Foram três rodadas de ajuste, com fotos:
+1. Na primeira, eles ainda ficavam no meio. O lugar de chegada preferia a
+   coluna da carta, e um bicho alto tapava quem estava logo atrás. A
+   profundidade passou a pedir mais espaço que os lados.
+2. Na segunda, com a tela deitada, a fileira de retratos quebrava em duas
+   linhas, e as letras "U" e "I" ficavam coladas, como a palavra "UI".
+3. Na terceira, eles se espalharam também com a tela deitada.
+
+No fim, nenhum par ficou sobreposto, e eles ocupam de 65% a 77% da altura da
+tela (imagem `04_02`).
+
+**O sorteio do Sinalize.** "Só pra não pegar ninguém de surpresa. A primeira
+vez pode ser a e i o u normal, depois sorteado sempre."
+- A primeira partida no aparelho vem em ordem.
+- Depois, cada partida começa com "SORTEANDO AS VOGAIS...": as cinco vogais
+  pulam, trocam de lugar e mostram a ordem da partida (imagem `04_03`).
+- No primeiro teste, atrás do aviso apareciam restos da partida anterior
+  ("OLHE O SINAL DO E", "LETRA U"). O Claude limpou o fundo: durante o sorteio,
+  a vogal é um "?".
+
+Das três fotos da equipe, a do Sinalize tem o rosto de uma pessoa e ficou fora
+do making off.
+
+**Números.** 111 testes de unidade e 128 verificações ponta a ponta, todas
+passando. Versão 2.2.1.

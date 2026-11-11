@@ -1,7 +1,8 @@
 /**
  * SINALIZE! — configuração (Jogo 3 da sala de jogos).
  *
- *   o jogo sorteia uma VOGAL (ordem fixa por partida, com semente)
+ *   a ordem das VOGAIS: na primeira vez, A, E, I, O, U; depois, sorteada (ordem
+ *   fixa por partida, com semente), com o aviso "SORTEANDO AS VOGAIS..."
  *   → mostra a letra e a carta do sinal → o intérprete faz o sinal DUAS vezes
  *   → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
  *   → a câmera reconheceu: ISSO! → próximo
@@ -40,7 +41,16 @@ export const SIGN_GAME = {
   /** o intérprete faz a vogal duas vezes (e para um pouco na vogal, ver VOWEL_CLIPS.hold) */
   watch: { letterTimes: 2 },
 
+  /**
+   * A ORDEM: a primeira partida no aparelho vem em ordem (A, E, I, O, U); ela
+   * conta até ser terminada uma vez (o aparelho guarda esta chave). Depois,
+   * as vogais vêm sempre sorteadas, com o aviso "SORTEANDO AS VOGAIS...".
+   */
+  orderKey: 'sinalizeOrdemFeita',
+
   timing: {
+    drawMs: 1500, // "SORTEANDO AS VOGAIS...": as vogais trocam de lugar
+    drawShowMs: 1400, // "VOGAIS SORTEADAS!": a ordem da partida, antes de começar
     nextMs: 1900, // depois do ISSO!, até o próximo desafio
     almostMs: 2600, // quanto tempo o "QUASE!" fica na tela (a criança continua tentando)
     tipAfter: 12, // segundos sem acertar até aparecer UMA dica (luz, mão inteira na tela); nada se perde

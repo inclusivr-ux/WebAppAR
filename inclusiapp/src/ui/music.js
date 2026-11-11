@@ -130,7 +130,11 @@ export function setupMusic() {
   checkMusic();
 }
 
-/** O botão MÚSICA: aparece só com o arquivo no app; mostra ligado/desligado. */
+/**
+ * O botão MÚSICA: aparece só com o arquivo no app; mostra ligado/desligado
+ * pelo ícone (a nota cortada e o fundo cinza quando está desligada) e pelo
+ * nome, para os leitores de tela e na dica do mouse.
+ */
 export function setupMusicButton(button) {
   if (!button) return;
   const label = button.querySelector('[data-music-label]');
@@ -138,8 +142,10 @@ export function setupMusicButton(button) {
   const render = () => {
     button.hidden = !musicAvailable();
     const on = isMusicOn();
+    const name = on ? 'Desligar a música' : 'Ligar a música';
     button.setAttribute('aria-pressed', String(on));
-    button.setAttribute('aria-label', on ? 'Desligar a música' : 'Ligar a música');
+    button.setAttribute('aria-label', name);
+    button.title = name;
     if (label) label.textContent = on ? 'MÚSICA' : 'SEM MÚSICA';
     use?.setAttribute('href', on ? '#i-musica' : '#i-musica-off');
   };

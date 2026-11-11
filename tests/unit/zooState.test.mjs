@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ZooState } from '../../inclusiapp/src/zoo/zooState.js';
+import { ZooState, defaultRadius } from '../../inclusiapp/src/zoo/zooState.js';
 import { ZOO, ZOO_CARDS, INTERACTIONS, LETTER_OF } from '../../inclusiapp/src/zoo/zooConfig.js';
 import { ANIMALS } from '../../inclusiapp/src/config.js';
 import { seededRandom } from '../../inclusiapp/src/game/random.js';
@@ -144,4 +144,34 @@ test('as interações só usam animais do livro e animações que existem', () =
     assert.ok(['special', 'happy'].includes(r.aClip) && ['special', 'happy'].includes(r.bClip));
     assert.ok(r.story, 'toda interação diz de onde vem na história');
   }
+});
+
+test('encontro é LADO A LADO: a soma dos raios mais a folga, sem um entrar no outro', () => {
+  const zoo = new ZooState({ random: seededRandom(12) });
+  const ele = zoo.add('animal', 'elefante', { x: 0, y: 0 });
+  const urso = zoo.add('animal', 'urso', { x: 0, y: 0.5 });
+  assert.ok(ele.r > 0.08 && urso.r > 0.08, 'cada um guarda o seu raio');
+  assert.equal(ele.r, defaultRadius('animal', 'elefante'));
+  const lado = ele.r + urso.r + ZOO.personalGap + 0.01; // onde quem visita para (zooAR._approach)
+  zoo.move(urso.id, lado, 0);
+  assert.ok(zoo.near(ele, urso), 'parado ao lado, já conta como encontro');
+  zoo.move(urso.id, ele.r + urso.r + ZOO.meetGap + 0.02, 0);
+  assert.ok(!zoo.near(ele, urso), 'um pouco mais longe, não');
+  zoo.setRadius(urso.id, 0.05);
+  assert.equal(urso.r, 0.05, 'o raio de verdade chega com o modelo');
+});
+
+test('as visitas são raras e ninguém visita quem já está recebendo visita (para não juntar todos)', () => {
+  assert.ok(ZOO.visitEvery[0] >= 15, 'uma visita a cada 16 a 30 s (eram 7 a 14)');
+  const zoo = new ZooState({ random: seededRandom(13) });
+  const urso = zoo.add('animal', 'urso', { x: 0, y: 0.6 });
+  const ele = zoo.add('animal', 'elefante', { x: -0.3, y: -0.5 });
+  const onca = zoo.add('animal', 'onca', { x: 0.3, y: -0.5 });
+  // os dois resolvem visitar ao mesmo tempo; o urso é o único amigo livre
+  ele.visitIn = 0;
+  onca.visitIn = 0;
+  urso.visitIn = Infinity;
+  const visitas = zoo.tick(0.1).filter((e) => e.type === 'visit');
+  assert.equal(visitas.length, 1, JSON.stringify(visitas));
+  assert.equal(visitas[0].to, urso.id);
 });

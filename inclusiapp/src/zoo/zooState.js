@@ -6,8 +6,11 @@
  * em AR (zooAR.js) move os modelos sobre a página e toca as animações; aqui
  * só se decide O QUE acontece.
  *
- * Coordenadas: as da página (x de −0,5 a +0,5; y com + para cima), as
- * mesmas do livro (ar/pageWalker.js). Cada `tick(dt)` devolve os eventos:
+ * Coordenadas: as da página do palco (y com + para o fundo), as mesmas do
+ * livro (ar/pageWalker.js); o chão pode ser um trapézio (zooSpace.js). Cada
+ * um guarda o seu raio (`r`): "perto" é LADO A LADO (a soma dos raios mais
+ * ZOO.meetGap), e ninguém precisa entrar no outro para se encontrar.
+ * Cada `tick(dt)` devolve os eventos:
  *   need       um animal quer algo (balão)
  *   mood       feliz / satisfeito / calmo / quer (balão)
  *   meet       dois animais se encontraram (a regra diz o que cada um faz)
@@ -16,11 +19,18 @@
  *   visit      um animal resolveu ir até alguém (a sua letra ou um amigo)
  */
 import { ZOO, NEEDS, INTERACTIONS, LETTER_OF } from './zooConfig.js';
+import { clampToBounds, randomPoint } from '../ar/pageWalker.js';
 
 let nextId = 1;
 
 const match = (rule, id) => rule === '*' || rule === id;
 const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+
+/** O raio de cada um antes de o modelo chegar (a maior medida do modelo é 1). */
+export function defaultRadius(kind, type, config = ZOO) {
+  const r = (config.sizes[kind === 'animal' ? type : 'letra'] || 0.2) * 0.45;
+  return kind === 'letra' ? r * (config.letterSpace || 1) : r;
+}
 
 export class ZooState {
   constructor({ config = ZOO, random = Math.random } = {}) {
@@ -51,13 +61,13 @@ export class ZooState {
    * Coloca um animal ('urso') ou uma letra ('A').
    * Devolve o elemento, ou null se não couber ou se ele já estiver lá.
    */
-  add(kind, type, pos = null) {
+  add(kind, type, pos = null, r = null) {
     if (this.full || this.find(kind, type)) return null;
-    const b = this.bounds;
-    const p = pos || { x: b.minX + (0.15 + this.random() * 0.7) * (b.maxX - b.minX), y: b.minY + (0.15 + this.random() * 0.7) * (b.maxY - b.minY) };
+    const p = pos || (([x, y]) => ({ x, y }))(randomPoint(this.bounds, this.random));
     const animal = kind === 'animal';
     const item = {
       id: nextId++, kind, type, x: 0, y: 0,
+      r: r ?? defaultRadius(kind, type, this.config),
       // animal: calmo | quer | feliz | satisfeito · letra: apagada | acesa
       state: kind === 'letra' ? 'apagada' : 'calmo',
       need: null,
@@ -65,6 +75,8 @@ export class ZooState {
       visitIn: animal ? this._delay(this.config.visitEvery, 0.5) : Infinity,
       moodLeft: 0,
       busy: 0, // segundos ocupado numa interação
+      visitTo: null, // quem ele está indo visitar
+      visitLeft: 0,
     };
     this.items.set(item.id, item);
     this.move(item.id, p.x, p.y);
@@ -82,9 +94,24 @@ export class ZooState {
   move(id, x, y) {
     const it = this.items.get(id);
     if (!it) return;
-    const b = this.bounds;
-    it.x = Math.max(b.minX, Math.min(b.maxX, x));
-    it.y = Math.max(b.minY, Math.min(b.maxY, y));
+    [it.x, it.y] = clampToBounds([x, y], this.bounds);
+  }
+
+  /** O raio de verdade, quando o modelo chega (meia largura, em larguras da página). */
+  setRadius(id, r) {
+    const it = this.items.get(id);
+    if (it && r > 0) it.r = r;
+  }
+
+  /** Lado a lado: a soma dos raios mais a folga do encontro. */
+  near(p, q) {
+    return dist(p, q) <= p.r + q.r + this.config.meetGap;
+  }
+
+  /** Alguém já está indo visitar `it`? */
+  _beingVisited(it, except) {
+    for (const o of this.items.values()) if (o !== except && o.visitTo === it.id && o.visitLeft > 0) return true;
+    return false;
   }
 
   _delay([a, b], scale = 1) {
@@ -126,6 +153,10 @@ export class ZooState {
 
     for (const it of animals) {
       if (it.busy > 0) it.busy = Math.max(0, it.busy - dt);
+      if (it.visitLeft > 0) {
+        it.visitLeft -= dt;
+        if (it.visitLeft <= 0) it.visitTo = null;
+      }
       if (it.moodLeft > 0) {
         it.moodLeft -= dt;
         if (it.moodLeft <= 0) {
@@ -141,15 +172,20 @@ export class ZooState {
           events.push({ type: 'need', id: it.id, need: it.need });
         }
       }
-      // de vez em quando vai visitar alguém (a sua letra primeiro, se estiver apagada)
+      // de vez em quando vai visitar alguém (a sua letra primeiro, se estiver apagada);
+      // ninguém visita quem está ocupado ou já recebendo visita (para não juntar todos)
       it.visitIn -= dt;
       if (it.visitIn <= 0 && !it.busy) {
         it.visitIn = this._delay(this.config.visitEvery);
         const letter = letters.find((l) => l.type === LETTER_OF[it.type] && l.state === 'apagada' && !l.waitAway);
-        const friends = animals.filter((a) => a !== it);
+        const friends = animals.filter((a) => a !== it && !a.busy && !a.visitTo && !this._beingVisited(a, it));
         const to = letter && (this.random() < 0.6 || !friends.length) ? letter
           : friends.length ? friends[Math.floor(this.random() * friends.length)] : null;
-        if (to && dist(it, to) > this.config.meetDistance) events.push({ type: 'visit', id: it.id, to: to.id });
+        if (to && !this.near(it, to)) {
+          it.visitTo = to.id;
+          it.visitLeft = this.config.visitTime;
+          events.push({ type: 'visit', id: it.id, to: to.id });
+        }
       }
     }
 
@@ -164,7 +200,7 @@ export class ZooState {
         }
         continue;
       }
-      const near = animals.filter((a) => LETTER_OF[a.type] === l.type && dist(a, l) < this.config.meetDistance);
+      const near = animals.filter((a) => LETTER_OF[a.type] === l.type && this.near(a, l));
       if (l.waitAway) {
         if (!near.length) l.waitAway = false;
         continue;
@@ -174,6 +210,8 @@ export class ZooState {
         l.state = 'acesa';
         l.litLeft = this.config.letterLit;
         friend.busy = 4;
+        friend.visitTo = null;
+        friend.visitLeft = 0;
         events.push({ type: 'letter', id: l.id, animal: friend.id, letter: l.type });
         this._satisfy(friend, events);
       }
@@ -184,7 +222,7 @@ export class ZooState {
       for (let j = i + 1; j < animals.length; j++) {
         const p = animals[i];
         const q = animals[j];
-        if (p.busy || q.busy || dist(p, q) > this.config.meetDistance) continue;
+        if (p.busy || q.busy || !this.near(p, q)) continue;
         const key = p.id < q.id ? `${p.id}|${q.id}` : `${q.id}|${p.id}`;
         if (this.pairCooldowns.has(key)) continue;
         const found = this._rule(p, q);
@@ -199,6 +237,8 @@ export class ZooState {
         this.pairCooldowns.set(key, this.config.pairCooldown);
         a.busy = 5;
         b.busy = 5;
+        a.visitTo = b.visitTo = null;
+        a.visitLeft = b.visitLeft = 0;
         events.push({ type: 'meet', a: a.id, b: b.id, rule });
         for (const it of [a, b]) {
           if (it.need && rule.satisfies?.includes(it.need)) this._satisfy(it, events);

@@ -10,6 +10,7 @@
  * verdade com as fotos de teste: o caminho real (câmera → MindAR/MediaPipe →
  * 3D) é exercitado. Capturas de tela em test-results/.
  * CHROMIUM_PATH=/caminho/do/chrome usa um Chromium já instalado.
+ * ZOO_TELA=844x390 roda o zoológico em outro tamanho de tela (padrão: 390x844).
  */
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -87,9 +88,12 @@ async function testScreens() {
   check('início: a trilha é um MP3 que toca (oogway-morrendo.mp3, 5 min 55 s)', /^[a-z0-9-]+\.mp3$/.test(trilha.arquivo) && trilha.segundos > 300, JSON.stringify(trilha));
   await shot(page, 'menu');
   await page.locator('[data-action="fullscreen"]').click();
-  await page.waitForFunction(() => !!document.fullscreenElement && document.querySelector('[data-fullscreen-label]').textContent.includes('SAIR'), null, { timeout: 5000 }).catch(() => {});
-  const tela = await page.evaluate(() => ({ cheia: !!document.fullscreenElement, texto: document.querySelector('[data-fullscreen-label]').textContent }));
-  check('início: TELA CHEIA liga a tela cheia (e o botão vira SAIR DA TELA CHEIA)', tela.cheia && tela.texto.includes('SAIR'), JSON.stringify(tela));
+  await page.waitForFunction(() => !!document.fullscreenElement && document.querySelector('[data-action="fullscreen"]').getAttribute('aria-label').includes('Sair'), null, { timeout: 5000 }).catch(() => {});
+  const tela = await page.evaluate(() => {
+    const b = document.querySelector('[data-action="fullscreen"]');
+    return { cheia: !!document.fullscreenElement, nome: b.getAttribute('aria-label'), icone: b.querySelector('use').getAttribute('href') };
+  });
+  check('início: TELA CHEIA liga a tela cheia (o ícone e o nome viram "Sair da tela cheia")', tela.cheia && tela.nome === 'Sair da tela cheia' && tela.icone === '#i-tela-normal', JSON.stringify(tela));
   await page.click('[data-action="fullscreen"]');
   await page.waitForFunction(() => !document.fullscreenElement, null, { timeout: 5000 }).catch(() => {});
 
@@ -148,13 +152,30 @@ async function testScreens() {
   for (const [w, h] of [[360, 640], [375, 667], [390, 844], [412, 915], [768, 1024], [844, 390]]) {
     const p = await newPage({ width: w, height: h });
     await go(p, '', 'menu');
+    await p.waitForSelector('[data-action="music"]', { state: 'visible', timeout: 5000 }).catch(() => {});
     const fit = await p.evaluate(() => {
       const scr = document.querySelector('[data-screen="menu"]');
       const marca = document.querySelector('.menu__assinatura img').getBoundingClientRect();
       const links = document.querySelector('.menu__links').getBoundingClientRect();
-      return { rola: scr.scrollHeight > scr.clientHeight + 1, marca: marca.bottom <= innerHeight && marca.height >= 28, links: links.bottom <= innerHeight };
+      const janela = document.querySelector('.menu__janela').getBoundingClientRect();
+      // MÚSICA e TELA CHEIA: na linha da marca, dentro da tela e fora da ilustração
+      const botoes = ['music', 'fullscreen'].map((a) => {
+        const b = document.querySelector(`[data-action="${a}"]`);
+        const r = b.getBoundingClientRect();
+        const meio = (r.top + r.bottom) / 2;
+        return {
+          a, visivel: !b.hidden && r.width > 0,
+          naTela: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight,
+          foraDaArte: r.bottom <= janela.top || r.top >= janela.bottom || r.right <= janela.left || r.left >= janela.right,
+          naLinha: Math.abs(meio - (marca.top + marca.bottom) / 2) <= 6,
+          tamanho: Math.round(r.width),
+        };
+      });
+      return { rola: scr.scrollHeight > scr.clientHeight + 1, marca: marca.bottom <= innerHeight && marca.height >= 28, links: links.bottom <= innerHeight, botoes };
     });
     check(`início ${w}×${h}: cabe sem rolar, com a marca da InclusiVR à vista`, !fit.rola && fit.marca && fit.links, JSON.stringify(fit));
+    check(`início ${w}×${h}: TELA CHEIA e MÚSICA ao lado da marca, fora da ilustração (botões de ícone de ${fit.botoes[0].tamanho} px)`,
+      fit.botoes.every((b) => b.visivel && b.naTela && b.foraDaArte && b.naLinha && b.tamanho >= 44), JSON.stringify(fit.botoes));
     if (w === 360 || w === 412) await shot(p, `menu-${w}x${h}`);
     await p.context().close();
   }
@@ -171,7 +192,8 @@ async function testScreens() {
   check('música: começa depois do primeiro toque', await tocando());
   await m.click('[data-action="music"]');
   await m.waitForTimeout(700);
-  check('música: o botão desliga (SEM MÚSICA)', !(await tocando()) && (await m.textContent('[data-music-label]')) === 'SEM MÚSICA');
+  check('música: o botão desliga (a nota cortada, "Ligar a música")', !(await tocando()) && (await m.getAttribute('[data-action="music"]', 'aria-pressed')) === 'false' &&
+    (await m.getAttribute('[data-action="music"]', 'aria-label')) === 'Ligar a música' && (await m.getAttribute('[data-action="music"] use', 'href')) === '#i-musica-off');
   await m.click('[data-action="music"]');
   await m.waitForTimeout(500);
   check('música: e liga de novo', await tocando());
@@ -368,7 +390,9 @@ async function testCards() {
 
 /* ================================================================ zoológico */
 async function testZoo() {
-  const page = await newPage();
+  // outro tamanho de tela: ZOO_TELA=844x390 npm run test:e2e -- zoo
+  const [zw, zh] = (process.env.ZOO_TELA || '390x844').split('x').map(Number);
+  const page = await newPage({ width: zw, height: zh });
   await go(page, 'zoo', 'zoo-intro');
   await page.click('[data-action="start-zoo"]');
   await page.waitForFunction(() => window.__app.zoo.session?.running, null, { timeout: 120000 });
@@ -417,7 +441,41 @@ async function testZoo() {
   check('zoo: com os 10, o reconhecimento das cartas para (o celular só desenha)', dez.rastreio === false, JSON.stringify(dez));
   check('zoo: os 10 cabem num celular comum (≤ 130 mil triângulos, ≤ 40 chamadas)', dez.tri <= 130000 && dez.chamadas <= 40, JSON.stringify(dez));
   await page.evaluate((u) => __fakeCam.show(u), zoo('mesa'));
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(8000);
+  // cada um com o seu espaço, pela tela inteira (pedido da equipe, 11/11/2026: "todos estão muito amontoados")
+  const espaco = await page.evaluate(() => {
+    const z = window.__app.zoo;
+    const cam = z.session.camera;
+    const vp = z.session.viewport;
+    const V = cam.position.constructor;
+    const tela = (obj) => {
+      const v = new V();
+      obj.getWorldPosition(v).project(cam);
+      return { x: ((v.x + 1) / 2) * vp.width, y: ((1 - v.y) / 2) * vp.height };
+    };
+    const vivos = [...z.entries.values()].filter((e) => e.actor.state === 'living' && !e.leaving);
+    const pts = vivos.map((e) => ({ pe: tela(e.actor.container), cabeca: e.actor.screenPoint(cam, vp), pos: e.actor.wander.pos, r: e.item.r }));
+    let juntos = 0;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        if (Math.hypot(pts[i].pos[0] - pts[j].pos[0], pts[i].pos[1] - pts[j].pos[1]) < (pts[i].r + pts[j].r) * 0.9) juntos += 1;
+      }
+    }
+    const topo = document.querySelector('[data-screen="zoo"] .ar-topo').getBoundingClientRect().bottom;
+    const fileira = document.querySelector('[data-zoo-present]').getBoundingClientRect().top;
+    const ys = pts.map((p) => p.pe.y);
+    const xs = pts.map((p) => p.pe.x);
+    return {
+      n: pts.length,
+      juntos,
+      altura: +((Math.max(...ys) - Math.min(...ys)) / (fileira - topo)).toFixed(2),
+      largura: +((Math.max(...xs) - Math.min(...xs)) / vp.width).toFixed(2),
+      dentro: pts.every((p) => p.cabeca.y >= topo - 2 && p.pe.y <= fileira + 2 && p.pe.x >= 0 && p.pe.x <= vp.width),
+    };
+  });
+  check('zoo: os 10, cada um com o seu espaço (ninguém dentro do outro)', espaco.n === 10 && espaco.juntos === 0, JSON.stringify(espaco));
+  check('zoo: espalhados pela tela (mais da metade da altura livre e da largura), sem ficar embaixo das barras',
+    espaco.altura >= 0.55 && espaco.largura >= 0.5 && espaco.dentro, JSON.stringify(espaco));
   await shot(page, 'zoo-10');
   // o urso e a letra U: U de Urso acende
   const lit = await page.evaluate(async () => {
@@ -447,8 +505,12 @@ async function testZoo() {
 async function testSign() {
   const page = await newPage();
   await go(page, 'sinalize', 'sign-intro');
+  check('sinalize: "Como jogar" avisa que, na primeira vez, as vogais vêm em ordem (depois, sorteadas)',
+    /primeira vez, as vogais vêm em ordem: A, E, I, O, U\. Depois, elas são sorteadas/.test(await page.textContent('[data-sign-order]')));
   await page.click('[data-action="start-sign"]');
   await page.waitForFunction(() => window.__app.sign.match?.phase === 'watch', null, { timeout: 180000 });
+  const primeira = await page.evaluate(() => ({ ordem: window.__app.sign.match.order.join(''), emOrdem: window.__app.sign.match.inOrder, aviso: !document.querySelector('[data-draw]').hidden }));
+  check('sinalize: a primeira partida vem em ordem (A, E, I, O, U), sem sorteio', primeira.ordem === 'AEIOU' && primeira.emOrdem && !primeira.aviso, JSON.stringify(primeira));
   const facing = await page.evaluate(() => window.__app.sign.facing);
   check('sinalize: câmera frontal por padrão (espelhada)', facing === 'user' && await page.evaluate(() => document.querySelector('[data-cam-video]').classList.contains('is-espelho')));
   check('sinalize: sem esqueleto da mão na tela', await page.locator('[data-screen="sign-game"] canvas.sg-hands, [data-hands]').count() === 0);
@@ -493,8 +555,33 @@ async function testSign() {
   check('sinalize: no fim, "VOCÊ FEZ 1 DE 5 SINAIS", com cada vogal (sem pontos nem recorde)', /VOCÊ FEZ\s*1 DE 5\s*SINAIS/.test(fim) && !/PONTOS|RECORDE/.test(fim) &&
     await page.locator('[data-sum-vowels] li').count() === 5, fim.replace(/\s+/g, ' ').trim());
   await shot(page, 'sinalize-fim');
+  // JOGAR DE NOVO: agora sorteada, com o aviso (para não pegar ninguém de surpresa)
+  await page.click('[data-screen="sign-game"] [data-action="replay"]');
+  await page.waitForSelector('[data-draw]:not([hidden])', { timeout: 5000 }).catch(() => {});
+  const sorteando = await page.textContent('[data-draw-title]').catch(() => '');
+  await shot(page, 'sinalize-sorteando');
+  await page.waitForFunction(() => document.querySelector('[data-draw-title]').textContent.includes('SORTEADAS'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(800); // as vogais acabam de aparecer, uma a uma
+  const sorteio = await page.evaluate(() => ({
+    titulo: document.querySelector('[data-draw-title]').textContent,
+    mostra: [...document.querySelectorAll('[data-draw-vowels] li')].map((li) => li.textContent.trim()).join(''),
+    ordem: window.__app.sign.match.order.join(''),
+    emOrdem: window.__app.sign.match.inOrder,
+  }));
+  await shot(page, 'sinalize-sorteadas');
+  check('sinalize: JOGAR DE NOVO mostra "SORTEANDO AS VOGAIS..." e depois a ordem sorteada (diferente de A, E, I, O, U)',
+    /SORTEANDO AS VOGAIS/.test(sorteando) && sorteio.titulo === 'VOGAIS SORTEADAS!' && sorteio.mostra === sorteio.ordem && sorteio.ordem !== 'AEIOU' && !sorteio.emOrdem,
+    JSON.stringify({ sorteando, ...sorteio }));
+  await page.waitForFunction(() => document.querySelector('[data-draw]').hidden && window.__app.sign.match.phase === 'watch', null, { timeout: 15000 }).catch(() => {});
+  check('sinalize: depois do aviso, o jogo começa pela primeira vogal sorteada', await page.evaluate(() => {
+    const m = window.__app.sign.match;
+    return document.querySelector('[data-draw]').hidden && m.phase === 'watch' && m.round.item.id === m.order[0];
+  }));
   await go(page, 'sala', 'sala');
   check('sinalize: sair desliga a câmera', await page.evaluate(() => __fakeCam.liveTracks()) === 0);
+  await go(page, 'sinalize', 'sign-intro');
+  check('sinalize: depois da primeira partida, "Como jogar" diz que as vogais vêm sorteadas',
+    /vêm sorteadas: cada partida tem uma ordem diferente/.test(await page.textContent('[data-sign-order]')));
   noErrors(page, 'sinalize');
   await page.context().close();
 

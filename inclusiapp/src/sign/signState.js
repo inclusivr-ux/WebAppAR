@@ -2,7 +2,10 @@
  * Regras de uma partida do Sinalize! — sem DOM, testadas em Node
  * (tests/unit/signState.test.mjs).
  *
- *   start(seed) → embaralha UMA vez (ordem fixa na partida)
+ *   start(seed, { inOrder }) → a ordem da partida: na primeira vez no aparelho,
+ *               A, E, I, O, U; depois, sorteada (uma vez por partida, com semente,
+ *               e nunca igual a A, E, I, O, U), com o aviso "SORTEANDO AS VOGAIS..."
+ *               (pedido da equipe, 11/11/2026: "só pra não pegar ninguém de surpresa")
  *   nextRound() → [WATCH] o intérprete mostra o sinal
  *               → startTry() [TRY] a vez da criança (sem tempo limite)
  *                   almost() a câmera viu outro sinal: "QUASE!" (continua em TRY)
@@ -11,7 +14,7 @@
  * Sem pontos e sem cronômetro desde a versão 2.2 (pedido da equipe): o jogo
  * só sabe se a criança fez o sinal (certo), se pulou e quantos "quase" houve.
  */
-import { Deck } from '../game/deck.js';
+import { Deck, shuffle } from '../game/deck.js';
 import { newSeed, seededRandom } from '../game/random.js';
 
 export const PHASE = {
@@ -34,11 +37,26 @@ export class SignMatch {
     return Math.min(this.config.rounds, this.config.items.length);
   }
 
-  /** Nova partida: nova semente (ou a dada) e um embaralhamento. */
-  start(seed = newSeed()) {
+  /**
+   * Nova partida.
+   * @param {number} [seed]  a semente do sorteio (a mesma semente dá a mesma ordem)
+   * @param {{inOrder?: boolean}} [opts]  inOrder: na ordem A, E, I, O, U (a primeira vez)
+   */
+  start(seed = newSeed(), { inOrder = false } = {}) {
     this.seed = seed >>> 0;
-    this.deck = new Deck(this.config.items.map((i) => i.id), { random: seededRandom(this.seed) });
-    this.order = this.deck.order.slice(0, this.rounds);
+    this.inOrder = inOrder;
+    const ids = this.config.items.map((i) => i.id);
+    const inSequence = (order) => order.every((id, i) => id === ids[i]);
+    if (inOrder) {
+      this.order = ids.slice(0, this.rounds);
+    } else {
+      const random = seededRandom(this.seed);
+      this.deck = new Deck(ids, { random });
+      this.order = this.deck.order.slice(0, this.rounds);
+      // sorteado de verdade: nunca a mesma ordem da primeira vez
+      for (let i = 0; i < 20 && inSequence(this.order); i++) this.order = shuffle(ids, random).slice(0, this.rounds);
+      if (inSequence(this.order)) this.order = [...this.order.slice(1), this.order[0]];
+    }
     this.index = -1;
     this.round = null;
     this.results = [];

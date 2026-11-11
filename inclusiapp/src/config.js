@@ -12,7 +12,7 @@
 export const APP = {
   name: 'SinalizaAção',
   subtitle: 'Animais em Voga',
-  version: '2.2.0',
+  version: '2.2.1',
   links: {
     store: 'https://loja.inclusivr.com.br/',
     site: 'https://inclusivr.com.br/',
