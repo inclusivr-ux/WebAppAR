@@ -511,6 +511,13 @@ async function testSign() {
   await page.waitForFunction(() => window.__app.sign.match?.phase === 'watch', null, { timeout: 180000 });
   const primeira = await page.evaluate(() => ({ ordem: window.__app.sign.match.order.join(''), emOrdem: window.__app.sign.match.inOrder, aviso: !document.querySelector('[data-draw]').hidden }));
   check('sinalize: a primeira partida vem em ordem (A, E, I, O, U), sem sorteio', primeira.ordem === 'AEIOU' && primeira.emOrdem && !primeira.aviso, JSON.stringify(primeira));
+  // anota os números da contagem 3, 2, 1 (por cima da câmera, antes da vez)
+  await page.evaluate(() => {
+    window.__contagem = [];
+    const box = document.querySelector('[data-countdown]');
+    new MutationObserver(() => { if (!box.hidden && box.textContent) window.__contagem.push(box.textContent); })
+      .observe(box, { childList: true, characterData: true, subtree: true, attributes: true });
+  });
   const facing = await page.evaluate(() => window.__app.sign.facing);
   check('sinalize: câmera frontal por padrão (espelhada)', facing === 'user' && await page.evaluate(() => document.querySelector('[data-cam-video]').classList.contains('is-espelho')));
   check('sinalize: sem esqueleto da mão na tela', await page.locator('[data-screen="sign-game"] canvas.sg-hands, [data-hands]').count() === 0);
@@ -525,11 +532,21 @@ async function testSign() {
   });
   await page.waitForFunction(() => document.querySelector('[data-step-text]').textContent.includes('OLHE'), null, { timeout: 10000 }).catch(() => {});
   check('sinalize: o intérprete mostra o sinal (OLHE)', (await page.textContent('[data-step-text]')).includes('OLHE'));
+  await page.waitForSelector('[data-countdown]:not([hidden])', { timeout: 60000 }).catch(() => {});
+  await page.waitForTimeout(420); // o número cresce ("surge") antes da foto
+  await shot(page, 'sinalize-contagem');
   await page.waitForFunction(() => window.__app.sign.match.phase === 'try', null, { timeout: 60000 });
+  const contagem = await page.evaluate(() => ({
+    numeros: [...new Set(window.__contagem)].join(','),
+    escondida: document.querySelector('[data-countdown]').hidden,
+    naCamera: !!document.querySelector('[data-cam-panel] [data-countdown]'),
+  }));
+  check('sinalize: 3, 2, 1 por cima da câmera antes do SUA VEZ (como na 2.1.1), e depois a contagem some',
+    contagem.numeros === '3,2,1' && contagem.escondida && contagem.naCamera, JSON.stringify(contagem));
   const vez = await page.textContent('[data-step-text]');
   check('sinalize: depois de olhar, a instrução clara "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA"', /SUA VEZ/.test(vez) && /FAÇA O SINAL DO\s*A\s*PARA A CÂMERA/.test(vez), vez);
-  check('sinalize: sem placar, sem contagem e sem tempo', await page.locator('[data-score], [data-countdown], [data-sz-retry]').count() === 0 &&
-    await page.evaluate(() => window.__app.sign.match.stats.score === undefined));
+  check('sinalize: sem placar e sem tempo limite (depois do 3, 2, 1, sem relógio)', await page.locator('[data-score], [data-sz-retry]').count() === 0 &&
+    await page.evaluate(() => window.__app.sign.match.stats.score === undefined && window.__app.sign.match.attemptElapsed === undefined));
   await shot(page, 'sinalize-vez');
   // outra vogal na câmera: QUASE! (e a vez continua, sem perder nada)
   await page.evaluate(() => __fakeCam.show('/tests/fixtures/hands/E.jpg'));

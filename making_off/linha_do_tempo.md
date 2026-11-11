@@ -292,3 +292,24 @@ do making off.
 
 **Números.** 111 testes de unidade e 128 verificações ponta a ponta, todas
 passando. Versão 2.2.1.
+
+**No ar.** Como estava no plano aprovado, a 2.2.1 entrou no `main` pelo PR #6.
+O site mostrou a versão nova cerca de um minuto depois. O Claude conferiu ao
+vivo, num navegador sem janela: a versão é a 2.2.1, os dois botões ficam
+embaixo, ao lado da marca e fora da ilustração, o arquivo novo do zoológico
+está no site, e o "Como jogar" do Sinalize fala da ordem e do sorteio.
+
+**O veredito e a contagem de volta.** A equipe testou a 2.2.1: "ficou tudo
+ótimo". Ficou um último pedido: "o 3, 2, 1... sua vez estava funcionando
+melhor".
+- Na 2.2, a contagem tinha saído junto com os pontos e o tempo limite, porque
+  "o tempo passa a impressão de que tem que fazer rápido".
+- No celular, apareceu a diferença entre as duas coisas. A contagem não
+  apressa: ela avisa quando começar, e a criança prepara a mão antes de a
+  câmera começar a olhar. O que apressava era o tempo limite depois do
+  "SUA VEZ".
+- A contagem voltou como era na 2.1.1: números grandes em âmbar por cima da
+  câmera, 0,7 s cada (imagem `04_04`). O tempo limite continua fora.
+
+Com isso, a equipe declarou o app **pronto**. Versão 2.2.2, com 111 testes de
+unidade e 129 verificações ponta a ponta.

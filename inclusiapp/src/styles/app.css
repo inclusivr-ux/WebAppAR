@@ -440,6 +440,10 @@ button { font-family: inherit; }
 .sz__cam-msg { position: absolute; left: 8px; right: 8px; bottom: 34px; z-index: 2; padding: 6px 10px; border-radius: 10px; text-align: center;
   background: color-mix(in srgb, var(--signaria-noite) 90%, transparent); color: var(--signaria-pergaminho); font-size: 14px; font-weight: 800; }
 .sz__cam-msg:empty { display: none; }
+/* 3, 2, 1 antes da vez da criança, por cima da câmera (voltou na versão 2.2.2, a pedido da equipe) */
+.sz__contagem { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; font-size: 96px; font-weight: 900; color: var(--signaria-ambar);
+  -webkit-text-stroke: 3px var(--signaria-contorno); text-shadow: 0 6px 0 #0005; }
+.sz__contagem.is-pulso { animation: surge .5s ease-out both; }
 .sg-cam--acertou .sz__cam-msg { background: var(--signaria-ciano); color: var(--signaria-contorno); }
 .sz__cam-prog { position: absolute; left: 50%; bottom: 36px; width: 0; }
 .sz__cam-prog > i { position: absolute; left: 0; right: 0; }
@@ -525,7 +529,7 @@ button { font-family: inherit; }
   .screen { transition: none; transform: none; }
   .ar-scan__moldura, .ar-scan__demo .ico, .dica-toque__dedo, .botao-libras, .demo__dedo, .demo__arte--mao .ico,
   .demo__arte--celular img, .embaralhar__monte > i, .zoo-dica .ico, .salto__animal, .salto__brilho, .menu__brilhos > i, .faixa,
-  .sorteio .sorteio__vogais li { animation: none; }
+  .sorteio .sorteio__vogais li, .sz__contagem.is-pulso { animation: none; }
 }
 
 /* resumo: botões lado a lado sem quebrar em três linhas */

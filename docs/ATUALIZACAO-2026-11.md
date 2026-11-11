@@ -269,3 +269,17 @@ mesma conta nas duas versões):
 3. O Sinalize: a primeira partida em ordem e o JOGAR DE NOVO com o sorteio.
    O aparelho em que vocês já jogaram também começa em ordem uma vez, porque a
    chave é nova.
+
+### 8.2 Versão 2.2.2 — pronta (11/11/2026)
+
+O veredito da equipe sobre a 2.2.1: **"ficou tudo ótimo"**. Um último pedido,
+e o app foi **declarado pronto**:
+
+| Pedido | O que foi feito | Onde |
+|---|---|---|
+| "No minigame do media pipe, o 3, 2, 1... sua vez estava funcionando melhor. Só mude para aquela forma de novo por favor, e vamos declarar como pronto." | A **contagem 3, 2, 1** voltou, como na 2.1.1: números grandes em âmbar por cima da câmera da criança, 0,7 s cada, com um "tique", e então "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA". O reconhecimento da mão começa depois do "1". Para sozinha em VER DE NOVO, PULAR ou ao sair. O resto da 2.2 continua: **sem tempo limite** depois da vez (era ele que apressava), sem pontos, com QUASE e ISSO e com o aviso do sorteio | `index.html` (`data-countdown`), `app.css` (`.sz__contagem`), `sign/signGame.js` (`_countdown`), `sign/signConfig.js` (`timing.countdown`, `countdownMs`) |
+
+- 111 testes de unidade e 129 verificações ponta a ponta. Uma nova confere os
+  números 3, 2 e 1 por cima da câmera antes da vez.
+- **Estado: pronto.** O pedido "Web App AR simplificado" (seção 8) e os
+  detalhes do teste (8.1) estão feitos e aprovados pela equipe.

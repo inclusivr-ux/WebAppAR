@@ -4,12 +4,15 @@
  *   a ordem das VOGAIS: na primeira vez, A, E, I, O, U; depois, sorteada (ordem
  *   fixa por partida, com semente), com o aviso "SORTEANDO AS VOGAIS..."
  *   → mostra a letra e a carta do sinal → o intérprete faz o sinal DUAS vezes
- *   → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
+ *   → 3, 2, 1 → SUA VEZ: "FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
  *   → a câmera reconheceu: ISSO! → próximo
  *   → a câmera viu outro sinal: QUASE! Olhe de novo… (e a criança continua)
  *
- * Sem pontos e sem tempo (pedido da equipe, 10/11/2026): o relógio passava a
- * ideia de fazer rápido, e o reconhecimento funciona melhor com calma.
+ * Sem pontos e sem tempo limite (pedido da equipe, 10/11/2026): o relógio
+ * passava a ideia de fazer rápido, e o reconhecimento funciona melhor com
+ * calma. A contagem 3, 2, 1 antes da vez saiu junto na 2.2 e voltou na 2.2.2
+ * (11/11/2026: "o 3, 2, 1... sua vez estava funcionando melhor"): ela não é
+ * relógio, só avisa quando começar.
  *
  * Só as vogais: são configurações de mão paradas, que a câmera reconhece bem
  * (cerca de 90% nos testes da equipe). Os sinais dos animais têm movimento e
@@ -51,6 +54,10 @@ export const SIGN_GAME = {
   timing: {
     drawMs: 1500, // "SORTEANDO AS VOGAIS...": as vogais trocam de lugar
     drawShowMs: 1400, // "VOGAIS SORTEADAS!": a ordem da partida, antes de começar
+    // 3, 2, 1… antes da vez da criança (voltou na versão 2.2.2: a criança prepara a mão).
+    // Depois dele NÃO há tempo limite: o relógio é que apressava a criança.
+    countdown: 3,
+    countdownMs: 700,
     nextMs: 1900, // depois do ISSO!, até o próximo desafio
     almostMs: 2600, // quanto tempo o "QUASE!" fica na tela (a criança continua tentando)
     tipAfter: 12, // segundos sem acertar até aparecer UMA dica (luz, mão inteira na tela); nada se perde

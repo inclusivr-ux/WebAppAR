@@ -57,3 +57,6 @@ e erros de digitação corrigidos):
 - "Só mais um detalhe, avisar que está sorteando no mini game do media pipe.
   Só pra não pegar ninguém de surpresa. A primeira vez pode ser a e i o u
   normal, depois sorteado sempre."
+- "Ficou tudo ótimo. A única coisa que poderia melhorar é no minigame do media
+  pipe, o 3, 2, 1... sua vez estava funcionando melhor. Só mude para aquela
+  forma de novo por favor, e vamos declarar como pronto." (ao ver a 2.2.1)

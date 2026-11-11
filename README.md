@@ -26,7 +26,8 @@ celular (Android e iPhone), sem instalar nada.
     22 desde a versão 2.2.
   - **Sinalize!** — o jogo mostra uma **vogal**; o intérprete faz o sinal
     **duas vezes**, e a criança repete para a **câmera frontal**, com calma:
-    **sem pontos e sem tempo**, só "ISSO!" e "QUASE!". Na primeira vez, as
+    **sem pontos e sem tempo limite** (um 3, 2, 1 avisa quando começar), só
+    "ISSO!" e "QUASE!". Na primeira vez, as
     vogais vêm em ordem (A, E, I, O, U); depois, **sorteadas**, com o aviso
     "SORTEANDO AS VOGAIS...". O jogo precisa da câmera e **não grava imagens**.
 - **TELA CHEIA** e **MÚSICA** na tela inicial, embaixo, dos lados da marca da
@@ -277,16 +278,22 @@ se perdia (teste da equipe, 10/11/2026).
 ```text
 a ordem: na 1ª vez, A, E, I, O, U; depois, "SORTEANDO AS VOGAIS..." e a ordem da partida
 → a vogal na tela (a letra + a carta do sinal) → OLHE: o intérprete faz o sinal 2 vezes
-→ "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
+→ 3, 2, 1 por cima da câmera → "SUA VEZ! FAÇA O SINAL DO A PARA A CÂMERA" (câmera frontal), sem pressa
 → reconhecido: "ISSO! VOCÊ FEZ O A!" → próxima
 → outra vogal na câmera: "QUASE! OLHE DE NOVO O SINAL DO A NA CARTA" (e continua tentando)
 fim: "VOCÊ FEZ 4 DE 5 SINAIS", com cada vogal
 ```
 
-**Sem pontos e sem tempo** desde a versão 2.2 (pedido da equipe): o relógio
-passava a ideia de fazer rápido, e o reconhecimento funciona melhor com calma.
-Sem contagem 3-2-1, sem tempo limite, sem recordes. Depois de 12 s sem
-acertar, aparece **uma** dica (a mão inteira na câmera, com luz); nada se perde.
+**Sem pontos e sem tempo limite** desde a versão 2.2 (pedido da equipe): o
+relógio passava a ideia de fazer rápido, e o reconhecimento funciona melhor com
+calma. Sem recordes. Depois de 12 s sem acertar, aparece **uma** dica (a mão
+inteira na câmera, com luz); nada se perde.
+
+A **contagem 3, 2, 1** antes da vez saiu na 2.2 e **voltou na 2.2.2**, a pedido
+da equipe: "o 3, 2, 1... sua vez estava funcionando melhor". Os números grandes
+aparecem por cima da câmera, 0,7 s cada, como na 2.1.1. Eles só avisam quando
+começar, para a criança preparar a mão, e o reconhecimento começa depois do
+"1". Depois do "SUA VEZ!", não há relógio.
 
 - **A ordem** (desde a versão 2.2.1, pedido da equipe: "só pra não pegar
   ninguém de surpresa"):
